@@ -6,8 +6,7 @@ nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used
 //params.pipe_vers="1.0"
 
 // Source all processes
-include {MUNG_AND_ALIGN} from "$projectDir/modules/mung_and_align"
-include {LOCUS_BREAKER} from "$projectDir/modules/locus_breaker"
+include {MUNG_AND_LOCUS_BREAKER} from "$projectDir/modules/mung_and_locus_breaker"
 include {SUSIE_FINEMAPPING} from "$projectDir/modules/susie_finemapping"
 include {COJO_AND_FINEMAPPING} from "$projectDir/modules/cojo_and_finemapping"
 include {APPEND_TO_MASTER_COLOC} from "$projectDir/modules/append_to_master_coloc"
@@ -46,38 +45,19 @@ workflow {
         "sdY":row.sdY,
         "s":row.s,
         "grch":row.grch,
-        "bfile": row.bfile
+        "bfile": row.bfile,
+        "maf": row.maf,
+        "p_thresh1": row.p_thresh1,
+        "p_thresh2": row.p_thresh2,
+        "hole":row.hole
       ],
       row.input
     )
   }
 
 
-  // Run MUNG_AND_ALIGN process on gwas_input channel
-  MUNG_AND_ALIGN(gwas_input)
-
-
-  // Define input channel for merging aligned dataframes into a single file and run locus breaker
-  locus_breaker = Channel
-    .of(file(params.inputFileList))
-    .splitCsv(header:true, sep:"\t")
-    .map{ row -> tuple(
-      [
-        "study_id": row.study_id
-      ],
-      [  
-        "maf": row.maf,
-        "p_thresh1": row.p_thresh1,
-        "p_thresh2": row.p_thresh2,
-        "hole":row.hole
-      ]
-    )
-  }
-  .combine(MUNG_AND_ALIGN.out.dataset_munged_aligned, by: 0)
-
-// Run LOCUS_BREAKER process on locus_breaker channel
-  LOCUS_BREAKER(locus_breaker)
-
+  // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
+  MUNG_AND_LOCUS_BREAKER(gwas_input)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = LOCUS_BREAKER.out.loci_table
@@ -86,9 +66,6 @@ workflow {
       [
         "study_id": row.study_id
       ],
-//        [
-//        "is_in_hla":row.is_in_hla
-//        ],
       [
         "chr":row.chr,
         "start":row.start,
@@ -119,13 +96,8 @@ workflow {
     )
   }
   .combine(loci_for_finemapping, by:0)
-  .combine(MUNG_AND_ALIGN.out.dataset_munged_aligned, by:0)
-  .map{study_id, meta_finemapping, meta_loci, gwas_final -> tuple(study_id, meta_finemapping+meta_loci, gwas_final)}
-//  .map{study_id, is_in_hla, meta_finemapping, meta_loci, gwas_final -> tuple(study_id, meta_finemapping+meta_loci, gwas_final)}
-//  .branch{ is_in_hla -->
-//    TRUE: is_in_hla = TRUE
-//    FALSE: is_in_hla = FALSE
-//  }
+  .combine(MUNG_AND_LOCUS_BREAKER.out.dataset_munged_aligned, by:0)
+//  .map{study_id, meta_finemapping, meta_loci, gwas_final -> tuple(study_id, meta_finemapping+meta_loci, gwas_final)}
 
 
 // Run SUSIE_FINEMAPPING process on finemapping_input channel
@@ -134,6 +106,7 @@ workflow {
 
 // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
   COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, lauDir)
+
 
 // Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
   append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table
