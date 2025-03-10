@@ -4,7 +4,7 @@ process SUSIE_FINEMAPPING {
 
   // Define input
   input:
-    tuple val(meta_study_id), val(meta_finemapping), path(gwas_final)
+    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index)
     val lauDir
   
   // Define output
@@ -12,7 +12,7 @@ process SUSIE_FINEMAPPING {
     path "*_susie_finemap.rds", optional:true
     tuple val(meta_study_id), path ("*_coloc_info_table.tsv"), optional:true, emit:susie_info_coloc_table
     tuple val(meta_study_id), path ("*_ind_snps.tsv"), optional:true, emit:ind_snps_table    
-    tuple val(meta_study_id), val(meta_finemapping), path(gwas_final), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
+    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
 
   // Publish output file to specified directory   
   publishDir "results/finemap/", mode:"copy", pattern:"*_susie_finemap.rds"
@@ -25,10 +25,10 @@ process SUSIE_FINEMAPPING {
     '''
     Rscript --vanilla !{projectDir}/bin/s04_susie_finemapping.R \
         --pipeline_path !{projectDir}/bin/ \
-        --chr !{meta_finemapping.chr} \
-        --start !{meta_finemapping.start} \
-        --end !{meta_finemapping.end} \
-        --phenotype_id !{meta_finemapping.phenotype_id} \
+        --chr !{meta_loci.chr} \
+        --start !{meta_loci.start} \
+        --end !{meta_loci.end} \
+        --phenotype_id !{meta_loci.phenotype_id} \
         --dataset_aligned !{gwas_final} \
         --maf !{meta_finemapping.maf} \
         --bfile !{meta_finemapping.bfile} \

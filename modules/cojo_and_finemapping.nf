@@ -4,7 +4,7 @@ process COJO_AND_FINEMAPPING {
 
   // Define input
   input:
-    tuple val(meta_study_id), val(meta_finemapping), path(gwas_final), path(susie_error_message)
+    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path(susie_error_message)
     val lauDir
   
   // Define output
