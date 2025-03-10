@@ -28,8 +28,14 @@ opt$start <- as.numeric(opt$start)
 opt$end <- as.numeric(opt$end)
 
 # GWAS input
-dataset_aligned <- fread(opt$dataset_aligned, data.table=F) %>%
-  dplyr::filter(phenotype_id==opt$phenotype_id)
+dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phenotype_id))
+colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
+
+if(unique(dataset_aligned$type=="quant")){
+  dataset_aligned <- dataset_aligned %>% rename(sdY=temp)
+} else {
+  dataset_aligned <- dataset_aligned %>% rename(s=temp)
+}
 
 
 ################################
@@ -72,6 +78,7 @@ D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$MAF*(
 
 # Filter full GWAS sum stat for locus region
 D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
+
 
 ### Run SUSIE
 
