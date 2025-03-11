@@ -74,8 +74,8 @@ susie_ld <- prep_susie_ld(
 )
 
 # Compute trait variance
-dataset_aligned$MAF <- ifelse(dataset_aligned$freq < 0.5, dataset_aligned$freq, (1-dataset_aligned$freq))
-D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$MAF*(1-dataset_aligned$MAF), na.rm = T)
+#dataset_aligned$MAF <- ifelse(dataset_aligned$freq < 0.5, dataset_aligned$freq, (1-dataset_aligned$freq))
+D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$freq*(1-dataset_aligned$freq), na.rm = T)
 
 # Filter full GWAS sum stat for locus region
 D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
