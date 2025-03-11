@@ -60,7 +60,7 @@ workflow {
   MUNG_AND_LOCUS_BREAKER(gwas_input)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
-  loci_for_finemapping = LOCUS_BREAKER.out.loci_table
+  loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
     .splitCsv(header:true, sep:"\t")
     .map{ row -> tuple(
       [
@@ -90,14 +90,13 @@ workflow {
         "skip_dentist": row.skip_dentist,
         "maf": row.maf,
         "hole": row.hole,
-        "cs_thresh": row.cs_thresh,
-        "finemap_method": row.finemap_method
+        "cs_thresh": row.cs_thresh
       ]
     )
   }
   .combine(loci_for_finemapping, by:0)
   .combine(MUNG_AND_LOCUS_BREAKER.out.dataset_munged_aligned, by:0)
-//  .map{study_id, meta_finemapping, meta_loci, gwas_final -> tuple(study_id, meta_finemapping+meta_loci, gwas_final)}
+//  .map{study_id, meta_finemapping, meta_loci, gwas_final, gwas_final_index -> tuple(study_id, meta_finemapping+meta_loci, gwas_final, gwas_final_index)}
 
 
 // Run SUSIE_FINEMAPPING process on finemapping_input channel
@@ -106,8 +105,7 @@ workflow {
 
 // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
   COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, lauDir)
-
-
+   
 // Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
   append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table
     .mix(SUSIE_FINEMAPPING.out.ind_snps_table)
@@ -126,5 +124,4 @@ workflow {
     .map{ tuple( it[0], it[1..-1])}
 
   APPEND_TO_MASTER_COLOC(append_input_coloc)
-
 }
