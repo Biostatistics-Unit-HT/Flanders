@@ -19,7 +19,7 @@ suppressMessages(library(tidyr))
 suppressMessages(library(plyr))
 suppressMessages(library(Gviz))
 suppressMessages(library(Matrix))
-suppressMessages(library(Rfast))
+#suppressMessages(library(Rfast))
 suppressMessages(library(rtracklayer))
 suppressMessages(library(GenomicRanges))
 #suppressMessages(library(EnsDb.Hsapiens.v86))
@@ -460,6 +460,7 @@ run_dentist <- function(D=dataset_aligned
     }
   } else {
     cat(paste0(snsp_extracted, " variants remaining in the LD reference panel after SNPs extraction and MAF filter"))
+    system(paste0("rm ", random.number, "*"))
     quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
   }
 }
@@ -644,7 +645,7 @@ prep_susie_ld <- function(
   geno <- apply(geno, 2, function(x) {x[is.na(x)] <- mean(x,na.rm=TRUE); return(x)})
   # Correlation matrix
   ld <- cor(geno) #### NB: don't square it!!!!
-  system(paste0("rm ", random.number, ".*"))
+  system(paste0("rm ", random.number, "*"))
   return(ld)
 }
 
@@ -961,12 +962,12 @@ susie.cs.ht <- function(
   
   # Print verbose information
   if(verbose){
-    print(paste0(c("CS with lbf above threshold: ",good_lbf_cs),collapse = " "))
-    print(paste0(c("CS with mean purity above threshold: ",good_purity_mean_cs),collapse = " "))
-    print(paste0(c("CS with min purity threshold: ",good_purity_min_cs),collapse = " "))
-    print(paste0(c("P-values of the index SNP for each CS: ",min_pval_per_cs),collapse = " "))
-    print(paste0(c("CS with index SNP P-value below threshold: ",good_pval_cs),collapse = " "))
-    print(paste0(c("CS which sutisfy all thresholds: ",cs_to_keep),collapse = " "))
+    message(paste0(c("CS with lbf above threshold: ",good_lbf_cs),collapse = " "))
+    message(paste0(c("CS with mean purity above threshold: ",good_purity_mean_cs),collapse = " "))
+    message(paste0(c("CS with min purity threshold: ",good_purity_min_cs),collapse = " "))
+    message(paste0(c("P-values of the index SNP for each CS: ",min_pval_per_cs),collapse = " "))
+    message(paste0(c("CS with index SNP P-value below threshold: ",good_pval_cs),collapse = " "))
+    message(paste0(c("CS which sutisfy all thresholds: ",cs_to_keep),collapse = " "))
   }
   
   # If there is at least one CS that passed threshold - report it, otherwise return NULL
@@ -980,7 +981,7 @@ susie.cs.ht <- function(
     return(susie_output_filtered)
     
   } else {
-    print("None of the credible sets satisfy selected thresholds")
+    message("None of the credible sets satisfy selected thresholds")
     return(NULL)
   } 
   
