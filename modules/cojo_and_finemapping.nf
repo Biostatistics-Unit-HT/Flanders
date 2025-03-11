@@ -26,10 +26,10 @@ process COJO_AND_FINEMAPPING {
     '''
     Rscript --vanilla !{projectDir}/bin/s04_cojo_finemapping.R \
         --pipeline_path !{projectDir}/bin/ \
-        --chr !{meta_finemapping.chr} \
-        --start !{meta_finemapping.start} \
-        --end !{meta_finemapping.end} \
-        --phenotype_id !{meta_finemapping.phenotype_id} \
+        --chr !{meta_loci.chr} \
+        --start !{meta_loci.start} \
+        --end !{meta_loci.end} \
+        --phenotype_id !{meta_loci.phenotype_id} \
         --dataset_aligned !{gwas_final} \
         --p_thresh3 !{meta_finemapping.p_thresh3} \
         --maf !{meta_finemapping.maf} \
