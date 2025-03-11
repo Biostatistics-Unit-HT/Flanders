@@ -12,7 +12,7 @@ process SUSIE_FINEMAPPING {
     path "*_susie_finemap.rds", optional:true
     tuple val(meta_study_id), path ("*_coloc_info_table.tsv"), optional:true, emit:susie_info_coloc_table
     tuple val(meta_study_id), path ("*_ind_snps.tsv"), optional:true, emit:ind_snps_table    
-    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
+    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
 
   // Publish output file to specified directory   
   publishDir "results/finemap/", mode:"copy", pattern:"*_susie_finemap.rds"
