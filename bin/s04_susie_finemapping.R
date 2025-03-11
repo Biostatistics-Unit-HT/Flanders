@@ -32,9 +32,9 @@ dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phen
 colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
 
 if(unique(dataset_aligned$type=="quant")){
-  dataset_aligned <- dataset_aligned %>% rename(sdY=temp)
+  dataset_aligned <- dataset_aligned %>% dplyr::rename(sdY=temp)
 } else {
-  dataset_aligned <- dataset_aligned %>% rename(s=temp)
+  dataset_aligned <- dataset_aligned %>% dplyr::rename(s=temp)
 }
 
 
@@ -74,6 +74,7 @@ susie_ld <- prep_susie_ld(
 )
 
 # Compute trait variance
+dataset_aligned$MAF <- ifelse(dataset_aligned$freq < 0.5, dataset_aligned$freq, (1-dataset_aligned$freq))
 D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$MAF*(1-dataset_aligned$MAF), na.rm = T)
 
 # Filter full GWAS sum stat for locus region
