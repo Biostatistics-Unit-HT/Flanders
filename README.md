@@ -6,7 +6,7 @@ Colocalization is mainly composed of two steps, which are generally merged in a 
 ## Step 1: Munging, significant genomic region identification and Finemapping with Susie
 
 1) Munging and harmonising of summary statistics
-   GWAS summary statistics are lifted over to build 38 and snps IDs are converted to the FIGARO internal coding which looks like chromosome:position_bp:Effect_allele:Non_effect_allele. Liftover is strongly suggested although optional.
+   GWAS summary statistics are lifted over to build 38 and snps IDs are converted to the Flanders internal coding which looks like chromosome:position_bp:Effect_allele:Non_effect_allele. Liftover is strongly suggested although optional.
    Alleles are ordered according to alphabetical order so that the effect allele is always the one that comes first in alphabetical order. Effect sizes are flipped accordingly if needed.
    WARNING: This is different from the often used REF/ALT schema. This choice allows to be able to reconstruct the effect allele directly from the SNP id without any further information
    
