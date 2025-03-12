@@ -4,5 +4,8 @@ A nextflow pipeline to perform genome-wide association studies (GWAS) and rare v
 
 ## Main features
 
+Describe here
 
 ## How to use
+
+Main usage
