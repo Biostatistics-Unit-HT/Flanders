@@ -1,9 +1,9 @@
-Flanders : Finemapping coLocalization AND plEiotRopy Solver	
+# Flanders : Finemapping coLocalization AND plEiotRopy Solver	
 
 Set of tools and pipeline to efficiently colocalise association signals across large sets of traits.
 Colocalization is mainly composed of two steps, which are generally merged in a single function finemapping of the locus and colocalization itself. Given that the expensive part of the computation is the finemapping, to minimise its cost we have split the process in two parts:    
 
-Step 1: Munging, significant genomic region identification and Finemapping with Susie
+## Step 1: Munging, significant genomic region identification and Finemapping with Susie
 
 1) Munging and harmonising of summary statistics
    GWAS summary statistics are lifted over to build 38 and snps IDs are converted to the FIGARO internal coding which looks like chromosome:position_bp:Effect_allele:Non_effect_allele. Liftover is strongly suggested although optional.
@@ -25,7 +25,7 @@ Step 1: Munging, significant genomic region identification and Finemapping with 
    AnnData allows to efficiently store the lABF from all credible sets in a single sparse matrix while allowing to have metadata for credible sets and snps in the obs and var matrices. This way of storing the data has several advantages: a) all 
    the information needed for colocalization are stored in a single object b) it allows to store and reuse the finemapping results c) the resulting file is many times smaller than the initial files, for example ........... 
 
-Step 2: Colocalization analysis
+## Step 2: Colocalization analysis
 
 1) To maximise efficiency and reduce as much as possible, the first step is to compute all pairs of credible sets which share at least a SNP. Given the way colocalization is computed it is not possible for two credible sets to colocalize if they don't share at least a SNP.
 2) Colocalization for each identified pair is performed in parallel and results are all stored in a single final table using iCOLOC. iCOLOC imputes all the values of lABF outside the credible set to their average. We have run extensive simulations under many different scenarios and this performs as well as standard coloc for discovery while it reduces false positives due to two causal SNPs being in LD.
