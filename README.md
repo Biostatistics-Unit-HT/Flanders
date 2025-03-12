@@ -1,4 +1,4 @@
-FIGARO 
+Flanders : Finemapping coLocalization AND plEiotRopy Solver	
 
 Set of tools and pipeline to efficiently colocalise association signals across large sets of traits.
 Colocalization is mainly composed of two steps, which are generally merged in a single function finemapping of the locus and colocalization itself. Given that the expensive part of the computation is the finemapping, to minimise its cost we have split the process in two parts:    
