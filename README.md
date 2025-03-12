@@ -37,7 +37,7 @@ Colocalization is mainly composed of two steps, which are generally merged in a 
 
 
 
-
+# Running Flanders
 
 
 Example of `nf-hcoloc_run.sbatch` to run the pipeline.
