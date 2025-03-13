@@ -1,7 +1,8 @@
 #!/usr/bin/env nextflow
 
 process SUSIE_FINEMAPPING {
-
+  label "process_high"
+  
   // Define input
   input:
     tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index)

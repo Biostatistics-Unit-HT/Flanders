@@ -2,7 +2,7 @@
 
 process APPEND_TO_MASTER_COLOC {
   
-  label 'appending_tables'
+  label "process_single"
 
   // Define input
   input:

@@ -1,7 +1,8 @@
 #!/usr/bin/env nextflow
 
 process COLOC {
-
+  label "process_medium"
+  
   // Define input
   input:
     tuple val(meta_chr_cs), path(coloc_pairs_by_batches) // why not path(coloc_pairs_by_batches) ?

@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 process COJO_AND_FINEMAPPING {
+  label "process_high"
 
   // Define input
   input:

@@ -2,7 +2,7 @@
 
 process APPEND_TO_IND_SNPS_TAB {
   
-  label 'appending_tables'
+  label "process_single"
   
   // Define input
   input:

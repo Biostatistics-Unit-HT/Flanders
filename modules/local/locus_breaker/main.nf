@@ -1,6 +1,7 @@
 #!/usr/bin/env nextflow
 
 process LOCUS_BREAKER {
+  label "process_low"
 
   // Define input
   input:
