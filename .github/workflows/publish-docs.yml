@@ -1,8 +1,13 @@
 name: Publish docs via GitHub Pages
+
+permissions:
+  contents: read
+  pages: write
+
 on:
   push:
     branches:
-      - add_mkdocs
+      - master
 
 jobs:
   build:
@@ -17,4 +22,5 @@ jobs:
         # Or use mhausenblas/mkdocs-deploy-gh-pages@nomaterial to build without the mkdocs-material theme
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CONFIG_FILE: docs/mkdocs.yml
           REQUIREMENTS: docs/requirements.txt
