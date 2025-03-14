@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
 
 process MUNG_AND_LOCUS_BREAKER {
-  label "process_medium"
+  label "process_high"
 
   // Define input - tuple (similar to a list) of: study id, other specific metadata parameters, gwas sum stats
   input:
