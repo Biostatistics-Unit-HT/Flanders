@@ -137,10 +137,10 @@ dataset.munge_hor=function(sumstats.file
     dataset <- dataset %>% mutate(MAF=ifelse(MAF<0.5, MAF, 1-MAF))
   }
   
-  if(!is.null(n.lab) & n.lab %in% names(dataset)){
+  if (!is.null(n.lab) && !is.na(n.lab) && n.lab %in% names(dataset) && !all(is.na(dataset[[n.lab]]))) {
     names(dataset)[names(dataset)==n.lab]="N"
-  } else if( (is.null(n.lab) || is.na(n.lab) || n.lab=="NA" || !(n.lab %in% names(dataset))) && "MAF" %in% names(dataset)) {
-    N_hat<-median(1/((2*dataset$MAF*(1-dataset$MAF))*dataset$SE^2),na.rm = T) 
+  } else if( "MAF" %in% names(dataset)) {
+    N_hat <- median(1/((2*dataset$MAF*(1-dataset$MAF))*dataset$SE^2),na.rm = T) 
     dataset$N=ceiling(N_hat)
   } ### if both effect allele, MAF and N are not reported, it will calculated from the LD reference bfiles in the alignment step
   
