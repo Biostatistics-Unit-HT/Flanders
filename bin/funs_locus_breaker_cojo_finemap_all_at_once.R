@@ -612,6 +612,10 @@ prep_susie_ld <- function(
   
   geno <- fread(paste0(random.number, ".raw"))[,-c(1:6)] ### First 6 columns are FID, IID, PAT, MAT, SEX and PHENOTYPE
   
+  # Check which SNPs have the same genotype for all samples and remove them
+  not_same_geno <- which(sapply(geno, function(x) length(unique(x)) > 1))
+  geno <- geno[, ..not_same_geno]
+  
   # split the SNP names into rsID, effective and other alleles
   snp_info <- strsplit(colnames(geno), "_|\\(/|\\)") %>%
     Reduce(rbind,.) %>%
@@ -644,7 +648,10 @@ prep_susie_ld <- function(
   # Impute missing genotypes with mean value  
   geno <- apply(geno, 2, function(x) {x[is.na(x)] <- mean(x,na.rm=TRUE); return(x)})
   # Correlation matrix
-  ld <- cor(geno) #### NB: don't square it!!!!
+  #ld <- cor(geno) #### NB: don't square it!!!!
+  X_scaled <- scale(geno)  # Standardize columns
+  ld <- crossprod(X_scaled) / (nrow(geno) - 1) # Same as cor(), but faster
+  
   system(paste0("rm ", random.number, "*"))
   return(ld)
 }
