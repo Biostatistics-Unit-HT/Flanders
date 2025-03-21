@@ -92,6 +92,7 @@ coverage_value <- opt$cs_thresh
 min_coverage <- 0.70
 susie_error_message <- NULL  # Initialize an object to store the error message
 fitted_rss <- NULL  # Initialize fitted_rss
+max_iter=100*100
 
 # While loop to adjust coverage until the condition is met
 while (is.null(fitted_rss$sets$cs) && coverage_value >= min_coverage) {
@@ -106,7 +107,8 @@ while (is.null(fitted_rss$sets$cs) && coverage_value >= min_coverage) {
         var_y = D_var_y, 
         L = 10,
         estimate_residual_variance = FALSE,
-        coverage = coverage_value
+        coverage = coverage_value,
+        max_iter = max_iter
       )
     },
     error = function(e) {
