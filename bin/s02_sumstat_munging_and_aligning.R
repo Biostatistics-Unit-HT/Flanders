@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 suppressMessages(library(optparse))
 suppressMessages(library(readr))
 suppressMessages(library(R.utils))
@@ -440,6 +442,7 @@ option_list <- list(
   make_option("--s", default=NULL, help="For a case control study (type==cc), the proportion of samples in dataset 1 that are cases"),
   make_option("--bfile", default=NULL, help="Path and prefix name of custom/default LD bfiles (PLINK format .bed .bim .fam) - to compute effect allele frequency if missing"),
   make_option("--grch", default=NULL, help="Genome reference build of GWAS sum stats"),
+  make_option("--run_liftover", default=FALSE, type="logical", help="Set true to run liftover"),
   make_option("--maf", default=1e-04, help="MAF filter", metavar="character"),
   make_option("--p_thresh1", default=5e-08, help="Significant p-value threshold for top hits"),
   make_option("--p_thresh2", default=1e-05, help="P-value threshold for loci borders"),  
@@ -515,7 +518,8 @@ rm(gwas)
 gc()
 
 # If necessary, lift to build 38
-if(as.numeric(opt$grch)==37){
+# TODO: Make liftover optional
+if(as.numeric(opt$grch)==37 and isTRUE(opt$run_liftover)){
   message("Performing liftOver to GRCh38")
   dataset_munged <- hg19ToHg38_liftover(dataset_munged)
   gc()
@@ -526,7 +530,7 @@ message("Align alleles to BIM file")
 dataset_munged <- dataset.align(dataset_munged, bfile=opt$bfile)
 
 # Perform MAF filter here (doesn't make sense to do this later!)
-dataset_munged <- dataset_munged[MAF > opt$maf] # Filter rows where MAF > opt$maf
+dataset_munged <- dataset_munged[MAF > opt$maf]
 setorder(dataset_munged, CHR) # Sort by CHR
 gc()
 
@@ -551,11 +555,7 @@ loci_list <- dataset_munged[, {
   }
 }, by = phenotype_id]
 
-#loci_list <- loci_list[!sapply(loci_list, is.null)]
-
 # Slightly enlarge locus by 200kb!
-
-
 if(nrow(loci_list) > 0){
   loci_list[, start := as.numeric(start) - 100000]
   loci_list[start < 0, start := 0] # Replace negative numbers with 0
@@ -566,6 +566,11 @@ if(nrow(loci_list) > 0){
   
   ### Check if locus spans the HLA locus chr6:28,510,120-33,480,577
   ### https://www.ncbi.nlm.nih.gov/grc/human/regions/MHC?asm=GRCh38
+  # This code checks for four conditions to determine if a locus partially or completely spans the HLA region:
+  # 1) Locus starts before (or at the exact beginning of) HLA and ends after (or at the exact end of) HLA.
+  # 2) Locus starts and ends within the HLA region.
+  # 3) Locus starts before the end of HLA and ends after the end of HLA.
+  # 4) Locus starts before the beginning of HLA and ends after the beginning of HLA.
   hla_start=28510120
   hla_end=33480577
   hla_coord <- seq(hla_start,hla_end)
@@ -576,16 +581,9 @@ if(nrow(loci_list) > 0){
                  (start <= hla_end & end >= hla_end) | 
                  (start <= hla_start & end >= hla_start))]
   
-  
-  # This code checks for four conditions to determine if a locus partially or completely spans the HLA region:
-  # 1) Locus starts before (or at the exact beginning of) HLA and ends after (or at the exact end of) HLA.
-  # 2) Locus starts and ends within the HLA region.
-  # 3) Locus starts before the end of HLA and ends after the end of HLA.
-  # 4) Locus starts before the beginning of HLA and ends after the beginning of HLA.
-  
   cat(paste0("\n", nrow(loci_list), " significant loci identified for ", opt$study_id, "\n"))
   
-  # Based on a vector of col names reorder columns in the loci_list table
+  # Reorder columns in the loci_list table
   columns_order <- c("chr", "start", "end", "phenotype_id", "snp_original", "SNP", "BP", "A1", "A2", "freq", "b", "varbeta", "se", "p", "MAF", "N", "type", "sdY", "study_id", "is_in_hla")
   setcolorder(loci_list, columns_order)
   
@@ -599,22 +597,18 @@ gc()
 
 message("Save processed dataset")
 ### Order by phenotype_id, which will be used by tabix to index
-# Based on a vector of col names reorder columns in the loci_list table
+# Reorder columns in the output table
 columns_order <- c("phenotype_id", "snp_original", "SNP", "CHR", "BP", "A1", "A2", "freq", "b", "se", "p", "N", "type", "sdY")
 setcolorder(dataset_munged, columns_order)
 setorder(dataset_munged, phenotype_id, BP)
 
-### Save removing info you don't need - varbeta is later calculate on bC_se
+### Save removing info you don't need - varbeta is later calculated on bC_se
 write_tsv(dataset_munged[, `:=`(MAF = NULL, varbeta = NULL)], paste0(opt$study_id, "_dataset_aligned.tsv.gz"), num_threads = opt$threads, quote="none", na="NA")
 
-#from <- dataset_aligned ### way slower setting from to the R object rather than file
+### BGZIP compress and index the file
 from <- paste0(opt$study_id, "_dataset_aligned.tsv.gz")
 to <- paste0(opt$study_id, "_dataset_aligned_indexed.tsv.gz")
-
-### Convert .gz in bgzip
 zipped <- Rsamtools::bgzip(from, to, overwrite = T)
-
-### Index the File with tabix
 idx <- Rsamtools::indexTabix(zipped,
                   skip=as.integer(1),
                   seq=which(colnames(dataset_munged)=="phenotype_id"),

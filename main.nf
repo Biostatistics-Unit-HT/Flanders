@@ -35,6 +35,7 @@ workflow {
       ],
       [
         "is_molQTL": row.is_molQTL,
+        "run_liftover": row.run_liftover ? "TRUE" : "FALSE",
         "key": row.key,
         "chr_lab": row.chr_lab,
         "pos_lab": row.pos_lab,
