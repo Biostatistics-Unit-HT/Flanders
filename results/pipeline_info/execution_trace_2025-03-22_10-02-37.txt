@@ -1,2 +1,0 @@
-task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
-1	0e/b98443	9615	MUNG_AND_LOCUS_BREAKER (bmi_mung_and_locus_break)	FAILED	1	2025-03-22 10:02:39.482	864ms	797ms	-	-	-	-	-

@@ -1,2 +1,0 @@
-task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
-2	32/c9e185	-	MUNG_AND_LOCUS_BREAKER (height_mung_and_locus_break)	FAILED	-	-	-	-	-	-	-	-	-
