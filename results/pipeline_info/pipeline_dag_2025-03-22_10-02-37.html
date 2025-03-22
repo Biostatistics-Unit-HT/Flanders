@@ -1,0 +1,75 @@
+<!--
+  ~ Copyright 2013-2024, Seqera Labs
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<html>
+<head>
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+</head>
+<body>
+<pre class="mermaid" style="text-align: center;">
+flowchart TB
+    subgraph " "
+    v0["Channel.of"]
+    v8["Channel.of"]
+    v13["lauDir"]
+    v16["lauDir"]
+    end
+    v3([MUNG_AND_LOCUS_BREAKER])
+    subgraph " "
+    v4[" "]
+    v5[" "]
+    v15[" "]
+    v18[" "]
+    v19[" "]
+    v25[" "]
+    v31[" "]
+    end
+    v14([SUSIE_FINEMAPPING])
+    v17([COJO_AND_FINEMAPPING])
+    v24([APPEND_TO_IND_SNPS_TAB])
+    v30([APPEND_TO_MASTER_COLOC])
+    v1(( ))
+    v6(( ))
+    v20(( ))
+    v26(( ))
+    v0 --> v1
+    v1 --> v3
+    v3 --> v5
+    v3 --> v4
+    v3 --> v6
+    v8 --> v6
+    v13 --> v14
+    v6 --> v14
+    v14 --> v15
+    v14 --> v17
+    v14 --> v20
+    v14 --> v26
+    v16 --> v17
+    v17 --> v19
+    v17 --> v18
+    v17 --> v20
+    v17 --> v26
+    v20 --> v24
+    v24 --> v25
+    v26 --> v30
+    v30 --> v31
+
+</pre>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({ startOnLoad: true, maxTextSize: Number.MAX_SAFE_INTEGER, maxEdges: Number.MAX_SAFE_INTEGER });
+</script>
+</body>
+</html>

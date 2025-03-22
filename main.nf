@@ -22,40 +22,48 @@ workflow {
   // Define input channel for munging of GWAS sum stats
   // Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
   gwas_input = Channel
-    .of(file(params.inputFileList))
-    .splitCsv(header:true, sep:"\t")
-    .map{ row -> tuple(
-      [
-        "study_id": row.study_id
-      ],
-      [
-        "is_molQTL":row.is_molQTL,
-        "key":row.key,
-        "chr_lab":row.chr_lab,
-        "pos_lab":row.pos_lab,
-        "rsid_lab":row.rsid_lab,
-        "a1_lab":row.a1_lab,
-        "a0_lab":row.a0_lab,
-        "freq_lab":row.freq_lab,
-        "n_lab":row.n_lab,
-        "effect_lab":row.effect_lab,
-        "se_lab":row.se_lab,
-        "pvalue_lab":row.pvalue_lab,
-        "type":row.type,
-        "sdY":row.sdY,
-        "s":row.s,
-        "grch":row.grch,
-        "bfile": row.bfile,
-        "maf": row.maf,
-        "p_thresh1": row.p_thresh1,
-        "p_thresh2": row.p_thresh2,
-        "hole":row.hole
-      ],
-      row.input
-    )
+  .of(file(params.inputFileList))
+  .splitCsv(header:true, sep:"\t")
+  .filter{ row ->
+    // Check if the input file exists
+    def inputFile = file(row.input.toString())
+    if (!inputFile.exists()) {
+      log.warn "WARNING: Input file ${inputFile} for study_id ${row.study_id} does NOT exist and will be skipped!"
+      return false
+    }
+    return true
   }
+  .map{ row -> tuple(
+    [
+      "study_id": row.study_id
+    ],
+    [
+      "is_molQTL":row.is_molQTL,
+      "key":row.key,
+      "chr_lab":row.chr_lab,
+      "pos_lab":row.pos_lab,
+      "rsid_lab":row.rsid_lab,
+      "a1_lab":row.a1_lab,
+      "a0_lab":row.a0_lab,
+      "freq_lab":row.freq_lab,
+      "n_lab":row.n_lab,
+      "effect_lab":row.effect_lab,
+      "se_lab":row.se_lab,
+      "pvalue_lab":row.pvalue_lab,
+      "type":row.type,
+      "sdY":row.sdY,
+      "s":row.s,
+      "grch":row.grch,
+      "bfile": row.bfile,
+      "maf": row.maf,
+      "p_thresh1": row.p_thresh1,
+      "p_thresh2": row.p_thresh2,
+      "hole":row.hole
+    ],
+    row.input
+  )}
 
-
+  println(gwas_input)
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
   MUNG_AND_LOCUS_BREAKER(gwas_input)
 

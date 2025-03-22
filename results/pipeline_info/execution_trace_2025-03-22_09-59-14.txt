@@ -1,0 +1,2 @@
+task_id	hash	native_id	name	status	exit	submit	duration	realtime	%cpu	peak_rss	peak_vmem	rchar	wchar
+5	2e/44d01f	-	MUNG_AND_LOCUS_BREAKER (heel_bone_mineral_density_mung_and_locus_break)	FAILED	-	-	-	-	-	-	-	-	-
