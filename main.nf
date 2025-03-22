@@ -21,9 +21,7 @@ workflow {
 
   // Define input channel for munging of GWAS sum stats
   // Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
-  
 
-  
   gwas_input = Channel
   .of(file(params.inputFileList))
   .splitCsv(header:true, sep:"\t")
@@ -37,7 +35,7 @@ workflow {
     return true
   }
   .map { row -> 
-    def gwas_file = file(row.input.toString())  // <----- THIS LINE makes it a Nextflow file object!
+    def gwas_file = file(row.input.toString()) 
     tuple(
       [
         "study_id": row.study_id
@@ -65,7 +63,7 @@ workflow {
         "p_thresh2": row.p_thresh2,
         "hole": row.hole
       ],
-      gwas_file // pass as file object
+      gwas_file
     )
   }
 

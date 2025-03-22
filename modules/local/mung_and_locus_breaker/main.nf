@@ -1,12 +1,6 @@
 #!/usr/bin/env nextflow
-if (params.exampleDataFiles) {
-  Channel
-    .fromPath(params.exampleDataFiles)
-    .subscribe { file -> println "Staging file: ${file}" }
-}
-
 process MUNG_AND_LOCUS_BREAKER {
-  label "process_low"
+  label "process_high"
 
   // Define input - tuple (similar to a list) of: study id, other specific metadata parameters, gwas sum stats
   input:
