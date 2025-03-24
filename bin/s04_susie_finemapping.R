@@ -206,7 +206,8 @@ if (is.null(fitted_rss$sets$cs)) {
     # Organise list of what needs to be saved
     #########################################
 
-    core_file_name <- paste0(opt$study_id, "_", ifelse(opt$phenotype_id == "full", gsub("_full", "", opt$phenotype_id), opt$phenotype_id))
+    core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
+    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
     
 
     ## Create and save ind.snps-like table
