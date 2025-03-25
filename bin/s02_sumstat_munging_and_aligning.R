@@ -73,7 +73,7 @@ dataset.munge_hor=function(sumstats.file
     dataset <- as.data.table(dataset)
   }
   
-  # TODO: Replicate these check on column names to a separate process in the pipeline
+  # TODO: Replicate these checks on column names to a separate process in the pipeline
   if(!is.null(a1.lab) & a1.lab %in% names(dataset) & !is.null(a0.lab) & a0.lab %in% names(dataset) ){
     names(dataset)[match(c(a1.lab,a0.lab),names(dataset))]=c("A1","A2")
   }else{
@@ -236,7 +236,7 @@ hg19ToHg38_liftover <- function(
 
 
 ### dataset.align function --------
-dataset.align <- function(dataset, bfile,) {
+dataset.align <- function(dataset, bfile) {
   
   # Load munged dataset sumstat in .rds format (if necessary)
   if(is.character(dataset)){
@@ -519,7 +519,7 @@ gc()
 
 # If necessary, lift to build 38
 # TODO: Make liftover optional
-if(as.numeric(opt$grch)==37 and isTRUE(opt$run_liftover)){
+if(as.numeric(opt$grch)==37 & isTRUE(opt$run_liftover)){
   message("Performing liftOver to GRCh38")
   dataset_munged <- hg19ToHg38_liftover(dataset_munged)
   gc()

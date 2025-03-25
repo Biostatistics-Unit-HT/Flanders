@@ -3,6 +3,8 @@ process MUNG_AND_LOCUS_BREAKER {
   tag "${meta_study_id.study_id}_mung_and_locus_break"
   label "process_high"
 
+  conda "${moduleDir}/environment.yml"
+
   // Publish output file to specified directory   
   publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_dataset_aligned.tsv.gz"
   publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_loci.tsv"  
