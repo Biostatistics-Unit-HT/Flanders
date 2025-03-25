@@ -25,17 +25,10 @@ workflow {
   gwas_input = Channel
   .of(file(params.inputFileList))
   .splitCsv(header:true, sep:"\t")
-  .filter { row ->
-    // Convert to file object here
-    def inputFile = file(row.input.toString())
-    if (!inputFile.exists()) {
-      log.error "WARNING: Input file ${inputFile} for study_id ${row.study_id} does NOT exist and will be skipped!"
-      return false
-    }
-    return true
-  }
   .map { row -> 
-    def gwas_file = file(row.input.toString()) 
+    def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
+    def bfile = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}", checkIfExists:true) : file("${row.bfile}.{bed,bim,fam}", checkIfExists:true)
+    def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
     tuple(
       [
         "study_id": row.study_id
@@ -57,7 +50,7 @@ workflow {
         "sdY": row.sdY,
         "s": row.s,
         "grch": row.grch,
-        "bfile": row.bfile,
+        "bfile": bfile_string,
         "maf": row.maf,
         "p_thresh1": row.p_thresh1,
         "p_thresh2": row.p_thresh2,
@@ -90,14 +83,16 @@ workflow {
   finemapping_input = Channel  
     .of(file(params.inputFileList))
     .splitCsv(header:true, sep:"\t")
-    .map{ row -> tuple(
+    .map{ row -> 
+    def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
+    tuple(
       [
         "study_id": row.study_id
       ],
       [  
         "p_thresh3": row.p_thresh3,
         "p_thresh4": row.p_thresh4,
-        "bfile": row.bfile,
+        "bfile": bfile_string,
         "skip_dentist": row.skip_dentist,
         "maf": row.maf,
         "hole": row.hole,

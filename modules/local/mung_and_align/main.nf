@@ -18,6 +18,7 @@ process MUNG_AND_ALIGN {
 
 // Define the shell script to execute - IMPORTANT! Use 3 single apostrophes, otherwise bash variables will not be recognised
   shell:
+  def bfile_prefix = meta_parameters.bfile.baseName
     '''
     Rscript --vanilla !{projectDir}/bin/s02_sumstat_munging_and_aligning.R \
         --pipeline_path !{projectDir}/bin/ \
@@ -37,7 +38,7 @@ process MUNG_AND_ALIGN {
         --type !{meta_parameters.type} \
         --sdY !{meta_parameters.sdY} \
         --s !{meta_parameters.s} \
-        --bfile !{meta_parameters.bfile} \
+        --bfile !{bfile_prefix} \
         --grch !{meta_parameters.grch} \
         --study_id !{meta_study_id.study_id}  
     '''
