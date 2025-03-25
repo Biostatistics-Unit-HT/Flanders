@@ -29,7 +29,7 @@ workflow {
     // Convert to file object here
     def inputFile = file(row.input.toString())
     if (!inputFile.exists()) {
-      log.warn "WARNING: Input file ${inputFile} for study_id ${row.study_id} does NOT exist and will be skipped!"
+      log.error "WARNING: Input file ${inputFile} for study_id ${row.study_id} does NOT exist and will be skipped!"
       return false
     }
     return true
