@@ -676,11 +676,11 @@ finemap.cojo <- function(D, cs_threshold=0.99){
   fine.res <- finemap.abf_NO_PRIOR(D_list) %>%
     left_join(D %>% dplyr::select(snp, b, beta, pvalues), by="snp") %>%
     dplyr::mutate(cojo_snp=cojo_snp) %>%
-    dplyr::rename(bC=beta, pC=pvalues, "lABF"="lABF.") %>%
+    dplyr::rename(bC=beta, bC_se=se, "lABF"="lABF.") %>%
     arrange(desc(SNP.PP)) %>% 
     mutate(cred.set = cumsum(SNP.PP)) %>%
 # Add cojo_hit info, to merge with loci table later
-    dplyr::select(snp, position, b, bC, pC, lABF, SNP.PP, cred.set, cojo_snp)
+    dplyr::select(snp, position, bC, bC_se, lABF, SNP.PP, cred.set, cojo_snp)
 
 # Identify SNPs part of the credible set (as specified by cs_threshold)
   w <- which(fine.res$cred.set > cs_threshold)[1]
