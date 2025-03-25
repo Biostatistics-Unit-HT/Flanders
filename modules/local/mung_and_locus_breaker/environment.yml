@@ -3,7 +3,7 @@ channels:
   - bioconda
 dependencies:
   - r-optparse=1.7.4
-  - r-readr
+  - r-readr=2.1.5
   - r-r.utils=2.12.3
   - r-data.table=1.15.2
   - bioconductor-rtracklayer=1.62.0

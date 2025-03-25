@@ -46,7 +46,7 @@ process MUNG_AND_LOCUS_BREAKER {
         --p_thresh1 ${meta_parameters.p_thresh1} \
         --p_thresh2 ${meta_parameters.p_thresh2} \
         --hole ${meta_parameters.hole} \
-        --study_id ${meta_study_id.study_id}
+        --study_id ${meta_study_id.study_id} \
         --threads ${task.cpus}
     """
 }
