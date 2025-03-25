@@ -45,7 +45,7 @@ if(unique(dataset_aligned$type=="quant")){
 random.number <- stri_rand_strings(n=1, length=20, pattern="[A-Za-z0-9]")
 
 ### If required, run DENTIST to identify mismatches between GWAS sum stats and LD panel
-if (opt$skip_dentist == TRUE){
+if (opt$skip_dentist){
   cat(paste0("I assume you provided in-sample LD reference? Otherwise consider using DENTIST!"))
 } else {
   run_dentist(
@@ -146,10 +146,10 @@ if (is.null(fitted_rss$sets$cs)) {
   fitted_rss_cleaned <- susie.cs.ht(
     fitted_rss,
     D_sub$p,
-    cs_lbf_thr = 2,
-    signal_pval_threshold = 1e-6,
-    purity_mean_r2_threshold = 0.5,
-    purity_min_r2_threshold = 0.5,
+    cs_lbf_thr = 2, # TODO: this should be a pipeline argument
+    signal_pval_threshold = 1, # TODO: this should be a pipeline argument
+    purity_mean_r2_threshold = 0.5, # TODO: this should be a pipeline argument
+    purity_min_r2_threshold = 0.5, # TODO: this should be a pipeline argument
     verbose = FALSE
   )
     
@@ -165,11 +165,15 @@ if (is.null(fitted_rss$sets$cs)) {
     names(N) <- D_sub$SNP
     
     finemap.res <- lapply(fitted_rss_cleaned$sets$cs_index, function(x){
+      
+      beta_se_list <- get_beta_se_susie(fitted_rss_cleaned,x)
         
       # Extract lABF values  
       lABF_df <- data.frame(
         SNP = colnames(fitted_rss_cleaned$lbf_variable),
-        lABF = fitted_rss_cleaned$lbf_variable[x,]
+        lABF = fitted_rss_cleaned$lbf_variable[x,],
+        bC = beta_se_list$beta,
+        bC_se = beta_se_list$se
       )
       
       # Extract index of cs SNPs
@@ -182,11 +186,31 @@ if (is.null(fitted_rss$sets$cs)) {
       
       susie_reformat <- susie_reformat %>%
         inner_join(lABF_df, by="SNP") %>%
-        dplyr::select(SNP,BP,lABF,b,p,is_cs) %>%
+        dplyr::select(SNP,BP,lABF,bC,bC_se,is_cs) %>%
         dplyr::rename(snp=SNP, position=BP) %>%
-        dplyr::arrange(desc(lABF), p)
+        dplyr::arrange(desc(lABF))
       
-      effect = proccess_susie(fitted_rss_cleaned, x, freq, N)
+      effect <- susie_reformat[1,] # select the first row which represents the
+      # top SNP by lABF. 
+      snp_top <- effect$snp
+      chr_pos_a1_a0_top <- strsplit(effect$snp, ":")[[1]]
+      a1_top <- chr_pos_a1_a0_top[3]
+      a0_top <- chr_pos_a1_a0_top[4]
+      freq_top <- freq[snp_top]
+      N_top <- N[snp_top]
+      beta_top <- effect$bC
+      se_top <- effect$bC_se
+      
+      effect <- data.frame(
+        snp = snp_top,
+        a1 = a1_top,
+        a0 = a0_top,
+        freq = freq_top,
+        N = N_top,
+        beta = beta_top,
+        se = se_top
+        )
+      
       qc_metrics = fitted_rss_cleaned$sets$purity[paste0("L",x),]
         
       return(

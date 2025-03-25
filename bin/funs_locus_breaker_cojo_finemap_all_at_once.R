@@ -1001,22 +1001,12 @@ logbf_to_pp_ht = function(bf=all.coloc.join$ABF.tot) {
   exp(bf  - denom)
 }
 
-proccess_susie <- function(susie,cs_index,freq,N){
+get_beta_se_susie <- function(sus,L_index){
   
-  lbfs_for_cs <- susie$lbf_variable[cs_index,susie$sets$cs[[paste0("L",cs_index)]]]
+  se = sqrt(sus$mu2[L_index,] - (sus$mu[L_index,])^2)/sus$X_column_scale_factors
+  beta = (sus$mu[L_index,]/sus$X_column_scale_factors)
   
-  snp <- names(lbfs_for_cs)[which.max(lbfs_for_cs)]
+  return(list(beta = beta, se = se))
   
-  chr_pos_a1_a0 <- strsplit(snp, ":")[[1]]
-  a1 <- chr_pos_a1_a0[3]
-  a0 <- chr_pos_a1_a0[4]
-  freq <- freq[snp]
-  N <- N[snp]
-  beta <- coef(susie)[names(lbfs_for_cs)] %>% sum
-  se <- 1 / sqrt(2 * N * freq[snp] * (1 - freq[snp] ) )
-  
-  res <- data.frame(snp = snp ,a1 = a1, a0 = a0, freq = freq, N = N, beta = beta, se = se)
-  
-  return(res)
 }
 
