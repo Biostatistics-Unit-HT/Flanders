@@ -585,6 +585,7 @@ if(nrow(loci_list) > 0){
   # Reorder columns in the loci_list table
   columns_order <- c("chr", "start", "end", "phenotype_id", "snp_original", "SNP", "BP", "A1", "A2", "freq", "b", "varbeta", "se", "p", "MAF", "N", "type", "sdY", "study_id", "is_in_hla")
   columns_order <- intersect(columns_order, names(loci_list))
+  message("Final column order: ", paste(columns_order, collapse=","))
   setcolorder(loci_list, columns_order)
   
   write_tsv(loci_list, paste0(opt$study_id, "_loci.tsv"), num_threads = opt$threads, quote="none", na="NA") ### full table to publish
