@@ -197,10 +197,10 @@ dataset.munge_hor=function(sumstats.file
 ### liftover function ---------
 hg19ToHg38_liftover <- function(
     dataset_munged,
-    default_ch_path = "/processing_data/reference_datasets/liftOver/2023.1/Homo_sapiens/hg19/"
+    default_chain_file = "hg19ToHg38.over.chain"
 ) {
   
-  chain_file <- file.path(default_ch_path, "hg19ToHg38.over.chain")
+  chain_file <- default_chain_file
   
   if (!file.exists(chain_file)) {
     message("Downloading chain file...")
@@ -254,7 +254,7 @@ dataset.align <- function(dataset, bfile) {
   dataset[, SNP := sprintf("chr%s:%s:%s:%s", CHR, BP, A1, A2)]
   dataset[, b := fcase(
     A1_old == A2 & A2_old == A1, -BETA,
-    default = BETA 
+    A1_old == A1 & A2_old == A2, BETA 
   )]
   
   ### Check if freq (and MAF) are present in the dataframe - if not, compute them from defaul/custom LD reference

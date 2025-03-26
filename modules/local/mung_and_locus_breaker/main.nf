@@ -13,6 +13,7 @@ process MUNG_AND_LOCUS_BREAKER {
   // Define input - tuple (similar to a list) of: study id, other specific metadata parameters, gwas sum stats
   input:
     tuple val(meta_study_id), val(meta_parameters), path(gwas_input)
+    path chain_file
 
   // Define output - keep carrying the study id (will be used for all downstream processes!), output munged gwas .rds
   output:

@@ -17,6 +17,7 @@ def lauDir = workflow.launchDir.toString()
 // Define the main workflow
 workflow {
 
+chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
 // Define a channel for each process
 
   // Define input channel for munging of GWAS sum stats
@@ -62,7 +63,7 @@ workflow {
   }
 
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input)
+  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
