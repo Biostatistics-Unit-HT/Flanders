@@ -600,6 +600,7 @@ message("Save processed dataset")
 ### Order by phenotype_id, which will be used by tabix to index
 # Reorder columns in the output table
 columns_order <- c("phenotype_id", "snp_original", "SNP", "CHR", "BP", "A1", "A2", "freq", "b", "se", "p", "N", "type", "sdY")
+columns_order <- intersect(columns_order, names(dataset_munged))
 setcolorder(dataset_munged, columns_order)
 setorder(dataset_munged, phenotype_id, BP)
 
