@@ -16,8 +16,8 @@ process COJO_AND_FINEMAPPING {
     tuple val(meta_study_id), path ("*_ind_snps.tsv"), optional:true, emit:ind_snps_table
 
   // Publish output file to specified directory   
-  publishDir "plots/", mode:"copy", pattern:"*_conditioned_loci.pdf"
-  publishDir "results/finemap/", mode:"copy", pattern:"*_cojo_finemap.rds"
+  publishDir "${params.outdir}/plots/", mode:"copy", pattern:"*_conditioned_loci.pdf"
+  publishDir "${params.outdir}/results/finemap/", mode:"copy", pattern:"*_cojo_finemap.rds"
   
   // Tag the process with the study ID    
   tag "${meta_study_id.study_id}_cojo_finemap"

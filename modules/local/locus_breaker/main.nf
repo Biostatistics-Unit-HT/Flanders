@@ -12,7 +12,7 @@ process LOCUS_BREAKER {
     path "${meta_study_id.study_id}_loci.tsv", optional:true, emit:loci_table
 
   // Publish output file to specified directory   
-  publishDir "results/gwas_and_loci_tables/", mode:"copy", pattern:"${meta_study_id.study_id}_loci.tsv"
+  publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode:"copy", pattern:"${meta_study_id.study_id}_loci.tsv"
   
   // Tag the process with the study ID    
   tag "${meta_study_id.study_id}_locus_b"

@@ -16,7 +16,7 @@ process SUSIE_FINEMAPPING {
     tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
 
   // Publish output file to specified directory   
-  publishDir "results/finemap/", mode:"copy", pattern:"*_susie_finemap.rds"
+  publishDir "${params.outdir}/results/finemap/", mode:"copy", pattern:"*_susie_finemap.rds"
 
   // Tag the process with the study ID    
   tag "${meta_study_id.study_id}_susie_finemap"

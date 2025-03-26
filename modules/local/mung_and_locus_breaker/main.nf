@@ -7,8 +7,8 @@ process MUNG_AND_LOCUS_BREAKER {
   // conda "${moduleDir}/environment.yml"
 
   // Publish output file to specified directory   
-  publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_dataset_aligned.tsv.gz"
-  publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_loci.tsv"  
+  publishDir "${params.outdir}/results/gwas_and_loci_tables", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_dataset_aligned.tsv.gz"
+  publishDir "${params.outdir}/results/gwas_and_loci_tables", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_loci.tsv"  
   
   // Define input - tuple (similar to a list) of: study id, other specific metadata parameters, gwas sum stats
   input:
@@ -17,7 +17,7 @@ process MUNG_AND_LOCUS_BREAKER {
 
   // Define output - keep carrying the study id (will be used for all downstream processes!), output munged gwas .rds
   output:
-    tuple val(meta_study_id), path("${meta_study_id.study_id}_dataset_aligned_indexed.gz"), path("${meta_study_id.study_id}_dataset_aligned_indexed.gz.tbi"), emit:dataset_munged_aligned
+    tuple val(meta_study_id), path("${meta_study_id.study_id}_dataset_aligned_indexed.tsv.gz"), path("${meta_study_id.study_id}_dataset_aligned_indexed.tsv.gz.tbi"), emit:dataset_munged_aligned
     path("${meta_study_id.study_id}_loci_NO_HLA.tsv"), optional:true, emit:loci_table
     path("${meta_study_id.study_id}_dataset_aligned.tsv.gz")
     path("${meta_study_id.study_id}_loci.tsv"), optional:true
