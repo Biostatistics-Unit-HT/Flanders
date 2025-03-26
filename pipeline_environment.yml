@@ -10,6 +10,7 @@ dependencies:
   - bioconductor-genomicranges=1.54.1
   - bioconductor-iranges=2.36.0
   - bioconductor-rsamtools=2.18.0
+  - bioconductor-gviz=1.46.1
   - r-coloc=5.2.3
   - r-susier=0.12.35
   - r-bigsnpr=1.12.2
@@ -22,3 +23,7 @@ dependencies:
   - r-dplyr=1.1.4
   - r-plyr=1.8.9
   - r-matrix=1.6_5
+  - r-corrplot=0.92
+  - r-patchwork=1.2.0
+  - r-ggplot2=3.5.0
+  - r-cowplot=1.1.3
