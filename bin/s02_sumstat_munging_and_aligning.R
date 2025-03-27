@@ -614,14 +614,14 @@ gc()
 message("Save processed dataset")
 ### Order by phenotype_id, which will be used by tabix to index
 # Reorder columns in the output table
-columns_order <- c("phenotype_id", "snp_original", "SNP", "CHR", "BP", "A1", "A2", "freq", "b", "se", "p", "N", "type", "sdY")
+columns_order <- c("phenotype_id", "snp_original", "SNP", "CHR", "BP", "A1", "A2", "freq", "b", "se", "p", "N", "type", "sdY", "s")
 columns_order <- intersect(columns_order, names(dataset_munged))
 setcolorder(dataset_munged, columns_order)
 setorder(dataset_munged, phenotype_id, BP)
 
 # OLD NOTATION: 5.83928940299176e-06
 dataset_munged[, freq := round(freq, 7)]
-dataset_munged[, p := sapply(p, function(x) round_sci(x, 14))]
+dataset_munged[, p := sapply(p, function(x) round_sci(x))]
 
 ### Save removing info you don't need - varbeta is later calculated on bC_se
 write_tsv(dataset_munged[, `:=`(MAF = NULL, varbeta = NULL)], paste0(opt$study_id, "_dataset_aligned.tsv.gz"), num_threads = opt$threads, quote="none", na="NA")
