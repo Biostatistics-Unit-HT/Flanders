@@ -423,11 +423,15 @@ find_positions <- function(A, B) {
 
 # Function to round scientific notation to a specific number of decimal places
 # If we have less than 17 decimals we return the number as is
-round_sci <- function(x, decimals) {
-  if (nchar(sub("^[^.]*\\.", "", format(x, scientific = FALSE))) <= 18) {
-    formatted_value <- round(x,17))
+round_sci <- function(x, non_sci_digits = 17, sci_digits=15) {
+  x_str <- format(x, scientific = FALSE)
+  decimal_part <- sub("^[^.]*\\.", "", x_str)
+  zeros <- regmatches(decimal_part, regexpr("^0*", decimal_part))
+
+  if (nchar(zeros) < 4) {
+    formatted_value <- format(round(x,non_sci_digits), nsmall=non_sci_digits, scientific = FALSE)
   } else {
-    formatted_value <- format(x, digits=15, scientific = TRUE)
+    formatted_value <- format(x, digits=sci_digits, scientific = TRUE)
   }
   return(formatted_value)
 }
