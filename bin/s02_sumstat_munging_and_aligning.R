@@ -621,7 +621,7 @@ columns_order <- intersect(columns_order, names(dataset_munged))
 setcolorder(dataset_munged, columns_order)
 setorder(dataset_munged, phenotype_id, BP)
 
-# OLD NOTATION: 5.83928940299176e-06
+# round float to a fixed precision
 dataset_munged[, freq := round(freq, 7)]
 dataset_munged[, p := sapply(p, function(x) round_sci(x))]
 
