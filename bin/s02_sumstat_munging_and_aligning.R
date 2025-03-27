@@ -425,20 +425,10 @@ find_positions <- function(A, B) {
 # If we have less than 17 decimals we return the number as is
 round_sci <- function(x, decimals) {
   if (nchar(sub("^[^.]*\\.", "", format(x, scientific = FALSE))) <= 18) {
-    return(round(x,17))
+    formatted_value <- round(x,17))
+  } else {
+    formatted_value <- format(x, digits=15, scientific = TRUE)
   }
-  formatted <- format(x, scientific = TRUE)
-  parts <- strsplit(formatted, "e")
-  formatted_value <- sapply(parts, function(part) {
-    coefficient <- as.numeric(part[1])
-    exponent <- part[2]
-    rounded_coefficient <- round(coefficient, decimals)
-    # Modify the exponent directly
-    if (grepl("^[+-][0-9]$", exponent)) {
-      exponent <- paste0(substr(exponent, 1, 1), "0", substr(exponent, 2, 2))
-    }
-    paste0(rounded_coefficient, "e", exponent)
-  })
   return(formatted_value)
 }
 
