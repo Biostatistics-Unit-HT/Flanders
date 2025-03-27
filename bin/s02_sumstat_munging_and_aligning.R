@@ -421,6 +421,27 @@ find_positions <- function(A, B) {
   return(all_positions_B)
 }
 
+# Function to round scientific notation to a specific number of decimal places
+# If we have less than 17 decimals we return the number as is
+round_sci <- function(x, decimals) {
+  if (nchar(sub("^[^.]*\\.", "", format(x, scientific = FALSE))) <= 18) {
+    return(round(x,17))
+  }
+  formatted <- format(x, scientific = TRUE)
+  parts <- strsplit(formatted, "e")
+  formatted_value <- sapply(parts, function(part) {
+    coefficient <- as.numeric(part[1])
+    exponent <- part[2]
+    rounded_coefficient <- round(coefficient, decimals)
+    # Modify the exponent directly
+    if (grepl("^[+-][0-9]$", exponent)) {
+      exponent <- paste0(substr(exponent, 1, 1), "0", substr(exponent, 2, 2))
+    }
+    paste0(rounded_coefficient, "e", exponent)
+  })
+  return(formatted_value)
+}
+
 # Get arguments --------
 option_list <- list(
   make_option("--pipeline_path", default=NULL, help="Path where Rscript lives"),
@@ -583,7 +604,7 @@ if(nrow(loci_list) > 0){
   cat(paste0("\n", nrow(loci_list), " significant loci identified for ", opt$study_id, "\n"))
   
   # Reorder columns in the loci_list table
-  columns_order <- c("chr", "start", "end", "phenotype_id", "snp_original", "SNP", "BP", "A1", "A2", "freq", "b", "varbeta", "se", "p", "MAF", "N", "type", "sdY", "study_id", "is_in_hla")
+  columns_order <- c("chr", "start", "end", "phenotype_id", "snp_original", "SNP", "BP", "A1", "A2", "freq", "b", "varbeta", "se", "p", "MAF", "N", "type", "s", "sdY", "study_id", "is_in_hla")
   columns_order <- intersect(columns_order, names(loci_list))
   message("Final column order: ", paste(columns_order, collapse=","))
   setcolorder(loci_list, columns_order)
@@ -603,6 +624,10 @@ columns_order <- c("phenotype_id", "snp_original", "SNP", "CHR", "BP", "A1", "A2
 columns_order <- intersect(columns_order, names(dataset_munged))
 setcolorder(dataset_munged, columns_order)
 setorder(dataset_munged, phenotype_id, BP)
+
+# OLD NOTATION: 5.83928940299176e-06
+dataset_munged[, freq := round(freq, 7)]
+dataset_munged[, p := round_sci(p, 14)]
 
 ### Save removing info you don't need - varbeta is later calculated on bC_se
 write_tsv(dataset_munged[, `:=`(MAF = NULL, varbeta = NULL)], paste0(opt$study_id, "_dataset_aligned.tsv.gz"), num_threads = opt$threads, quote="none", na="NA")
