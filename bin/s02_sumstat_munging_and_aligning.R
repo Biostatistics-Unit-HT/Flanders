@@ -594,11 +594,13 @@ if(nrow(loci_list) > 0){
                  (start >= hla_start & end <= hla_end) | 
                  (start <= hla_end & end >= hla_end) | 
                  (start <= hla_start & end >= hla_start))]
-  
+  loci_list[, locus_size := end - start]
+
   cat(paste0("\n", nrow(loci_list), " significant loci identified for ", opt$study_id, "\n"))
+  cat(paste0("Loci size range: ", min(loci_list$locus_size), " - ", max(loci_list$locus_size), "\n")))
   
   # Reorder columns in the loci_list table
-  columns_order <- c("chr", "start", "end", "phenotype_id", "snp_original", "SNP", "BP", "A1", "A2", "freq", "b", "varbeta", "se", "p", "MAF", "N", "type", "s", "sdY", "study_id", "is_in_hla")
+  columns_order <- c("chr", "start", "end", "locus_size", "phenotype_id", "snp_original", "SNP", "BP", "A1", "A2", "freq", "b", "varbeta", "se", "p", "MAF", "N", "type", "s", "sdY", "study_id", "is_in_hla")
   columns_order <- intersect(columns_order, names(loci_list))
   message("Final column order: ", paste(columns_order, collapse=","))
   setcolorder(loci_list, columns_order)
