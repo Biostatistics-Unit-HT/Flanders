@@ -627,7 +627,7 @@ setorder(dataset_munged, phenotype_id, BP)
 
 # OLD NOTATION: 5.83928940299176e-06
 dataset_munged[, freq := round(freq, 7)]
-dataset_munged[, p := round_sci(p, 14)]
+dataset_munged[, p := sapply(p, function(x) round_sci(x, 14))]
 
 ### Save removing info you don't need - varbeta is later calculated on bC_se
 write_tsv(dataset_munged[, `:=`(MAF = NULL, varbeta = NULL)], paste0(opt$study_id, "_dataset_aligned.tsv.gz"), num_threads = opt$threads, quote="none", na="NA")
