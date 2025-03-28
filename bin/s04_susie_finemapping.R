@@ -263,7 +263,7 @@ if (is.null(fitted_rss$sets$cs)) {
         study_id = opt$study_id,
         phenotype_id = ifelse(opt$phenotype_id=="full", NA, opt$phenotype_id),
         credible_set = paste0(finemap_list$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
-        top_pvalue = min(finemap_list$finemapping_lABFs$p, na.rm=T),
+        top_pvalue = min(pchisq((finemap_list$finemapping_lABFs$bC/finemap_list$finemapping_lABFs$bC_se)**2,1,lower.tail=TRUE), na.rm=T),
           #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
         path_rds = paste0(opt$results_path, "/results/finemap/", sp_file_name, "_susie_finemap.rds"),
         path_ind_snps = paste0(opt$results_path, "/results/gwas_and_loci_tables/", opt$study_id, "_final_ind_snps_table.tsv"),
