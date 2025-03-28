@@ -24,8 +24,20 @@ include { samplesheetToList } from 'plugin/nf-schema'
 // Use nf-schema to read and validate the sample sheet.
 // This returns a channel of maps (each row validated according to your JSON schema).
 
-samplesheetToList(params.inputFileList, params.schema)
+def samples = samplesheetToList(params.inputFileList, params.schema)
 
+/* Check GRCh  based on liftover parameter
+if (!params.run_liftover) {
+    // Extract all unique grch values from the samples
+    def uniqueGrchValues = samples.collect { it.grch }.unique()
+
+    // Ensure there's only one unique grch value
+    if (uniqueGrchValues.size() > 1) {
+        log.error "Inconsistent 'grch' values detected in the sample sheet while 'run_liftover' is set to false: ${uniqueGrchValues}"
+        System.exit(1)
+    }
+}
+*/
 workflow {
 
   // Pass the validated input to a process (if needed)  
