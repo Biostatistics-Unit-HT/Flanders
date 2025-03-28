@@ -5,6 +5,12 @@ nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used
 // Set parameter for pipeline version - only for documenting sake
 //params.pipe_vers="1.0"
 
+/* 
+======================================================================
+    INITIALIZATION
+======================================================================
+ */
+
 // Source all processes
 include { MUNG_AND_LOCUS_BREAKER  } from "./modules/local/mung_and_locus_breaker"
 include { SUSIE_FINEMAPPING       } from "./modules/local/susie_finemapping"
@@ -13,15 +19,18 @@ include { APPEND_TO_MASTER_COLOC  } from "./modules/local/append_to_master_coloc
 include { APPEND_TO_IND_SNPS_TAB  } from "./modules/local/append_to_ind_snps_tab"
 
 def lauDir = workflow.launchDir.toString()
+include { samplesheetToList } from 'plugin/nf-schema'
 
-// Define the main workflow
+// Use nf-schema to read and validate the sample sheet.
+// This returns a channel of maps (each row validated according to your JSON schema).
+
+samplesheetToList(params.inputFileList, params.schema)
+
 workflow {
 
-// Define a channel for each process
-
-  // Define input channel for munging of GWAS sum stats
-  // Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
-
+  // Pass the validated input to a process (if needed)  
+  // Now create a new channel by mapping over the validated input.
+  // Here we explicitly coerce types (e.g. toInteger, toDouble) as required.
   gwas_input = Channel
   .of(file(params.inputFileList))
   .splitCsv(header:true, sep:"\t")
@@ -58,7 +67,8 @@ workflow {
       ],
       gwas_file
     )
-  }
+    }
+
 
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
   MUNG_AND_LOCUS_BREAKER(gwas_input)
