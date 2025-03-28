@@ -28,7 +28,7 @@
       "p_thresh2": { "type": "number" },
       "p_thresh3": { "type": "number" },
       "p_thresh4": { "type": "number" },
-      "cs_thresh": {"oneOf":[{ "type": "number" },{ "const": "NA" }]},
+      "cs_thresh": {"oneOf":[{ "type": "number" }]},
       "skip_dentist": { "type": "boolean" },
       "hole": { "type": "number" }
     },
