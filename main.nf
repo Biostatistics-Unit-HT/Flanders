@@ -12,8 +12,6 @@ include { COJO_AND_FINEMAPPING    } from "./modules/local/cojo_and_finemapping"
 include { APPEND_TO_MASTER_COLOC  } from "./modules/local/append_to_master_coloc"
 include { APPEND_TO_IND_SNPS_TAB  } from "./modules/local/append_to_ind_snps_tab"
 
-def lauDir = workflow.launchDir.toString()
-
 // Define the main workflow
 workflow {
 
@@ -108,11 +106,11 @@ chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
 
 
 // Run SUSIE_FINEMAPPING process on finemapping_input channel
-  SUSIE_FINEMAPPING(finemapping_input,lauDir)
+  SUSIE_FINEMAPPING(finemapping_input, params.outdir)
 
 
 // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
-  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, lauDir)
+  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, params.outdir)
    
 // Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
   append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table
