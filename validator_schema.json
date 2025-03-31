@@ -28,11 +28,7 @@
       "p_thresh2": { "type": "number" },
       "p_thresh3": { "type": "number" },
       "p_thresh4": { "type": "number" },
-<<<<<<< HEAD
-      "cs_thresh": {"oneOf":[{ "type": "number" }]},
-=======
       "cs_thresh": {"oneOf":[{ "type": "number" },{ "const": "NA" }]},
->>>>>>> 03ab010 (Resolve conflicts part 3)
       "skip_dentist": { "type": "boolean" },
       "hole": { "type": "number" }
     },
