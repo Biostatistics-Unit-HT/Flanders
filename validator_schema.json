@@ -13,11 +13,11 @@
       "rsid_lab": { "type": "string" },
       "a1_lab": { "type": "string" },
       "a0_lab": { "type": "string" },
-      "freq_lab": {"type": "string" },
-      "n_lab": {"type": "string" },
+      "freq_lab": { "type": "string" },
+      "n_lab": { "type": "string" },
       "effect_lab": { "type": "string" },
       "se_lab": { "type": "string" },
-      "pvalue_lab": {"type": "string" },
+      "pvalue_lab": { "type": "string" },
       "type": { "type": "string", "enum": ["quant", "cc"] },
       "sdY": {"oneOf":[{ "type": "number" },{ "const": "NA" }]},
       "s": {"oneOf":[{ "type": "number" },{ "const": "NA" }]},
@@ -28,7 +28,11 @@
       "p_thresh2": { "type": "number" },
       "p_thresh3": { "type": "number" },
       "p_thresh4": { "type": "number" },
+<<<<<<< HEAD
       "cs_thresh": {"oneOf":[{ "type": "number" }]},
+=======
+      "cs_thresh": {"oneOf":[{ "type": "number" },{ "const": "NA" }]},
+>>>>>>> 03ab010 (Resolve conflicts part 3)
       "skip_dentist": { "type": "boolean" },
       "hole": { "type": "number" }
     },
