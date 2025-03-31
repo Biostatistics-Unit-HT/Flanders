@@ -15,9 +15,6 @@ process MUNG_AND_LOCUS_BREAKER {
     tuple val(meta_study_id), val(meta_parameters), path(gwas_input)
     val (validation)
     path chain_file
-    val (validation)
-    path chain_file
-    val (validation)
 
   // Define output - keep carrying the study id (will be used for all downstream processes!), output munged gwas .rds
   output:

@@ -510,6 +510,8 @@ if(isFALSE(opt$is_molQTL)){
   setnames(gwas, opt$key, "phenotype_id")
 }
 
+gc()
+
 # Format GWAS summary statistics
 message("Munging")
 dataset_munged <- dataset.munge_hor(
