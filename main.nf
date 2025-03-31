@@ -16,11 +16,6 @@ include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validat
 workflow {
 
 chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
-// Define a channel for each process
-
-  // Define input channel for munging of GWAS sum stats
-  // Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
-
 
 def lauDir = workflow.launchDir.toString()
 include { samplesheetToList } from 'plugin/nf-schema'
@@ -29,10 +24,8 @@ include { samplesheetToList } from 'plugin/nf-schema'
 // This returns a channel of maps (each row validated according to your JSON schema).
 
 samplesheetToList(params.inputFileList, params.schema)
-
-  // Pass the validated input to a process (if needed)  
-  // Now create a new channel by mapping over the validated input.
-  // Here we explicitly coerce types (e.g. toInteger, toDouble) as required.
+// Define input channel for munging of GWAS sum stats
+// Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
 gwas_input = Channel
   .of(file(params.inputFileList))
   .splitCsv(header:true, sep:"\t")
@@ -72,8 +65,9 @@ gwas_input = Channel
     )
   }
 
+  INPUT_COLUMNS_VALIDATION(gwas_input)
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
+  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file, INPUT_COLUMNS_VALIDATION.out.validation)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
