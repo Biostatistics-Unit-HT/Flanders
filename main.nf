@@ -11,6 +11,7 @@ include { SUSIE_FINEMAPPING       } from "./modules/local/susie_finemapping"
 include { COJO_AND_FINEMAPPING    } from "./modules/local/cojo_and_finemapping"
 include { APPEND_TO_MASTER_COLOC  } from "./modules/local/append_to_master_coloc"
 include { APPEND_TO_IND_SNPS_TAB  } from "./modules/local/append_to_ind_snps_tab"
+
 def lauDir = workflow.launchDir.toString()
 include { samplesheetToList } from 'plugin/nf-schema'
 
@@ -18,6 +19,7 @@ include { samplesheetToList } from 'plugin/nf-schema'
 // This returns a channel of maps (each row validated according to your JSON schema).
 
 def samples = samplesheetToList(params.inputFileList, params.schema)
+
 
 // Define the main workflow
 workflow {

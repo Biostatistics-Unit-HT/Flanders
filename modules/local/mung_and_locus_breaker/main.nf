@@ -17,6 +17,7 @@ process MUNG_AND_LOCUS_BREAKER {
     path chain_file
     val (validation)
     path chain_file
+    val (validation)
 
   // Define output - keep carrying the study id (will be used for all downstream processes!), output munged gwas .rds
   output:
