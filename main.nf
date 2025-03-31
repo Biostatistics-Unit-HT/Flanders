@@ -11,6 +11,7 @@ include { COJO_AND_FINEMAPPING    }  from "./modules/local/cojo_and_finemapping"
 include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_coloc"
 include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
 include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
+include { samplesheetToList } from 'plugin/nf-schema'
 
 
 workflow {
@@ -18,7 +19,6 @@ workflow {
 chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
 
 def lauDir = workflow.launchDir.toString()
-include { samplesheetToList } from 'plugin/nf-schema'
 
 // Use nf-schema to read and validate the sample sheet.
 // This returns a channel of maps (each row validated according to your JSON schema).
