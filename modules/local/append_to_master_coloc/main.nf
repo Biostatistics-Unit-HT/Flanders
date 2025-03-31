@@ -13,7 +13,7 @@ process APPEND_TO_MASTER_COLOC {
     path "${meta_study_id.study_id}_coloc_info_master_table.tsv"
 
   // Publish output file to specified directory   
-  publishDir "results/coloc_info_tables", mode:"copy", pattern:"*_coloc_info_master_table.tsv"
+  publishDir "${params.outdir}/results/coloc_info_tables", mode:"copy", pattern:"*_coloc_info_master_table.tsv"
 
 // Define the shell script to execute
   shell:

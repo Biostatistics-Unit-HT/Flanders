@@ -19,6 +19,7 @@ include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_colo
 include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
 include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
 
+<<<<<<< HEAD
 def lauDir = workflow.launchDir.toString()
 include { samplesheetToList } from 'plugin/nf-schema'
 
@@ -44,6 +45,17 @@ workflow {
   // Pass the validated input to a process (if needed)  
   // Now create a new channel by mapping over the validated input.
   // Here we explicitly coerce types (e.g. toInteger, toDouble) as required.
+=======
+// Define the main workflow
+workflow {
+
+chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
+// Define a channel for each process
+
+  // Define input channel for munging of GWAS sum stats
+  // Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
+
+>>>>>>> 0081bd5 (Optimize R scripts for munging including optional liftOver and introduce outdir param (#23))
   gwas_input = Channel
   .of(file(params.inputFileList))
   .splitCsv(header:true, sep:"\t")
@@ -57,6 +69,7 @@ workflow {
       ],
       [
         "is_molQTL": row.is_molQTL,
+        "run_liftover": params.run_liftover ? "T" : "F",
         "key": row.key,
         "chr_lab": row.chr_lab,
         "pos_lab": row.pos_lab,
@@ -85,7 +98,7 @@ workflow {
   INPUT_COLUMNS_VALIDATION(gwas_input)
 
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, INPUT_COLUMNS_VALIDATION.out.validation)
+  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file,INPUT_COLUMNS_VALIDATION.out.validation)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
@@ -130,11 +143,11 @@ workflow {
 
 
 // Run SUSIE_FINEMAPPING process on finemapping_input channel
-  SUSIE_FINEMAPPING(finemapping_input,lauDir)
+  SUSIE_FINEMAPPING(finemapping_input, params.outdir)
 
 
 // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
-  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, lauDir)
+  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, params.outdir)
    
 // Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
   append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table

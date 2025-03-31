@@ -11,14 +11,13 @@ process MUNG_AND_ALIGN {
     tuple val(meta_study_id), path("${meta_study_id.study_id}_dataset_aligned.tsv.gz"), emit:dataset_munged_aligned
 
   // Publish output file to specified directory   
-  publishDir "results/gwas_and_loci_tables/", mode:"copy", pattern:"${meta_study_id.study_id}_dataset_aligned.tsv.gz"
+  publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode:"copy", pattern:"${meta_study_id.study_id}_dataset_aligned.tsv.gz"
    
   // Tag the process with the study ID    
   tag "${meta_study_id.study_id}_mung"
 
 // Define the shell script to execute - IMPORTANT! Use 3 single apostrophes, otherwise bash variables will not be recognised
   shell:
-  def bfile_prefix = meta_parameters.bfile.baseName
     '''
     Rscript --vanilla !{projectDir}/bin/s02_sumstat_munging_and_aligning.R \
         --pipeline_path !{projectDir}/bin/ \
@@ -38,7 +37,7 @@ process MUNG_AND_ALIGN {
         --type !{meta_parameters.type} \
         --sdY !{meta_parameters.sdY} \
         --s !{meta_parameters.s} \
-        --bfile !{bfile_prefix} \
+        --bfile !{meta_parameters.bfile} \
         --grch !{meta_parameters.grch} \
         --study_id !{meta_study_id.study_id}  
     '''

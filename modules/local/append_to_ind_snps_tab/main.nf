@@ -13,7 +13,7 @@ process APPEND_TO_IND_SNPS_TAB {
     path "${meta_study_id.study_id}_final_ind_snps_table.tsv"
 
   // Publish output file to specified directory   
-  publishDir "results/gwas_and_loci_tables", mode:"copy", pattern:"*_final_ind_snps_table.tsv"
+  publishDir "${params.outdir}/results/gwas_and_loci_tables", mode:"copy", pattern:"*_final_ind_snps_table.tsv"
 
 // Define the shell script to execute
   shell:
