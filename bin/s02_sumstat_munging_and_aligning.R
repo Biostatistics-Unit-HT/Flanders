@@ -42,17 +42,6 @@ if(is.null(opt$input)){
 
 ###### NB: Move all checks (files correctly provided, reasonable values etc.) in a specific function!!
 
-##################################
-# Check columns of GWAS
-##################################
-
-# Read only the header (no rows) of the file
-gwas_header = fread(opt$input, na.strings = c("", "NA"), tmpdir=getwd(), nrow = 0)
-required_columns <- c(opt$rsid_lab, opt$chr_lab, opt$pos_lab, opt$a1_lab, opt$a0_lab, opt$effect_lab, opt$se_lab)
-missing_columns <- setdiff(required_columns, colnames(gwas_header))
-if (length(missing_columns) > 0) {
-  stop(paste0("Error: The following required columns are missing in the GWAS file ", opt$input, ": ", paste(missing_columns, collapse = ", ")))
-}
 
 ##################################
 # Load in and munge GWAS sum stats
