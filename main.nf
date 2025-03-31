@@ -12,11 +12,12 @@ nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used
  */
 
 // Source all processes
-include { MUNG_AND_LOCUS_BREAKER  } from "./modules/local/mung_and_locus_breaker"
-include { SUSIE_FINEMAPPING       } from "./modules/local/susie_finemapping"
-include { COJO_AND_FINEMAPPING    } from "./modules/local/cojo_and_finemapping"
-include { APPEND_TO_MASTER_COLOC  } from "./modules/local/append_to_master_coloc"
-include { APPEND_TO_IND_SNPS_TAB  } from "./modules/local/append_to_ind_snps_tab"
+include { MUNG_AND_LOCUS_BREAKER  }  from "./modules/local/mung_and_locus_breaker"
+include { SUSIE_FINEMAPPING       }  from "./modules/local/susie_finemapping"
+include { COJO_AND_FINEMAPPING    }  from "./modules/local/cojo_and_finemapping"
+include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_coloc"
+include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
+include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
 
 def lauDir = workflow.launchDir.toString()
 include { samplesheetToList } from 'plugin/nf-schema'
@@ -87,9 +88,10 @@ workflow {
     )
     }
 
+  INPUT_COLUMNS_VALIDATION(gwas_input)
 
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
+  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file, INPUT_COLUMNS_VALIDATION.out.validation)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
