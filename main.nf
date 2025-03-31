@@ -5,40 +5,13 @@ nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used
 // Set parameter for pipeline version - only for documenting sake
 //params.pipe_vers="1.0"
 
-/* 
-======================================================================
-    INITIALIZATION
-======================================================================
- */
-<<<<<<< HEAD
-=======
-
 // Source all processes
-<<<<<<< HEAD
 include { MUNG_AND_LOCUS_BREAKER  } from "./modules/local/mung_and_locus_breaker"
 include { SUSIE_FINEMAPPING       } from "./modules/local/susie_finemapping"
 include { COJO_AND_FINEMAPPING    } from "./modules/local/cojo_and_finemapping"
 include { APPEND_TO_MASTER_COLOC  } from "./modules/local/append_to_master_coloc"
 include { APPEND_TO_IND_SNPS_TAB  } from "./modules/local/append_to_ind_snps_tab"
->>>>>>> 03ab010 (Resolve conflicts part 3)
-=======
-include { MUNG_AND_LOCUS_BREAKER  }  from "./modules/local/mung_and_locus_breaker"
-include { SUSIE_FINEMAPPING       }  from "./modules/local/susie_finemapping"
-include { COJO_AND_FINEMAPPING    }  from "./modules/local/cojo_and_finemapping"
-include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_coloc"
-include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
-include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
->>>>>>> d42acfa (Resolve conflicts part 4)
 
-// Source all processes
-include { MUNG_AND_LOCUS_BREAKER  }  from "./modules/local/mung_and_locus_breaker"
-include { SUSIE_FINEMAPPING       }  from "./modules/local/susie_finemapping"
-include { COJO_AND_FINEMAPPING    }  from "./modules/local/cojo_and_finemapping"
-include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_coloc"
-include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
-include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
-
-<<<<<<< HEAD
 def lauDir = workflow.launchDir.toString()
 include { samplesheetToList } from 'plugin/nf-schema'
 
@@ -47,24 +20,6 @@ include { samplesheetToList } from 'plugin/nf-schema'
 
 def samples = samplesheetToList(params.inputFileList, params.schema)
 
-/* Check GRCh  based on liftover parameter
-if (!params.run_liftover) {
-    // Extract all unique grch values from the samples
-    def uniqueGrchValues = samples.collect { it.grch }.unique()
-
-    // Ensure there's only one unique grch value
-    if (uniqueGrchValues.size() > 1) {
-        log.error "Inconsistent 'grch' values detected in the sample sheet while 'run_liftover' is set to false: ${uniqueGrchValues}"
-        System.exit(1)
-    }
-}
-*/
-workflow {
-
-  // Pass the validated input to a process (if needed)  
-  // Now create a new channel by mapping over the validated input.
-  // Here we explicitly coerce types (e.g. toInteger, toDouble) as required.
-=======
 // Define the main workflow
 workflow {
 
@@ -74,23 +29,6 @@ chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
   // Define input channel for munging of GWAS sum stats
   // Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
 
-<<<<<<< HEAD
->>>>>>> 0081bd5 (Optimize R scripts for munging including optional liftOver and introduce outdir param (#23))
-=======
-def lauDir = workflow.launchDir.toString()
-include { samplesheetToList } from 'plugin/nf-schema'
-
-// Use nf-schema to read and validate the sample sheet.
-// This returns a channel of maps (each row validated according to your JSON schema).
-
-samplesheetToList(params.inputFileList, params.schema)
-
-workflow {
-
-  // Pass the validated input to a process (if needed)  
-  // Now create a new channel by mapping over the validated input.
-  // Here we explicitly coerce types (e.g. toInteger, toDouble) as required.
->>>>>>> 03ab010 (Resolve conflicts part 3)
   gwas_input = Channel
   .of(file(params.inputFileList))
   .splitCsv(header:true, sep:"\t")
@@ -128,13 +66,10 @@ workflow {
       ],
       gwas_file
     )
-    }
-    
-  // Validate input columns prior munging
-  INPUT_COLUMNS_VALIDATION(gwas_input)
+  }
 
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file,INPUT_COLUMNS_VALIDATION.out.validation)
+  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
