@@ -18,6 +18,13 @@ def main():
             gwas_path = args.launchdir + "/" + gwas_path
         return gwas_path
     
+    def read_gwas_file(gwas_path):
+        if gwas_path.endswith('.gz'):
+            return pd.read_csv(gwas_path, compression='gzip', sep='\t', nrows=1)
+        else:
+            return pd.read_csv(gwas_path, sep='\t', nrows=1)
+
+    
     table_files = pd.read_csv(fill_path(args.table), sep = "\t")
 
     # Check that the builds are consistent
@@ -33,7 +40,8 @@ def main():
         if os.path.exists(gwas_path):
             # Check that the bfiles exist
             if os.path.exists(bfile_path + ".bim") and os.path.exists(bfile_path + ".bed") and os.path.exists(bfile_path + ".fam"):
-                gwas_sub = pd.read_csv(gwas_path, compression = "gzip", sep = "\t", nrows = 1)
+
+                gwas_sub = read_gwas_file(gwas_path)
                 # Check that the columns are found
                 gwas_col = list(gwas_sub.columns)
                 mandatory_columns = ["pos_lab", "rsid_lab", "chr_lab", "a0_lab", "a1_lab", "effect_lab", "se_lab"]
