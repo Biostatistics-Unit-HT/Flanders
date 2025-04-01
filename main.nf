@@ -17,20 +17,17 @@ include { samplesheetToList } from 'plugin/nf-schema'
 workflow {
 
 chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
-
-
-// Use nf-schema to read and validate the sample sheet.
-
+// Use nf-schema to read and validate the sample sheet
 samplesheetToList(params.inputFileList, params.schema)
+
+// Validate input file
+// In case we are running a test profile, we need to set the base_dir to the projectDir
+base_dir = params.is_test_profile ? "${projectDir}" : "${launchDir}"
+INPUT_COLUMNS_VALIDATION(file(params.inputFileList), base_dir)
+
 // Define input channel for munging of GWAS sumstats
-INPUT_COLUMNS_VALIDATION(params.inputFileList)
 
 gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
-  .map { file_path -> 
-    // Read the file path as a channel
-    file(file_path)
-  }
-  .flatten() 
   .splitCsv(header:true, sep:"\t")
   .map { row -> 
     def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import pandas as pd
 import argparse
 import os
@@ -25,7 +27,7 @@ def main():
             return pd.read_csv(gwas_path, sep='\t', nrows=1)
 
     
-    table_files = pd.read_csv(fill_path(args.table), sep = "\t")
+    table_files = pd.read_csv(args.table, sep = "\t")
 
     # Check that the builds are consistent
     if args.liftover:
