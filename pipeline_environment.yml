@@ -29,3 +29,4 @@ dependencies:
   - r-cowplot=1.1.3
   - tabix=1.11
   - bioconductor-rhtslib=2.4.0
+  - pandas=2.2.3

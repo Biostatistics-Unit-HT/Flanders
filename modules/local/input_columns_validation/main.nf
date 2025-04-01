@@ -2,15 +2,19 @@ process INPUT_COLUMNS_VALIDATION {
     label "process_single"
 
     input:
-        tuple val(meta_study_id), val(meta_parameters), path(gwas_input)
+        val(file_list)
 
     output:
-        tuple val(meta_study_id), emit: validation
+        val(file_list), emit: table_out
 
     script:
     """
-    required_columns=\"${meta_parameters.rsid_lab} ${meta_parameters.chr_lab} ${meta_parameters.pos_lab} ${meta_parameters.a1_lab} ${meta_parameters.a0_lab} ${meta_parameters.effect_lab} ${meta_parameters.se_lab}\"
+    python ${projectDir}/bin/validate_columns.py --launchdir ${launchDir} --liftover ${params.run_liftover} --table ${file_list}
     
-    \"${projectDir}/bin/validate_columns.sh\" \"\$required_columns\" \"${gwas_input}\"
+    if [[ \$? -ne 0 ]]; then
+        echo "ERROR: Validation failed. Check logs for details." >&2
+        exit 1
+    fi
+
     """
 }

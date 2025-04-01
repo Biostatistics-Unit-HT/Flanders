@@ -21,18 +21,21 @@ chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
 def lauDir = workflow.launchDir.toString()
 
 // Use nf-schema to read and validate the sample sheet.
-// This returns a channel of maps (each row validated according to your JSON schema).
 
 samplesheetToList(params.inputFileList, params.schema)
-// Define input channel for munging of GWAS sum stats
-// Split the input .tsv file (specified as argument when sbatching the nextflow command) into rows, the defined channel will be applied to each row. Then assign each column to a parameter (based on column name) - tuple of: study id, other specific metadata parameters, gwas sum stats (row.input)
-gwas_input = Channel
-  .of(file(params.inputFileList))
+// Define input channel for munging of GWAS sumstats
+INPUT_COLUMNS_VALIDATION(params.inputFileList)
+
+gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
+  .map { file_path -> 
+    // Read the file path as a channel
+    file(file_path)
+  }
+  .flatten() 
   .splitCsv(header:true, sep:"\t")
   .map { row -> 
-    def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
-    def bfile = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}", checkIfExists:true) : file("${row.bfile}.{bed,bim,fam}", checkIfExists:true)
     def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
+    def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
     tuple(
       [
         "study_id": row.study_id
@@ -64,10 +67,8 @@ gwas_input = Channel
       gwas_file
     )
   }
-
-  INPUT_COLUMNS_VALIDATION(gwas_input)
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file, INPUT_COLUMNS_VALIDATION.out.validation)
+  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
