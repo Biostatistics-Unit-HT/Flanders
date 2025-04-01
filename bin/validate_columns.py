@@ -44,8 +44,12 @@ def main():
                 gwas_sub = read_gwas_file(gwas_path)
                 # Check that the columns are found
                 gwas_col = list(gwas_sub.columns)
-                mandatory_columns = ["pos_lab", "rsid_lab", "chr_lab", "a0_lab", "a1_lab", "effect_lab", "se_lab"]
-                if all(record[col] in gwas_col for col in mandatory_columns):
+                all_labels = ["pos_lab", "rsid_lab", "chr_lab", "a0_lab", "a1_lab", "effect_lab", "se_lab", "freq_lab", "n_lab"]
+                if record['is_molQTL'] == "TRUE": all_labels.append('key')
+                #col_names_to_scan = [record[col] for col in all_labels if not record[col].isna()]
+                col_names_to_scan = [record[col] for col in all_labels if isinstance(record[col], pd.Series) and not record[col].isna()]
+
+                if all(record[col] in gwas_col for col in col_names_to_scan):
                     continue
                 else:
                     print("Error: The columns from the GWAS are not contained in the input table.", file=sys.stderr)
