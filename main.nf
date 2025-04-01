@@ -18,7 +18,6 @@ workflow {
 
 chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
 
-def lauDir = workflow.launchDir.toString()
 
 // Use nf-schema to read and validate the sample sheet.
 
