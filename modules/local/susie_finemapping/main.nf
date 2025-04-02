@@ -38,6 +38,5 @@ process SUSIE_FINEMAPPING {
     touch ${meta_study_id.study_id}_susie_finemap.rds
     touch ${meta_study_id.study_id}_coloc_info_table.tsv
     touch ${meta_study_id.study_id}_ind_snps.tsv
-    touch failed_susie.txt
     """
 }
