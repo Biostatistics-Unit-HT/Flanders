@@ -100,7 +100,7 @@ workflow {
     .collectFile(
       newLine: true, 
       name: "large_loci.tsv", storeDir: "${params.outdir}/results/not_finemapped_loci",
-      seed: "study_id\tchr\tstart\tend\tlocus_size\tphenotype_id\n")
+      seed: "study_id\tchr\tstart\tend\tlocus_size\tphenotype_id")
 
 // Define metadata channel for COJO/SUSIE FINEMAPPING
 // Only small loci will be used for finemapping
