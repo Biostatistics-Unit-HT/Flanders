@@ -16,18 +16,22 @@ include { samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
 
-chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
-// Use nf-schema to read and validate the sample sheet
-samplesheetToList(params.inputFileList, params.schema)
+  // Define asset files
+  chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
 
-// Validate input file
-// In case we are running a test profile, we need to set the base_dir to the projectDir
-base_dir = params.is_test_profile ? "${projectDir}" : "${launchDir}"
-INPUT_COLUMNS_VALIDATION(file(params.inputFileList), base_dir)
+  // Ensure the folder to store not finemapped loci exists
+  file("${params.outdir}/results/not_finemapped_loci").mkdirs()
 
-// Define input channel for munging of GWAS sumstats
+  // Use nf-schema to read and validate the sample sheet
+  samplesheetToList(params.inputFileList, params.schema)
 
-gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
+  // Validate input file
+  // In case we are running a test profile, we need to set the base_dir to the projectDir
+  base_dir = params.is_test_profile ? "${projectDir}" : "${launchDir}"
+  INPUT_COLUMNS_VALIDATION(file(params.inputFileList), base_dir)
+
+  // Define input channel for munging of GWAS sum stats
+  gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
   .splitCsv(header:true, sep:"\t")
   .map { row -> 
     def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
@@ -67,7 +71,7 @@ gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
   MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
 
 // Output channel of LOCUS_BREAKER *** process one locus at a time ***
-  loci_for_finemapping = MUNG_AND_LOCUS_BREAKER.out.loci_table
+  MUNG_AND_LOCUS_BREAKER.out.loci_table
     .splitCsv(header:true, sep:"\t")
     .map{ row -> tuple(
       [
@@ -77,12 +81,29 @@ gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
         "chr":row.chr,
         "start":row.start,
         "end":row.end,
+        "locus_size":row.locus_size,
         "phenotype_id":row.phenotype_id
       ]
-    )
-  }
+      )
+    }
+    .branch { study_meta, locus_meta ->
+      small: locus_meta.locus_size.toInteger() < params.large_locus_size
+      large: locus_meta.locus_size.toInteger() >= params.large_locus_size
+    }
+    .set { loci_for_finemapping }
+
+// Large loci are collected in a file and published
+  loci_for_finemapping.large
+    .map{ study, locus ->
+      [study.study_id, locus.chr, locus.start, locus.end, locus.locus_size, locus.phenotype_id].join('\t')
+    }
+    .collectFile(
+      newLine: true, 
+      name: "large_loci.tsv", storeDir: "${params.outdir}/results/not_finemapped_loci",
+      seed: "study_id\tchr\tstart\tend\tlocus_size\tphenotype_id\n")
 
 // Define metadata channel for COJO/SUSIE FINEMAPPING
+// Only small loci will be used for finemapping
   finemapping_input = Channel  
     .of(file(params.inputFileList))
     .splitCsv(header:true, sep:"\t")
@@ -103,7 +124,7 @@ gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
       ]
     )
   }
-  .combine(loci_for_finemapping, by:0)
+  .combine(loci_for_finemapping.small, by:0)
   .combine(MUNG_AND_LOCUS_BREAKER.out.dataset_munged_aligned, by:0)
 //  .map{study_id, meta_finemapping, meta_loci, gwas_final, gwas_final_index -> tuple(study_id, meta_finemapping+meta_loci, gwas_final, gwas_final_index)}
 
