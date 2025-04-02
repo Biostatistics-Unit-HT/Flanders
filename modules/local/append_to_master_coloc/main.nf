@@ -1,4 +1,5 @@
 process APPEND_TO_MASTER_COLOC {
+  tag "${meta_study_id.study_id}"
   label "process_single"
 
   publishDir "${params.outdir}/results/coloc_info_tables", mode: params.publish_dir_mode, pattern:"*_coloc_info_master_table.tsv"

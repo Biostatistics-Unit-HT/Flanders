@@ -1,5 +1,5 @@
 process COJO_AND_FINEMAPPING {
-  tag "${meta_study_id.study_id}_cojo_finemap"
+  tag "${meta_study_id.study_id}"
   label "process_high"
 
   publishDir "${params.outdir}/plots/", mode: params.publish_dir_mode, pattern:"*_conditioned_loci.pdf"

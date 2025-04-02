@@ -1,5 +1,5 @@
 process MUNG_AND_ALIGN {
-  tag "${meta_study_id.study_id}_mung"
+  tag "${meta_study_id.study_id}"
 
   publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_dataset_aligned.tsv.gz"
 

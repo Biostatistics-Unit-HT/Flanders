@@ -1,5 +1,5 @@
 process COLOC {
-  tag "${params.coloc_id}_coloc"
+  tag "${params.coloc_id}"
   label "process_medium"
   
   input:

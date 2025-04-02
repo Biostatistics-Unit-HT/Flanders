@@ -1,5 +1,5 @@
 process SUSIE_FINEMAPPING {
-  tag "${meta_study_id.study_id}_susie_finemap"
+  tag "${meta_study_id.study_id}"
   label "process_high"
   
   publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds"

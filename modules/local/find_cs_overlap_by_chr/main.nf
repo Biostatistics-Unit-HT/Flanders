@@ -1,5 +1,5 @@
 process FIND_CS_OVERLAP_BY_CHR {
-  tag "${params.coloc_id}_cs_overlap"
+  tag "${params.coloc_id}"
   label "process_high"
 
   input:

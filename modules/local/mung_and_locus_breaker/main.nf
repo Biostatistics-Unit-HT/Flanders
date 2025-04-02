@@ -1,5 +1,5 @@
 process MUNG_AND_LOCUS_BREAKER {
-  tag "${meta_study_id.study_id}_mung_and_locus_break"
+  tag "${meta_study_id.study_id}"
   label "process_high"
 
   // TODO: This works but it's slow. For the moment we use a global conda env for the whole pipeline

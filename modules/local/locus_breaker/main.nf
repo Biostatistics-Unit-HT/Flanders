@@ -1,5 +1,5 @@
 process LOCUS_BREAKER {
-  tag "${meta_study_id.study_id}_locus_b"
+  tag "${meta_study_id.study_id}"
   label "process_low"
 
   publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_loci.tsv"
