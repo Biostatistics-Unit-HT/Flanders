@@ -73,7 +73,6 @@ dataset.munge_hor=function(sumstats.file
     dataset <- as.data.table(dataset)
   }
   
-  # TODO: Replicate these checks on column names to a separate process in the pipeline
   if(!is.null(a1.lab) & a1.lab %in% names(dataset) & !is.null(a0.lab) & a0.lab %in% names(dataset) ){
     names(dataset)[match(c(a1.lab,a0.lab),names(dataset))]=c("A1","A2")
   }else{

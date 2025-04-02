@@ -52,9 +52,10 @@ process MUNG_AND_LOCUS_BREAKER {
 
   stub:
     """
+    study_id=$(tail -n+2 ${gwas_input} | head -n1 | cut -f1)
     echo -e "study_id\tchr_lab\tpos_lab\trsid_lab\ta1_lab\ta0_lab\tfreq_lab\tn_lab\teffect_lab\tse_lab\tpvalue_lab\ttype\tsdY\ts\tgrch\tp_thresh1\tp_thresh2\thole\tbfile\tp_thresh3\tp_thresh4\tmaf\tis_molQTL\tkey\tcs_thresh\tskip_dentist" > ${meta_study_id.study_id}_loci_NO_HLA.tsv
-    echo -e "dummy_study\t1\t12345\trs123\tA\tT\t0.5\t1000\t0.1\t0.01\t0.001\tGWAS\t1\t0.5\tGRCh37\t0.05\t0.01\tNA\tNA\t0.1\t0.2\t0.01\tfalse\tdummy_key\t0.9\tfalse" >> ${meta_study_id.study_id}_loci_NO_HLA.tsv
-    echo -e "dummy_study\t2\t67890\trs456\tG\tC\t0.4\t2000\t0.2\t0.02\t0.002\tGWAS\t1\t0.6\tGRCh38\t0.04\t0.02\tNA\tNA\t0.2\t0.3\t0.02\ttrue\tdummy_key\t0.8\ttrue" >> ${meta_study_id.study_id}_loci_NO_HLA.tsv
+    echo -e "\$study_id\t1\t12345\trs123\tA\tT\t0.5\t1000\t0.1\t0.01\t0.001\tGWAS\t1\t0.5\tGRCh37\t0.05\t0.01\tNA\tNA\t0.1\t0.2\t0.01\tfalse\tdummy_key\t0.9\tfalse" >> ${meta_study_id.study_id}_loci_NO_HLA.tsv
+    echo -e "\$study_id\t2\t67890\trs456\tG\tC\t0.4\t2000\t0.2\t0.02\t0.002\tGWAS\t1\t0.6\tGRCh38\t0.04\t0.02\tNA\tNA\t0.2\t0.3\t0.02\ttrue\tdummy_key\t0.8\ttrue" >> ${meta_study_id.study_id}_loci_NO_HLA.tsv
     touch ${meta_study_id.study_id}_dataset_aligned.tsv.gz
     touch ${meta_study_id.study_id}_dataset_aligned_indexed.tsv.gz
     touch ${meta_study_id.study_id}_dataset_aligned_indexed.tsv.gz.tbi
