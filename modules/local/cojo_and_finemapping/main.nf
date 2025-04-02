@@ -39,9 +39,9 @@ process COJO_AND_FINEMAPPING {
 
   stub:
     """
-    touch ${meta_study_id.study_id}_cojo_finemap.rds
-    touch ${meta_study_id.study_id}_conditioned_loci.pdf
-    touch ${meta_study_id.study_id}_coloc_info_table.tsv
-    touch ${meta_study_id.study_id}_ind_snps.tsv
+    touch ${meta_study_id.study_id}_${meta_loci.phenotype_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_cojo_finemap.rds
+    touch ${meta_study_id.study_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_conditioned_loci.pdf
+    touch ${meta_study_id.study_id}_${meta_loci.phenotype_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_cojo_coloc_info_table.tsv
+    touch ${meta_study_id.study_id}_${meta_loci.phenotype_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_ind_snps.tsv
     """
 }
