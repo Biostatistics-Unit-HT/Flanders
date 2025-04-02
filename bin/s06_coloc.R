@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript --vanilla
+
 suppressMessages(library(optparse))
 
 # Get arguments specified in the sbatch

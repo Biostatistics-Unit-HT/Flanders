@@ -1,4 +1,4 @@
-#!/usr/bin/env Rscript
+#!/usr/bin/env Rscript --vanilla
 
 suppressMessages(library(optparse))
 suppressMessages(library(readr))
