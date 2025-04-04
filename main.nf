@@ -118,7 +118,7 @@ workflow {
         "p_thresh3": row.p_thresh3,
         "p_thresh4": row.p_thresh4,
         "bfile": bfile_string,
-        "skip_dentist": row.skip_dentist,
+        "skip_dentist": params.skip_dentist,
         "maf": row.maf,
         "hole": row.hole,
         "cs_thresh": row.cs_thresh

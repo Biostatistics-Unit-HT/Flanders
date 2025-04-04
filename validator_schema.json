@@ -29,7 +29,6 @@
       "p_thresh3": { "type": "number" },
       "p_thresh4": { "type": "number" },
       "cs_thresh": {"oneOf":[{ "type": "number" },{ "const": "NA" }]},
-      "skip_dentist": { "type": "boolean" },
       "hole": { "type": "number" }
     },
     "required": ["study_id", "key", "is_molQTL", 
@@ -39,8 +38,7 @@
                   "pvalue_lab", "type", "sdY", 
                   "s", "grch", "bfile", 
                   "maf", "p_thresh1", "p_thresh2", 
-                  "p_thresh3", "p_thresh4", "cs_thresh", 
-                  "skip_dentist","hole"]
+                  "p_thresh3", "p_thresh4", "cs_thresh", "hole"]
                 
   }
 }
