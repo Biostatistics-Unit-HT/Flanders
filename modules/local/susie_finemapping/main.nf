@@ -6,7 +6,7 @@ process SUSIE_FINEMAPPING {
 
   input:
     tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index)
-    val lauDir
+    val outdir
   
   output:
     path "*_susie_finemap.rds", optional:true
@@ -29,7 +29,7 @@ process SUSIE_FINEMAPPING {
         --bfile ${meta_finemapping.bfile} \
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
-        --results_path ${lauDir} \
+        --results_path ${outdir} \
         --study_id ${meta_study_id.study_id}
     """
 

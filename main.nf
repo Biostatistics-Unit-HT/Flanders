@@ -18,6 +18,7 @@ workflow {
 
   // Define asset files
   chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
+  outdir_abspath = file(params.outdir).toAbsolutePath().toString()
 
   // Ensure the folder to store not finemapped loci exists
   file("${params.outdir}/results/not_finemapped_loci").mkdirs()
@@ -130,11 +131,11 @@ workflow {
 
 
 // Run SUSIE_FINEMAPPING process on finemapping_input channel
-  SUSIE_FINEMAPPING(finemapping_input, params.outdir)
+  SUSIE_FINEMAPPING(finemapping_input, outdir_abspath)
 
 
 // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
-  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, params.outdir)
+  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, outdir_abspath)
    
 // Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
   append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table

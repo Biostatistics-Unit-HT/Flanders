@@ -7,7 +7,7 @@ process COJO_AND_FINEMAPPING {
 
   input:
     tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path(susie_error_message)
-    val lauDir
+    val outdir
   
   output:
     path "*_conditioned_loci.pdf", optional:true
@@ -33,7 +33,7 @@ process COJO_AND_FINEMAPPING {
         --p_thresh4 ${meta_finemapping.p_thresh4} \
         --hole ${meta_finemapping.hole} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
-        --results_path ${lauDir} \
+        --results_path ${outdir} \
         --study_id ${meta_study_id.study_id}
     """
 
