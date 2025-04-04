@@ -30,7 +30,14 @@ if(as.numeric(opt$grch)==37){
   fwrite(bim_lifted_no_dups %>% dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
   
 # Extract list of SNPs from .bim (to match it with .bed!)
-  system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, "_alpha_sorted_alleles"))
+  exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, "_alpha_sorted_alleles"))
+  
+  # Raise an error if the external command fails
+  if (exit_status != 0) {
+    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+    quit(status = 1, save = "no")
+  }
+  
   system(paste0("rm ", opt$bfile, "_snps_to_extract.txt"))
   
   bim_cleaned <- bim_lifted_no_dups

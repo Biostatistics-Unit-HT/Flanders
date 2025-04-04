@@ -266,8 +266,14 @@ dataset.align <- function(dataset, bfile) {
     message("Allele frequency not found in summary stat - Computing allele frequency from LD reference panel")
     ## Compute allele frequency from LD reference panel provided    
     random.number <- stri_rand_strings(n=1, length=20, pattern = "[A-Za-z0-9]")
-    system(paste0("plink2 --bfile ", bfile, " --freq --make-bed --out ", random.number))
-    
+    exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-bed --out ", random.number))
+
+    # Raise an error if the external command fails
+    if (exit_status != 0) {
+      cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+      quit(status = 1, save = "no")
+    }
+
     # Load-in frequency and position info from plink files
     freqs <- as.data.table(cbind(
       read_tsv(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),

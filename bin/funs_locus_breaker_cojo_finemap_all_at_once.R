@@ -218,7 +218,14 @@ hg19ToHg38_liftover <- function(
   
   if(!(file.exists(paste0(default_ch_path, "hg19ToHg38.over.chain")))){
     ### Download chain file and unzip it
-    system("wget -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.gz | gunzip -c > hg19ToHg38.over.chain")
+    exit_status = system("wget -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/liftOver/hg19ToHg38.over.chain.gz | gunzip -c > hg19ToHg38.over.chain")
+
+    # Raise an error if the external command fails
+    if (exit_status != 0) {
+      cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+      quit(status = 1, save = "no")
+    }
+    
     # Import from hg19 To Hg38 chain and then delete it
     ch <- import.chain("hg19ToHg38.over.chain")
     system("rm hg19ToHg38.over.chain")
@@ -287,8 +294,14 @@ dataset.align <- function(dataset,
 
 ## Compute allele frequency from LD reference panel provided    
     random.number <- stri_rand_strings(n=1, length=20, pattern = "[A-Za-z0-9]")
-    system(paste0("plink2 --bfile ", bfile, " --freq --make-bed --out ", random.number))
-      
+    exist_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-bed --out ", random.number))
+
+    # Raise an error if the external command fails
+    if (exit_status != 0) {
+      cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+      quit(status = 1, save = "no")
+    }
+
       # Load-in frequency and position info from plink files
     freqs <- cbind(
       fread(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),
@@ -431,8 +444,14 @@ run_dentist <- function(D=dataset_aligned
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
   # Prepare subset of plink LD files    
-  system(paste0("/ssu/gassu/software/plink/2.00_20211217/plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  exit_status = system(paste0("/ssu/gassu/software/plink/2.00_20211217/plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
   
+  # Raise an error if the external command fails
+  if (exit_status != 0) {
+    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+    quit(status = 1, save = "no")
+  }
+
   #### Check if any SNP was left after extracting and filtering!
   snsp_extracted <- system(paste0("grep -E '[0-9]+ variants? remaining after main filters\\.' ", random.number, ".log"), intern = TRUE)
   snsp_extracted <- as.numeric(gsub("(\\d+) variants? remaining after main filters.", "\\1", snsp_extracted))
@@ -447,8 +466,14 @@ run_dentist <- function(D=dataset_aligned
     fwrite(D %>% dplyr::select(-snp_original, -type, -any_of(c("sdY", "s"))), # to match with input required by Dentist
            file=paste0(random.number,"_sum.txt"), row.names=F,quote=F,sep="\t", na=NA)
     
-    system(paste0(dentist.bin, "/DENTIST_1.3.0.0 --gwas-summary ", random.number,"_sum.txt --bfile ", random.number, " --chrID ", locus_chr,  " --extract ", random.number, "_locus_only.snp.list --out ", random.number, " --thread-num 1"))
+    exit_status = system(paste0(dentist.bin, "/DENTIST_1.3.0.0 --gwas-summary ", random.number,"_sum.txt --bfile ", random.number, " --chrID ", locus_chr,  " --extract ", random.number, "_locus_only.snp.list --out ", random.number, " --thread-num 1"))
     
+    # Raise an error if the external command fails
+    if (exit_status != 0) {
+      cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+      quit(status = 1, save = "no")
+    }
+
     if (file.exists(paste0(random.number, ".DENTIST.short.txt"))){ ### check that output was produced
       # Remove SNPs pointed out by DENTIST and proceed with COJO
       dentist_exclude <- fread(paste0(random.number, ".DENTIST.short.txt"), data.table = F, header = F) 
@@ -488,8 +513,14 @@ cojo.ht=function(D=dataset_aligned
     write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
     
     # Prepare subset of plink LD files    
-    system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
-    
+    exist_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+
+    # Raise an error if the external command fails
+    if (exit_status != 0) {
+      cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+      quit(status = 1, save = "no")
+    }
+
     # Format gwas sum stat input
     D <- D %>%
       dplyr::select("SNP","A1","A2","freq","b","se","p","N","snp_original","type", any_of(c("sdY","s")))
@@ -499,8 +530,14 @@ cojo.ht=function(D=dataset_aligned
   }
   
   # step1 determine independent snps
-  system(paste0("gcta64 --bfile ", random.number, " --cojo-p ", p.thresh, " --maf ", maf.thresh, " --extract ", random.number, "_locus_only.snp.list --cojo-file ", random.number, "_sum.txt --cojo-slct --out ", random.number, "_step1"))
+  exit_status = system(paste0("gcta64 --bfile ", random.number, " --cojo-p ", p.thresh, " --maf ", maf.thresh, " --extract ", random.number, "_locus_only.snp.list --cojo-file ", random.number, "_sum.txt --cojo-slct --out ", random.number, "_step1"))
   
+  # Raise an error if the external command fails
+  if (exit_status != 0) {
+    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+    quit(status = 1, save = "no")
+  }
+
   if(file.exists(paste0(random.number,"_step1.jma.cojo"))){
     dataset.list=list()
     ind.snp <- fread(paste0(random.number,"_step1.jma.cojo")) %>%
@@ -520,8 +557,14 @@ cojo.ht=function(D=dataset_aligned
         write(ind.snp$SNP[-i],ncol=1, file=paste0(random.number,"_independent.snp"))
         print(ind.snp$SNP[-i])
         
-        system(paste0("gcta64 --bfile ",random.number, " --maf ", maf.thresh, " --extract ",random.number,"_locus_only.snp.list --cojo-file ",random.number,"_sum.txt --cojo-cond ",random.number,"_independent.snp --out ",random.number,"_step2"))
+        exit_status = system(paste0("gcta64 --bfile ",random.number, " --maf ", maf.thresh, " --extract ",random.number,"_locus_only.snp.list --cojo-file ",random.number,"_sum.txt --cojo-cond ",random.number,"_independent.snp --out ",random.number,"_step2"))
         
+        # Raise an error if the external command fails
+        if (exit_status != 0) {
+          cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+          quit(status = 1, save = "no")
+        }
+
         #### STOP ANALYSIS FOR THAT TOP SNP IN CASE OF COLLINEARITY
         if(!file.exists(paste0(random.number,"_step2.cma.cojo"))){
           cat(paste0("\n****WARNING: COJO has encountered a collinearty problem. Affected SNP will be removed from following analysis****\n\n"))
@@ -548,8 +591,14 @@ cojo.ht=function(D=dataset_aligned
       ### NB: COJO here is performed ONLY for formatting sakes - No need to condition if only one signal is found!!
       
       write(ind.snp$SNP,ncol=1,file=paste0(random.number,"_independent.snp"))
-      system(paste0("gcta64  --bfile ",random.number," --cojo-p ",p.thresh, " --maf ", maf.thresh, " --extract ",random.number,"_locus_only.snp.list --cojo-file ",random.number,"_sum.txt --cojo-cond ",random.number,"_independent.snp --out ",random.number,"_step2"))
+      exit_status = system(paste0("gcta64  --bfile ",random.number," --cojo-p ",p.thresh, " --maf ", maf.thresh, " --extract ",random.number,"_locus_only.snp.list --cojo-file ",random.number,"_sum.txt --cojo-cond ",random.number,"_independent.snp --out ",random.number,"_step2"))
       
+      # Raise an error if the external command fails
+      if (exit_status != 0) {
+        cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+        quit(status = 1, save = "no")
+      }
+
       step2.res <- fread(paste0(random.number, "_step2.cma.cojo"), data.table=FALSE)
       
       # If the locus is made up of only one SNP, step2.res will be an empty dataframe    
@@ -608,8 +657,14 @@ prep_susie_ld <- function(
   }
   
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
-  system(paste0("/ssu/gassu/software/plink/2.00_20211217/plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  exit_status = system(paste0("/ssu/gassu/software/plink/2.00_20211217/plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
   
+  # Raise an error if the external command fails
+  if (exit_status != 0) {
+    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+    quit(status = 1, save = "no")
+  }
+
   geno <- fread(paste0(random.number, ".raw"))[,-c(1:6)] ### First 6 columns are FID, IID, PAT, MAT, SEX and PHENOTYPE
   
   # Check which SNPs have the same genotype for all samples and remove them
