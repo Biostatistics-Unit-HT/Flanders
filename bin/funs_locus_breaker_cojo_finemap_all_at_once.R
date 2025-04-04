@@ -466,14 +466,9 @@ run_dentist <- function(D=dataset_aligned
     fwrite(D %>% dplyr::select(-snp_original, -type, -any_of(c("sdY", "s"))), # to match with input required by Dentist
            file=paste0(random.number,"_sum.txt"), row.names=F,quote=F,sep="\t", na=NA)
     
-    exit_status = system(paste0(dentist.bin, "/DENTIST_1.3.0.0 --gwas-summary ", random.number,"_sum.txt --bfile ", random.number, " --chrID ", locus_chr,  " --extract ", random.number, "_locus_only.snp.list --out ", random.number, " --thread-num 1"))
+    # We don't catch the exit status of the system call here, as we want to continue even if DENTIST fails
+    system(paste0(dentist.bin, "/DENTIST_1.3.0.0 --gwas-summary ", random.number,"_sum.txt --bfile ", random.number, " --chrID ", locus_chr,  " --extract ", random.number, "_locus_only.snp.list --out ", random.number, " --thread-num 1"))
     
-    # Raise an error if the external command fails
-    if (exit_status != 0) {
-      cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
-      quit(status = 1, save = "no")
-    }
-
     if (file.exists(paste0(random.number, ".DENTIST.short.txt"))){ ### check that output was produced
       # Remove SNPs pointed out by DENTIST and proceed with COJO
       dentist_exclude <- fread(paste0(random.number, ".DENTIST.short.txt"), data.table = F, header = F) 
