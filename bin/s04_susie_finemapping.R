@@ -58,7 +58,7 @@ if (opt$skip_dentist){
     bfile=opt$bfile,
     maf.thresh=opt$maf,
     random.number=random.number,
-    dentist.bin="/ssu/bsssu/software_bsssu/DENTIST"
+    dentist.bin="DENTIST"
   )
 }
 

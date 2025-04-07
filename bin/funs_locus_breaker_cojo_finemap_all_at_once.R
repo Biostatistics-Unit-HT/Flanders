@@ -430,10 +430,10 @@ run_dentist <- function(D=dataset_aligned
                         , locus_chr=opt$chr
                         , locus_start=opt$start
                         , locus_end=opt$end
-                        , bfile="/ssu/bsssu/ghrc38_reference/ukbb_all_chrs_grch38_maf0.01_30000_random_unrelated_white_british_alpha_sort_alleles"
+                        , bfile="ld_panel"
                         , maf.thresh=1e-4
                         , random.number="ZUlGe4EnYqGkubYrApHu"
-                        , dentist.bin="/ssu/bsssu/software_bsssu/DENTIST"
+                        , dentist.bin="DENTIST"
 ){
   
   
@@ -444,7 +444,7 @@ run_dentist <- function(D=dataset_aligned
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
   # Prepare subset of plink LD files    
-  exit_status = system(paste0("/ssu/gassu/software/plink/2.00_20211217/plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  exit_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
   
   # Raise an error if the external command fails
   if (exit_status != 0) {
@@ -493,7 +493,7 @@ cojo.ht=function(D=dataset_aligned
                  , locus_start=opt$start
                  , locus_end=opt$end
                  , p.thresh=1e-4
-                 , bfile="/ssu/bsssu/ghrc38_reference/ukbb_all_chrs_grch38_maf0.01_30000_random_unrelated_white_british_alpha_sort_alleles"
+                 , bfile="ld_panel"
                  , maf.thresh=1e-4
                  , random.number="ZUlGe4EnYqGkubYrApHu"
                  , skip_dentist=opt$skip_dentist
@@ -652,7 +652,7 @@ prep_susie_ld <- function(
   }
   
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
-  exit_status = system(paste0("/ssu/gassu/software/plink/2.00_20211217/plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
   
   # Raise an error if the external command fails
   if (exit_status != 0) {
