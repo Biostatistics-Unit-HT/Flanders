@@ -30,3 +30,5 @@ dependencies:
   - tabix=1.11
   - bioconductor-rhtslib=2.4.0
   - pandas=2.2.3
+  - plink2=2.00a5.10
+  - gcta=1.94.1
