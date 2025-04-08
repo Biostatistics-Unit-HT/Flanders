@@ -27,11 +27,17 @@ RUN curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
 ENV PATH="$CONDA_DIR/bin:$PATH"
 
 # Copy your environment.yml file
-COPY coloc_pipe_env_v2.yml /tmp/environment.yml
+COPY pipeline_environment.yml /tmp/environment.yml
 
 # Create the Conda environment
-RUN conda env create -f /tmp/environment.yml
+#RUN conda env create -f /tmp/environment.yml
 
 # Set the default command to activate the environment
-SHELL ["conda", "run", "-n", "coloc_pipe_env_v2", "/bin/bash", "-c"]
+RUN conda env update -n pipeline_environment -f /tmp/environment.yml
+# Set the environment name
+ENV CONDA_ENV=pipeline_environment
+ENV PATH=/opt/conda/envs/$CONDA_ENV/bin:$PATH
+
+# Optional: add auto-activation when shell is started
+RUN echo "conda activate $CONDA_ENV" >> ~/.bashrc
 CMD ["/bin/bash"]

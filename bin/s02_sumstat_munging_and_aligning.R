@@ -3,6 +3,7 @@
 suppressMessages(library(optparse))
 suppressMessages(library(readr))
 suppressMessages(library(R.utils))
+suppressMessages(library(coloc))
 suppressMessages(library(data.table))
 liftOver <- rtracklayer::liftOver
 import.chain <- rtracklayer::import.chain
