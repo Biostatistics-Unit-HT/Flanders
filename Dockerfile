@@ -15,7 +15,10 @@ RUN apk update && \
         make \
         zlib-dev \
         libxml2-dev \
-        openssl-dev
+        openssl-dev \
+        coreutils
+
+
 
         # Install Miniconda
 ENV CONDA_DIR=/opt/conda
@@ -39,5 +42,4 @@ ENV CONDA_ENV=pipeline_environment
 ENV PATH=/opt/conda/envs/$CONDA_ENV/bin:$PATH
 
 # Optional: add auto-activation when shell is started
-RUN echo "conda activate $CONDA_ENV" >> ~/.bashrc
-CMD ["/bin/bash"]
+ENTRYPOINT ["conda", "run", "-n", "pipeline_environment"]
