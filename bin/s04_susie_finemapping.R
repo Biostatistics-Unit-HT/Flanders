@@ -89,61 +89,22 @@ D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
 # 2) If susie output was produced, check that cs are not empty. If not, lower coverage until at least a cs is found or bottom threshold for coverage is reached
 # 3) If cs are not empty, apply QC and then check that QCed cs object is not empty
 
+min_coverage <- 0.7
+L <- 10
 
-coverage_value <- opt$cs_thresh
-min_coverage <- 0.70
-susie_error_message <- NULL  # Initialize an object to store the error message
-fitted_rss <- NULL  # Initialize fitted_rss
-max_iter=100*100
+fitted_rss <- run_susie_w_retries(
+  D_sub,
+  susie_ld,
+  L = L,
+  coverage = opt$cs_thresh, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
+  min_coverage = min_coverage,
+  max_iter = opt$susie_niters, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
+  skip_to_L1 = TRUE #opt$skip_to_L1 --> resort to COJO when susie errors out
+)
 
-# While loop to adjust coverage until the condition is met
-while (is.null(fitted_rss$sets$cs) && coverage_value >= min_coverage) {
-  
-  fitted_rss <- tryCatch( ### fitting susie with error catch
-    {
-      susie_rss(
-        bhat = D_sub$b, 
-        shat = D_sub$se, 
-        n = max(D_sub$N), 
-        R = susie_ld, 
-        var_y = D_var_y, 
-        L = 10,
-        estimate_residual_variance = FALSE,
-        coverage = coverage_value,
-        max_iter = max_iter
-      )
-    },
-    error = function(e) {
-      susie_error_message <<- e$message  # Save the error message
-      message("An error occurred: ", e$message)
-      return(NULL)
-    }
-  )
-  
-  # Check for specific error message to exit - switch to cojo
-  if (is.null(fitted_rss) && grepl("The estimated prior variance is unreasonably large", susie_error_message)) {
-    write.table(susie_error_message, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
-    quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
-  }
-  
-  # Decrease coverage if fitted_rss$sets$cs is still null
-  if (is.null(fitted_rss$sets$cs)) {
-    coverage_value <- coverage_value - 0.01  # Decrease coverage by 0.01
-    message("Trying again with coverage: ", coverage_value)
-  }
-}
+# If successful, perform QC
+if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
-# If still not cs after lowering coverage to 0.70, exit
-if (is.null(fitted_rss$sets$cs)) {
-  message(paste0("Final attempt failed, reached minimum coverage of ", min_coverage))
-  quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
-} else {
-  message("Success! Found sets with coverage: ", coverage_value)
-
-  # Store final coverage and convergence status ???????????
-  susie_final_coverage <- coverage_value 
-  susie_convergence <- fitted_rss$converged ######################
-  
 #### Sodbo's function QCing Susie output --> check with him all the parameters required
   fitted_rss_cleaned <- susie.cs.ht(
     fitted_rss,

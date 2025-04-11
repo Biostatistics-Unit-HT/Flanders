@@ -1060,3 +1060,150 @@ get_beta_se_susie <- function(sus,L_index){
   
 }
 
+
+# Helper function to run susie_rss with error handling
+run_susie_w_tryCatch <- function(
+    D_sub,
+    susie_ld,
+    L = L,
+    coverage = coverage_value,
+    max_iter = max_iter
+) {  
+  tryCatch({
+    susie_rss(
+      bhat = D_sub$BETA, 
+      shat = D_sub$SE, 
+      n = max(D_sub$N), 
+      R = susie_ld, 
+      var_y = unique(D_sub$S),
+      estimate_residual_variance = FALSE,
+      L = L,
+      coverage = coverage,
+      max_iter = max_iter
+    )
+  }, error = function(e) {
+    msg <- conditionMessage(e)
+    message(msg)
+    if (grepl("The estimated prior variance is unreasonably large", msg)) {
+      return("SKIP_TO_L1")
+    }
+    stop(e)  # Re-throw other errors
+  })
+}
+
+
+# Run SuSiE with retries
+run_susie_w_retries <- function(
+    D_sub,
+    susie_ld,
+    L = L,
+    coverage = coverage,
+    max_iter = max_iter,
+    min_coverage = min_coverage,
+    skip_to_L1 = skip_to_L1
+){
+  
+  fitted_rss <- NULL  # Initialize
+  coverage_value_updated <- coverage
+  
+  # First run!  
+  fitted_rss <- run_susie_w_tryCatch(
+    D_sub,
+    susie_ld,
+    L = L,
+    coverage = coverage,
+    max_iter = max_iter
+  )
+  
+  
+  # "Estimated prior variance is unreasonably large" error - switch to COJO or jump to L=1?
+  if (identical(fitted_rss, "SKIP_TO_L1")) {
+#    message("Re-running fine-mapping with L=1")
+    
+#    fitted_rss <- run_susie_w_tryCatch(
+#      D_sub,
+#      susie_ld,
+#      L = 1,
+#      coverage = coverage,
+#      max_iter = max_iter
+#    )
+
+#  # If cs are NULL, set the whole object to NULL - so it will be returned either as fully NULL or not NULL at all
+#    if(is.null(fitted_rss$sets$cs)){
+#      fitted_rss <- NULL
+#    }
+#    return(fitted_rss)  # return early - stop here function!
+    write.table(msg, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
+#    quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully # would not work in a loop setting
+    return(NULL)
+  }
+
+
+  # If result or cs is NULL (but not for L=1 cases) - retry lowering coverage, if still NULL jump to L=1
+  while ( (is.null(fitted_rss) || is.null(fitted_rss$sets$cs)) && coverage_value_updated >= min_coverage) {
+    coverage_value_updated <- coverage_value_updated - 0.01
+    message("Re-running with reduced coverage: ", coverage_value_updated)
+    
+    fitted_rss <- run_susie_w_tryCatch(
+      D_sub,
+      susie_ld,
+      L = L,
+      coverage = coverage_value_updated,
+      max_iter = max_iter
+    )
+  }
+
+  # If still no credible sets, try L = 1 as a last resort
+  if (coverage_value_updated < min_coverage) {
+    message("Final attempt failed, reached minimum coverage of ", min_coverage, ". Re-running with L=1")
+    fitted_rss <- run_susie_w_tryCatch(
+      D_sub,
+      susie_ld,
+      L = 1,
+      coverage = coverage,
+      max_iter = max_iter
+    )
+
+    # If cs are still NULL, return NULL
+    if(is.null(fitted_rss$sets$cs)){
+      message("Region ", unique(D_sub$REGION), " for trait ", unique(D_sub$TRAITID), " was not fine-mapped.")
+      return(fitted_rss)  # return early - stop here function!
+    }
+  }
+    
+    
+  # Check if susie converged in given number of iterations - if not, either save for later of jump to L=1
+  if (!(fitted_rss$converged)) {
+    message(paste0("IBSS algorithm did not converge in ", max_iter, " iterations"))
+      
+    if(skip_to_L1){
+      message("Re-running fine-mapping with L=1")
+      fitted_rss <- run_susie_w_tryCatch(
+        D_sub,
+        susie_ld,
+        L = 1,
+        coverage = coverage,
+        max_iter = max_iter
+      )
+    } else {
+      message("Storing locus breaker intervals output")
+        
+      trait <- D_sub %>% pull(TRAITID) %>% unique()
+      region <- D_sub %>% pull(REGION) %>% unique()
+      
+      inter_to_save <- D_sub %>%
+        distinct(TRAITID, REGION, S) %>%
+        mutate(
+          CHR = gsub("(\\d+):(\\d+):(\\d+)", "\\1", REGION),
+          START = gsub("(\\d+):(\\d+):(\\d+)", "\\2", REGION),
+          END = gsub("(\\d+):(\\d+):(\\d+)", "\\3", REGION)
+        ) %>%
+        dplyr::select(TRAITID,CHR,START,END,S)
+        
+      fwrite(inter_to_save, file = paste0(trait, "_", region, "_retry_w_more_niters_susie_interval.csv"), sep=",", na=NA, quote=F)
+      return(NULL)
+    }
+  }
+    
+  return(fitted_rss)
+}
