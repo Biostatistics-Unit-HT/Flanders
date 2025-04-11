@@ -1,6 +1,6 @@
 process MUNG_AND_LOCUS_BREAKER {
   tag "${meta_study_id.study_id}"
-  label "process_single"
+  label "process_high"
 
   // TODO: This works but it's slow. For the moment we use a global conda env for the whole pipeline
   // conda "${moduleDir}/environment.yml"
