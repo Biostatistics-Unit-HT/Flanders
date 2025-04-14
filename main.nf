@@ -97,7 +97,7 @@ workflow {
 		)
 	}
 
-
+	credible_sets_from_input = Channel.empty()
 	if (params.coloc_input) {
 		credible_sets_from_input = Channel.fromPath(params.coloc_input, checkIfExists:true)
 
