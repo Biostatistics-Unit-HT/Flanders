@@ -2,15 +2,15 @@ include { MUNG_AND_LOCUS_BREAKER  }  from "../../modules/local/mung_and_locus_br
 
 workflow RUN_MUNGING {
 	take:
+    sumstats_input // input channel for munging of GWAS sum stats
 		chain_file // file of hg19ToHg38 chain
-		gwas_input // input channel for munging of GWAS sum stats
 
 	main:
   // Ensure the folder to store not finemapped loci exists
   file("${params.outdir}/results/not_finemapped_loci").mkdirs()
   
   // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
+  MUNG_AND_LOCUS_BREAKER(sumstats_input, chain_file)
 
   // Output channel of LOCUS_BREAKER *** process one locus at a time ***
   MUNG_AND_LOCUS_BREAKER.out.loci_table
