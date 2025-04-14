@@ -89,7 +89,7 @@ workflow {
 			outdir_abspath
 			)
 		credible_sets_from_finemapping = RUN_FINEMAPPING.out.coloc_master.collectFile(
-			newLine: true, 
+			newLine: false, 
 			name: "all_credible_sets_from_finemapping.tsv", 
 			storeDir: "${params.outdir}/results/finemap",
 			keepHeader: true,
