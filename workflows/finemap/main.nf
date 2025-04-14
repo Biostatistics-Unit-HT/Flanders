@@ -5,14 +5,13 @@ nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used
 // Set parameter for pipeline version - only for documenting sake
 //params.pipe_vers="1.0"
 // Source all processes
-include { MUNG_AND_LOCUS_BREAKER  }  from "./modules/local/mung_and_locus_breaker"
-include { SUSIE_FINEMAPPING       }  from "./modules/local/susie_finemapping"
-include { COJO_AND_FINEMAPPING    }  from "./modules/local/cojo_and_finemapping"
-include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_coloc"
-include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
-include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
+include { MUNG_AND_LOCUS_BREAKER  }  from "../../modules/local/mung_and_locus_breaker"
+include { SUSIE_FINEMAPPING       }  from "../../modules/local/susie_finemapping"
+include { COJO_AND_FINEMAPPING    }  from "../../modules/local/cojo_and_finemapping"
+include { APPEND_TO_MASTER_COLOC  }  from "../../modules/local/append_to_master_coloc"
+include { APPEND_TO_IND_SNPS_TAB  }  from "../../modules/local/append_to_ind_snps_tab"
+include { INPUT_COLUMNS_VALIDATION } from "../../modules/local/input_columns_validation"
 include { samplesheetToList } from 'plugin/nf-schema'
-
 
 workflow {
 

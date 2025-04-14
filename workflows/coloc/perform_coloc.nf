@@ -3,9 +3,9 @@
 nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used in the Nextflow script
 
 // Source all processes
-include { FIND_CS_OVERLAP_BY_CHR  } from "./modules/local/find_cs_overlap_by_chr"
-include { COLOC                   } from "./modules/local/coloc"
-include { IDENTFY_REG_MODULES     } from "./modules/local/identify_reg_modules"
+include { FIND_CS_OVERLAP_BY_CHR  } from "../../modules/local/find_cs_overlap_by_chr"
+include { COLOC                   } from "../../modules/local/coloc"
+include { IDENTIFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
 
 // Need to specify here the chunck size! Rather than hardcode it the channel
 
