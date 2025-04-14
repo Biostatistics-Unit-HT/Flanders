@@ -109,7 +109,7 @@ workflow {
 		full_credible_sets = credible_sets_from_input
 			.mix(credible_sets_from_finemapping)
 			.collectFile(
-				newLine: true, 
+				newLine: false, 
 				name: "coloc_master_input.tsv", 
 				storeDir: "${params.outdir}/results",
 				keepHeader: true,
