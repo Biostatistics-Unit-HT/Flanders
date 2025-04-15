@@ -23,11 +23,34 @@ workflow RUN_COLOCALIZATION {
     // Define input channel for identifying regulatory modules - collect all tables (coloc performed in batches of n pairwise tests)
     coloc_results_all = COLOC.out.colocalization_table_all_by_chunk
       .collectFile(
-        name: 'colocalization_table_all_merged.txt',
+        name: "${params.coloc_id}_colocalization.table.all.tsv",
         storeDir: "${params.outdir}/results/coloc",
         keepHeader: true, skip: 1)
-      .combine(credible_sets)
+      // .combine(credible_sets)
     
+
+    // Split the coloc_results_all channel into two branches based on the pph4 and pph3 thresholds
+    // The resulting subsets are also saved to tables
+    coloc_results_all
+      .splitCsv(header:true, sep:"\t")
+      .branch { row ->
+        pph4: row['PP.H4.abf'] >= params.pph4_threshold
+        pph3: row['PP.H3.abf'] >= params.pph3_threshold
+      }
+      .set { coloc_results_subset }
+
+    coloc_results_subset.pph3
+      .collectFile(
+        name: "${params.coloc_id}_colocalization.table.H3.tsv",
+        storeDir: "${params.outdir}/results/coloc",
+        keepHeader: true, skip: 1)
+    
+    coloc_results_subset.pph4
+      .collectFile(
+        name: "${params.coloc_id}_colocalization.table.H4.tsv",
+        storeDir: "${params.outdir}/results/coloc",
+        keepHeader: true, skip: 1)
+
     // Run COLOC process on coloc_pairs_by_batches channel
     // IDENTIFY_REG_MODULES(coloc_results_all)
 }
