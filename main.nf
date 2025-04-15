@@ -12,7 +12,10 @@ workflow {
 	// In case we are running a test profile, we need to set the base_dir to the projectDir
 	base_dir = params.is_test_profile ? "${projectDir}" : "${launchDir}"
 	
+	// Initialize empty channels for finemapping results
 	credible_sets_from_finemapping = Channel.empty()
+	credible_sets_from_input = Channel.empty()
+
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
@@ -97,7 +100,6 @@ workflow {
 		)
 	}
 
-	credible_sets_from_input = Channel.empty()
 	if (params.coloc_input) {
 		credible_sets_from_input = Channel.fromPath(params.coloc_input, checkIfExists:true)
 
@@ -105,7 +107,7 @@ workflow {
 		samplesheetToList(params.coloc_input, params.schema)
 	}
 
-	if (params.run_colocalization) {
+	if (params.run_colocalization || params.coloc_input) {
 		full_credible_sets = credible_sets_from_input
 			.mix(credible_sets_from_finemapping)
 			.collectFile(
