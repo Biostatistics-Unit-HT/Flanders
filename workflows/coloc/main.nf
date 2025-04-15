@@ -34,8 +34,8 @@ workflow RUN_COLOCALIZATION {
     coloc_results_all
       .splitCsv(header:true, sep:"\t")
       .branch { row ->
-        pph4: row['PP.H4.abf'] >= params.pph4_threshold
-        pph3: row['PP.H3.abf'] >= params.pph3_threshold
+        pph4: row['PP.H4.abf'].toFloat() >= params.pph4_threshold
+        pph3: row['PP.H3.abf'].toFloat() >= params.pph3_threshold
       }
       .set { coloc_results_subset }
 
@@ -43,13 +43,17 @@ workflow RUN_COLOCALIZATION {
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.H3.tsv",
         storeDir: "${params.outdir}/results/coloc",
-        keepHeader: true, skip: 1)
+        newLine: true,
+        seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\thit1\tt2_study_id\tt2\thit2"
+        ) { it.values().toList().join('\t') }
     
     coloc_results_subset.pph4
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.H4.tsv",
         storeDir: "${params.outdir}/results/coloc",
-        keepHeader: true, skip: 1)
+        newLine: true,
+        seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\thit1\tt2_study_id\tt2\thit2"
+        ) { it.values().toList().join('\t') }
 
     // Run COLOC process on coloc_pairs_by_batches channel
     // IDENTIFY_REG_MODULES(coloc_results_all)

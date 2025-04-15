@@ -25,6 +25,7 @@ workflow RUN_FINEMAPPING {
     append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table
       .mix(SUSIE_FINEMAPPING.out.ind_snps_table)
       .groupTuple()
+      .map{ tuple( it[0], it[1].flatten())}
 
     APPEND_TO_IND_SNPS_TAB(append_ind_snps)
 
@@ -32,6 +33,7 @@ workflow RUN_FINEMAPPING {
     append_input_coloc = COJO_AND_FINEMAPPING.out.cojo_info_coloc_table
       .mix(SUSIE_FINEMAPPING.out.susie_info_coloc_table)
       .groupTuple()
+      .map{ tuple( it[0], it[1].flatten())}
 
     APPEND_TO_MASTER_COLOC(append_input_coloc)
 
