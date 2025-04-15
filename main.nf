@@ -2,9 +2,13 @@ include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validat
 include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
-include { samplesheetToList } from 'plugin/nf-schema'
+include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
+	// validate and log pipeline parameters
+	validateParameters()
+	log.info paramsSummaryLog(workflow)
+
 	// Define asset files
   	chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
   	outdir_abspath = file(params.outdir).toAbsolutePath().toString()
@@ -20,7 +24,7 @@ workflow {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
 		// Use nf-schema to read and validate the sample sheet
-		samplesheetToList(params.summarystats_input, params.schema)
+		samplesheetToList(params.summarystats_input, 'assets/summarystats_input_schema.json')
 
 		// Validate input file
 		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
