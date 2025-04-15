@@ -108,16 +108,18 @@ workflow {
 		credible_sets_from_input = Channel.fromPath(params.coloc_input, checkIfExists:true)
 
 		// Use nf-schema to read and validate the sample sheet
-		samplesheetToList(params.coloc_input, params.schema)
+		samplesheetToList(params.coloc_input, 'assets/coloc_input_schema.json')
 	}
 
 	if (params.run_colocalization || params.coloc_input) {
+		file("${params.outdir}/results/coloc_info_tables").mkdirs()
+		
 		full_credible_sets = credible_sets_from_input
 			.mix(credible_sets_from_finemapping)
 			.collectFile(
 				newLine: false, 
-				name: "coloc_master_input.tsv", 
-				storeDir: "${params.outdir}/results",
+				name: "ALL_COMBINED_coloc_info_master_table.tsv", 
+				storeDir: "${params.outdir}/results/coloc_info_tables",
 				keepHeader: true,
 				skip: 1
 			)
