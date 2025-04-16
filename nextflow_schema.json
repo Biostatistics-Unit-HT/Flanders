@@ -87,12 +87,12 @@
         },
         "pph3_threshold": {
           "type": "number",
-          "default": 0.7,
+          "default": 0.75,
           "description": "The PP.H3 ABF threshold value to save results into a separate H3 table"
         },
         "pph4_threshold": {
           "type": "number",
-          "default": 0.7,
+          "default": 0.75,
           "description": "The PP.H4 ABF threshold value to save results into a separate H4 table"
         }
       },
