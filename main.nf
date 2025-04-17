@@ -164,13 +164,13 @@ workflow {
 
 		RUN_COLOCALIZATION( colocalization_input )
 	}
+	
+	// Store params at the end of execution
+	Channel.of(params.each { key, value -> "${key}: ${value}" })
+		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
 
 	workflow.onComplete {
-		// At the end store used params and input files in the outdir/pipeline_info
-		Channel
-			.of(params.each { key, value -> "${key}: ${value}" })
-			.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
-
+		// At the end store used input files and log status
 		file("${params.outdir}/pipeline_inputs").mkdirs()
 		file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv", overwrite: true)
 		file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv", overwrite: true)
