@@ -32,22 +32,32 @@ workflow {
 		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
 		
 		// Collect and process distinct bim datasets
-		bfile_datasets = Channel  
-		.of(sumstats_input_file)
-		.splitCsv(header:true, sep:"\t")
-		.filter{ row -> row.process_bfile in ["T", "t", "TRUE", "true", "True"] || (row.grch_bfile == "37" && params.run_liftover) }
-		.map{ row -> 
-			def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
-			tuple(
-				row.bfile,
-				"${row.grch_bfile ? row.grch_bfile : row.grch}",
-				"${params.run_liftover ? "T" : "F"}",
-				bfile_dataset
-			)
-		}
-		.unique()
+		Channel.of(sumstats_input_file)
+			.splitCsv(header:true, sep:"\t")
+			.map{ row -> 
+				def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
+				tuple(
+					row.process_bfile,
+					row.bfile,
+					"${row.grch_bfile ? row.grch_bfile : row.grch}",
+					"${params.run_liftover ? "T" : "F"}",
+					bfile_dataset
+				)
+			}
+			.unique()
+			.branch { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset ->
+				need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T")
+				processed: true 
+			}
+			.set { bfile_datasets }
 
-		PROCESS_BFILE(bfile_datasets, chain_file)
+		PROCESS_BFILE(bfile_datasets.need_processing, chain_file)
+
+		processed_bfile_datasets = bfile_datasets.processed
+			.map { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset -> 
+				tuple(bfile_id, bfile_dataset)
+			}
+			.mix(PROCESS_BFILE.out.processed_dataset)
 
 		// Generate a channel with finemapping configuration
 		finemapping_config = Channel  
@@ -69,7 +79,7 @@ workflow {
 				]
 			)
 		}
-		.combine(PROCESS_BFILE.out.processed_dataset, by: 0)
+		.combine(processed_bfile_datasets, by: 0)
 		.map { bfile_id, study_id, finemap_config, bfile_dataset ->
 			tuple(study_id, finemap_config, bfile_dataset)
 		}
@@ -111,7 +121,7 @@ workflow {
 				gwas_file
 			)
 		}
-		.combine(PROCESS_BFILE.out.processed_dataset, by: 0)
+		.combine(processed_bfile_datasets, by: 0)
 		.map { bfile_id, study_id, munging_config, gwas_file, bfile_dataset ->
 			tuple(study_id, munging_config, gwas_file, bfile_dataset)
 		}
