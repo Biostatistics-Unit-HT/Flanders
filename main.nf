@@ -166,12 +166,12 @@ workflow {
 	}
 
 	// At the end store params in yml and input files
+	file("${params.outdir}/pipeline_inputs").mkdirs()
 	Channel
 		.fromList(params.entrySet())
 		.map { entry -> "${entry.key}: ${entry.value}" }
-		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
+		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_inputs", newLine: true)
 		
-		file("${params.outdir}/pipeline_inputs").mkdirs()
 		if (params.summarystats_input) {
 			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
 		}
