@@ -39,7 +39,7 @@ workflow {
 			def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}") : file("${row.bfile}")
 			tuple(
 				row.bfile,
-				{row.grch_bim ? row.grch_bim : row.grch},
+				{row.grch_bfile ? row.grch_bfile : row.grch},
 				{params.run_liftover ? "T" : "F"},
 				bfile_dataset
 			)
