@@ -36,11 +36,11 @@ workflow {
 		.splitCsv(header:true, sep:"\t")
 		.filter{ row -> row.process_bfile in ["T", "t", "TRUE", "true", "True"] || (row.grch_bfile == "37" && params.run_liftover) }
 		.map{ row -> 
-			def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}") : file("${row.bfile}")
+			def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
 			tuple(
 				row.bfile,
-				{row.grch_bfile ? row.grch_bfile : row.grch},
-				{params.run_liftover ? "T" : "F"},
+				"${row.grch_bfile ? row.grch_bfile : row.grch}",
+				"${params.run_liftover ? "T" : "F"}",
 				bfile_dataset
 			)
 		}
@@ -53,7 +53,6 @@ workflow {
 		.of(sumstats_input_file)
 		.splitCsv(header:true, sep:"\t")
 		.map{ row -> 
-			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			tuple(
 				row.bfile,
 				[
@@ -62,7 +61,6 @@ workflow {
 				[  
 				"p_thresh3": row.p_thresh3,
 				"p_thresh4": row.p_thresh4,
-				"bfile": bfile_string,
 				"skip_dentist": params.skip_dentist,
 				"maf": row.maf,
 				"hole": row.hole,
@@ -70,7 +68,7 @@ workflow {
 				]
 			)
 		}
-		.join(PROCESS_BFILE.out.processed_dataset, by: 0)
+		.combine(PROCESS_BFILE.out.processed_dataset, by: 0)
 		.map { bfile_id, study_id, finemap_config, bfile_dataset ->
 			tuple(study_id, finemap_config, bfile_dataset)
 		}
@@ -112,7 +110,7 @@ workflow {
 				gwas_file
 			)
 		}
-		.join(PROCESS_BFILE.out.processed_dataset, by: 0)
+		.combine(PROCESS_BFILE.out.processed_dataset, by: 0)
 		.map { bfile_id, study_id, munging_config, gwas_file, bfile_dataset ->
 			tuple(study_id, munging_config, gwas_file, bfile_dataset)
 		}
