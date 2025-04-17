@@ -34,7 +34,7 @@ workflow {
 		bfile_datasets = Channel  
 		.of(sumstats_input_file)
 		.splitCsv(header:true, sep:"\t")
-		.filter{ row -> row.process_bfile in ["T", "t", "TRUE", "true", "True"] }
+		.filter{ row -> row.process_bfile in ["T", "t", "TRUE", "true", "True"] || (row.grch_bfile == "37" && params.run_liftover) }
 		.map{ row -> 
 			def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}") : file("${row.bfile}")
 			tuple(
