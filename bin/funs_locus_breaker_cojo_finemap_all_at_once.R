@@ -508,7 +508,7 @@ cojo.ht=function(D=dataset_aligned
     write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
     
     # Prepare subset of plink LD files    
-    exist_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+    exit_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
 
     # Raise an error if the external command fails
     if (exit_status != 0) {
