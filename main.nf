@@ -3,6 +3,7 @@ include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
 include { PROCESS_BFILE } from "./modules/local/process_bfile"
+include { completionSummary } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
@@ -162,5 +163,19 @@ workflow {
 			.combine(full_credible_sets)
 
 		RUN_COLOCALIZATION( colocalization_input )
+	}
+
+	workflow.onComplete {
+		// At the end store used params and input files in the outdir/pipeline_info
+		Channel
+			.fromList(params.entrySet())
+			.map { entry -> "${entry.key}: ${entry.value}" }
+			.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
+
+		file("${params.outdir}/pipeline_inputs").mkdirs()
+		file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv", overwrite: true)
+		file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv", overwrite: true)
+
+		completionSummary()
 	}
 }
