@@ -2,6 +2,7 @@ include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validat
 include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
+include { PROCESS_BFILE } from "./modules/local/process_bfile"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
@@ -28,13 +29,33 @@ workflow {
 
 		// Validate input file
 		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
+		
+		// Collect and process distinct bim datasets
+		bfile_datasets = Channel  
+		.of(sumstats_input_file)
+		.splitCsv(header:true, sep:"\t")
+		.filter{ row -> !row.process_bfile || row.process_bfile in ["T", "t", "True", "true", "1"] }
+		.map{ row -> 
+			def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}") : file("${row.bfile}")
+			tuple(
+				row.bfile,
+				{row.grch_bim ? row.grch_bim : row.grch},
+				{params.run_liftover ? "T" : "F"},
+				bfile_dataset
+			)
+		}
+		.unique()
 
+		PROCESS_BFILE(bfile_datasets, chain_file)
+
+		// Generate a channel with finemapping configuration
 		finemapping_config = Channel  
 		.of(sumstats_input_file)
 		.splitCsv(header:true, sep:"\t")
 		.map{ row -> 
 			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			tuple(
+				row.bfile,
 				[
 				"study_id": row.study_id
 				],
@@ -49,6 +70,10 @@ workflow {
 				]
 			)
 		}
+		.join(PROCESS_BFILE.out.processed_dataset, by: 0)
+		.map { bfile_id, study_id, finemap_config, bfile_dataset ->
+			tuple(study_id, finemap_config, bfile_dataset)
+		}
 
 		// Define input channel for munging of GWAS sum stats
 		sumstas_input_ch = INPUT_COLUMNS_VALIDATION.out.table_out
@@ -57,6 +82,7 @@ workflow {
 			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
 			tuple(
+				row.bfile,
 				[
 				"study_id": row.study_id
 				],
@@ -78,7 +104,6 @@ workflow {
 				"sdY": row.sdY,
 				"s": row.s,
 				"grch": row.grch,
-				"bfile": bfile_string,
 				"maf": row.maf,
 				"p_thresh1": row.p_thresh1,
 				"p_thresh2": row.p_thresh2,
@@ -86,6 +111,10 @@ workflow {
 				],
 				gwas_file
 			)
+		}
+		.join(PROCESS_BFILE.out.processed_dataset, by: 0)
+		.map { bfile_id, study_id, munging_config, gwas_file, bfile_dataset ->
+			tuple(study_id, munging_config, gwas_file, bfile_dataset)
 		}
 
 		RUN_MUNGING(sumstas_input_ch, chain_file)
