@@ -24,7 +24,7 @@ hg19ToHg38_liftover <- function(
     }
   }
 
-  ch <- import.chain(chain_file)
+  ch <- import.chain(default_chain_file)
 
   dt_for_ranges <- copy(dataset_munged)
   dt_for_ranges[, start := BP]
