@@ -172,8 +172,12 @@ workflow {
 		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
 		
 		file("${params.outdir}/pipeline_inputs").mkdirs()
-		file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
-		file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv")
+		if (params.summarystats_input) {
+			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
+		}
+		if (params.coloc_input) {
+			file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv")
+		}
 
 	workflow.onComplete {
 		// At the end store log status
