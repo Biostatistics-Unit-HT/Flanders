@@ -170,9 +170,14 @@ workflow {
 		.fromList(params.entrySet())
 		.map { entry -> "${entry.key}: ${entry.value}" }
 		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
-			file("${params.outdir}/pipeline_inputs").mkdirs()
-		file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv", overwrite: true)
-		file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv", overwrite: true)
+		
+		file("${params.outdir}/pipeline_inputs").mkdirs()
+		
+		input_file = file(params.summarystats_input)
+		input_file.copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv", overwrite: true)
+		
+		input_file = file(params.coloc_input)
+		input_file.copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv", overwrite: true)
 
 	workflow.onComplete {
 		// At the end store log status
