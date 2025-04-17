@@ -168,8 +168,7 @@ workflow {
 	workflow.onComplete {
 		// At the end store used params and input files in the outdir/pipeline_info
 		Channel
-			.fromList(params.entrySet())
-			.map { entry -> "${entry.key}: ${entry.value}" }
+			.of(params.each { key, value -> "${key}: ${value}" })
 			.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_info", newLine: true)
 
 		file("${params.outdir}/pipeline_inputs").mkdirs()
