@@ -20,7 +20,7 @@ workflow RUN_COLOCALIZATION {
             tuple( 
               meta_chr_cs,
               split_file,
-              split_file.splitCsv(header:true, sep:"\t").collect { row -> ["${file(row.t1_path_rds).name}", "${file(row.t2_path_rds).name}"] }.flatten()
+              split_file.splitCsv(header:true, sep:"\t").collect { row -> [file(row.t1_path_rds), file(row.t2_path_rds)] }.flatten().unique()
             )
         }
 
