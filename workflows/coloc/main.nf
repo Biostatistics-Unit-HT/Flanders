@@ -16,6 +16,13 @@ workflow RUN_COLOCALIZATION {
     // Define input channel for performing pair-wise colocalisation analysis (in batches)
     coloc_pairs_by_batches = FIND_CS_OVERLAP_BY_CHR.out.coloc_pairwise_guide_table
       .splitText(by:params.coloc_batch_size, keepHeader:true, file:true)
+      .map { meta_chr_cs, split_file ->
+            tuple( 
+              meta_chr_cs,
+              split_file,
+              split_file.splitCsv(header:true, sep:"\t").collect { row -> ["${file(row.t1_path_rds).name}", "${file(row.t2_path_rds).name}"] }.flatten()
+            )
+        }
 
     // Run COLOC process on coloc_pairs_by_batches channel
     COLOC(coloc_pairs_by_batches)
