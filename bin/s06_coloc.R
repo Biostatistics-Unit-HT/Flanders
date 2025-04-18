@@ -34,10 +34,10 @@ coloc.full <- lapply(coloc_combo_ls, function(x){
   
 # Retrieve important info from file name
   t1 <- ifelse(is.na(x$t1_phenotype_id), x$t1_study_id, paste0(x$t1_study_id, "_", x$t1_phenotype_id))
-  top_snp1 <- gsub(paste0(".*/", t1, "_(.*)_locus_.*_finemap.rds"), "\\1", x$t1_path_rds)
+  top_snp1 <- readRDS(x$t1_path_rds)$topSNP #gsub(paste0(".*/", t1, "_(.*)_locus_.*_finemap.rds"), "\\1", x$t1_path_rds)
   
   t2 <- ifelse(is.na(x$t2_phenotype_id), x$t2_study_id, paste0(x$t2_study_id, "_", x$t2_phenotype_id))
-  top_snp2 <- gsub(paste0(".*/", t2, "_(.*)_locus_.*_finemap.rds"), "\\1", x$t2_path_rds)
+  top_snp2 <- readRDS(x$t2_path_rds)$topSNP #gsub(paste0(".*/", t2, "_(.*)_locus_.*_finemap.rds"), "\\1", x$t2_path_rds)
   
 # Perform colocalisation for each combination of independent SNPs
   coloc.res <- hcolo.cojo.ht(

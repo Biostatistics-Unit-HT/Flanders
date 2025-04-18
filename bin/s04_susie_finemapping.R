@@ -253,6 +253,7 @@ if (is.null(fitted_rss$sets$cs)) {
       
       # Create list object for lABFs to save in .rds file
       finemap_list <- finemap.res[[x]]
+      finemap_list$topSNP <- x
         
         # .rds object collecting 1) lABF, 2) pos for all SNPs, 3) list of SNPs in the credible set
       saveRDS(finemap_list, file = paste0(sp_file_name, "_susie_finemap.rds"))
