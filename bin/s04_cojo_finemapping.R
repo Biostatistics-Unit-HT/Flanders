@@ -177,7 +177,7 @@ if(!is.null(conditional.dataset)){ ### is there smarter way to exit the script h
     sp_file_name <- paste0(core_file_name, "_", unique(x$cojo_snp), "_locus_chr", locus_name)
     
     # .rds object collecting 1) lABF, 2) beta, 3) pos for all SNPs, 3) list of SNPs in the credible set
-    saveRDS(x #%>% select(-cojo_snp)
+    saveRDS(list(finemapping_lABFs=x) #%>% select(-cojo_snp)
             , file=paste0(sp_file_name, "_cojo_finemap.rds")) ### cojo_snp reported in the file name
     
     # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
