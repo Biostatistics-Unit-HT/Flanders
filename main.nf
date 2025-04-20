@@ -32,7 +32,7 @@ workflow {
 		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
 		
 		// Collect and process distinct bim datasets
-		Channel.of(sumstats_input_file)
+		INPUT_COLUMNS_VALIDATION.out.table_out
 			.splitCsv(header:true, sep:"\t")
 			.map{ row -> 
 				def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
@@ -60,8 +60,7 @@ workflow {
 			.mix(PROCESS_BFILE.out.processed_dataset)
 
 		// Generate a channel with finemapping configuration
-		finemapping_config = Channel  
-		.of(sumstats_input_file)
+		finemapping_config = INPUT_COLUMNS_VALIDATION.out.table_out
 		.splitCsv(header:true, sep:"\t")
 		.map{ row -> 
 			tuple(
