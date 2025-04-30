@@ -135,11 +135,11 @@ workflow {
 
 
 // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
-  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, outdir_abspath)
+//  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, outdir_abspath)
    
 // Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
-  append_ind_snps = COJO_AND_FINEMAPPING.out.ind_snps_table
-    .mix(SUSIE_FINEMAPPING.out.ind_snps_table)
+  append_ind_snps = SUSIE_FINEMAPPING.out.ind_snps_table
+//    .mix(COJO_AND_FINEMAPPING.out.ind_snps_table)
     .groupTuple()
     .map{ it.flatten().collect() }
     .map{ tuple( it[0], it[1..-1])}
@@ -148,8 +148,8 @@ workflow {
 
 
 // Append all to coloc_info_master_table
-  append_input_coloc = COJO_AND_FINEMAPPING.out.cojo_info_coloc_table
-    .mix(SUSIE_FINEMAPPING.out.susie_info_coloc_table)
+  append_input_coloc = SUSIE_FINEMAPPING.out.susie_info_coloc_table
+//    .mix(COJO_AND_FINEMAPPING.out.cojo_info_coloc_table)
     .groupTuple()
     .map{ it.flatten().collect() }
     .map{ tuple( it[0], it[1..-1])}
