@@ -1071,11 +1071,11 @@ run_susie_w_tryCatch <- function(
 ) {  
   tryCatch({
     susie_rss(
-      bhat = D_sub$BETA, 
-      shat = D_sub$SE, 
+      bhat = D_sub$b, 
+      shat = D_sub$se, 
       n = max(D_sub$N), 
       R = susie_ld, 
-      var_y = unique(D_sub$S),
+      var_y = D_var_y,
       estimate_residual_variance = FALSE,
       L = L,
       coverage = coverage,
