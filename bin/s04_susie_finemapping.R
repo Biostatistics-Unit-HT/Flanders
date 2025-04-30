@@ -75,7 +75,7 @@ susie_ld <- prep_susie_ld(
   skip_dentist=opt$skip_dentist
 )
 
-# Compute trait variance
+# Compute trait variance - WHY? WASN'T ALREADY COMPUTED?
 #dataset_aligned$MAF <- ifelse(dataset_aligned$freq < 0.5, dataset_aligned$freq, (1-dataset_aligned$freq))
 D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$freq*(1-dataset_aligned$freq), na.rm = T)
 
@@ -98,8 +98,8 @@ fitted_rss <- run_susie_w_retries(
   L = L,
   coverage = opt$cs_thresh, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
   min_coverage = min_coverage,
-  max_iter = opt$susie_niters, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
-  skip_to_L1 = TRUE #opt$skip_to_L1 --> resort to COJO when susie errors out
+#  max_iter = opt$susie_niters, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
+  max_iter = 10000 ### HARDCODED
 )
 
 # If successful, perform QC
@@ -113,7 +113,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     signal_pval_threshold = 1, # TODO: this should be a pipeline argument
     purity_mean_r2_threshold = 0.5, # TODO: this should be a pipeline argument
     purity_min_r2_threshold = 0.5, # TODO: this should be a pipeline argument
-    verbose = FALSE
+    verbose = TRUE
   )
     
 ### Proceed only if fitted_rss_cleaned is not null    
@@ -129,7 +129,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     
     finemap.res <- lapply(fitted_rss_cleaned$sets$cs_index, function(x){
       
-      beta_se_list <- get_beta_se_susie(fitted_rss_cleaned,x)
+      beta_se_list <- get_beta_se_susie(fitted_rss_cleaned, x)
         
       # Extract lABF values  
       lABF_df <- data.frame(
@@ -141,7 +141,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       
       # Extract index of cs SNPs
       index <- paste0("L", x)
-      cs_snps <- susie_get_cs(fitted_rss_cleaned, coverage=susie_final_coverage)$cs[[index]] ### INCLUDING COVERAGE IS CRUCIAL, OTHERWISE YOU GET DIFFERENT RESULTS!!!
+      cs_snps <- susie_get_cs(fitted_rss_cleaned, coverage=fitted_rss_cleaned$sets$requested_coverage)$cs[[index]] ### INCLUDING COVERAGE IS CRUCIAL, OTHERWISE YOU GET DIFFERENT RESULTS!!!
       
       # Extract SNPs info, plus whether they're in the cs or not    
       susie_reformat <- D_sub
