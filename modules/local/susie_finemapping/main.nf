@@ -2,7 +2,7 @@ process SUSIE_FINEMAPPING {
   tag "${meta_study_id.study_id}"
   label "process_high"
   
-  publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds"
+  publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds", enabled: params.publish_susie
 
   input:
     tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index)
