@@ -2,6 +2,7 @@ include { SUSIE_FINEMAPPING       }  from "../../modules/local/susie_finemapping
 include { COJO_AND_FINEMAPPING    }  from "../../modules/local/cojo_and_finemapping"
 include { APPEND_TO_MASTER_COLOC  }  from "../../modules/local/append_to_master_coloc"
 include { APPEND_TO_IND_SNPS_TAB  }  from "../../modules/local/append_to_ind_snps_tab"
+include { RDS_TO_ANNDATA  }  from "../../modules/local/rds_to_anndata"
 
 workflow RUN_FINEMAPPING {
   take:
@@ -37,8 +38,17 @@ workflow RUN_FINEMAPPING {
 
     APPEND_TO_MASTER_COLOC(append_input_coloc)
 
+    // Collect all fine-map .rds files in AnnData
+    all_rds = SUSIE_FINEMAPPING.out.susie_results_rds
+      .collect()
+      .map { files -> files.join(',') }
+    all_rds.view()
+    
+    RDS_TO_ANNDATA(all_rds)
+
   emit:
-    susie_results_rds = SUSIE_FINEMAPPING.out.susie_results_rds
+//    susie_results_rds = SUSIE_FINEMAPPING.out.susie_results_rds // to replace with AnnData
+    finemap_anndata = RDS_TO_ANNDATA.out.finemap_anndata
     coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
     ind_snps_table = APPEND_TO_IND_SNPS_TAB.out.ind_snps_table
 }
