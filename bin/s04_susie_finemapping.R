@@ -33,12 +33,13 @@ opt$end <- as.numeric(opt$end)
 dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phenotype_id))
 colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
 
+# Set up phenotypic variance correctly
 if(unique(dataset_aligned$type=="quant")){
-  dataset_aligned <- dataset_aligned %>% dplyr::rename(sdY=temp)
-} else {
-  dataset_aligned <- dataset_aligned %>% dplyr::rename(s=temp)
+  D_var_y = unique(dataset_aligned$temp)^2
+} else if(unique(dataset_aligned$type=="cc")){
+  D_var_y = unique(dataset_aligned$temp) * (1-unique(dataset_aligned$temp))
 }
-
+dataset_aligned <- dataset_aligned %>% dplyr::select(-temp)
 
 ################################
 # Conditional analysis with SUSIE
@@ -75,10 +76,6 @@ susie_ld <- prep_susie_ld(
   skip_dentist=opt$skip_dentist
 )
 
-# Compute trait variance - WHY? WASN'T ALREADY COMPUTED?
-#dataset_aligned$MAF <- ifelse(dataset_aligned$freq < 0.5, dataset_aligned$freq, (1-dataset_aligned$freq))
-D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$freq*(1-dataset_aligned$freq), na.rm = T)
-
 # Filter full GWAS sum stat for locus region
 D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
 
@@ -94,6 +91,7 @@ L <- 10
 
 fitted_rss <- run_susie_w_retries(
   D_sub,
+  D_var_y,
   susie_ld,
   L = L,
   coverage = opt$cs_thresh, ### TO ADD AS ARGUMENT? GIVE DEFAULT?

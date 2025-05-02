@@ -1064,6 +1064,7 @@ get_beta_se_susie <- function(sus,L_index){
 # Helper function to run susie_rss with error handling
 run_susie_w_tryCatch <- function(
     D_sub,
+    D_var_y,
     susie_ld,
     L = L,
     coverage = coverage_value,
@@ -1095,6 +1096,7 @@ run_susie_w_tryCatch <- function(
 # Run SuSiE with retries
 run_susie_w_retries <- function(
     D_sub,
+    D_var_y,
     susie_ld,
     L = L,
     coverage = coverage,
@@ -1109,6 +1111,7 @@ run_susie_w_retries <- function(
   # First run!  
   fitted_rss <- run_susie_w_tryCatch(
     D_sub,
+    D_var_y,
     susie_ld,
     L = L,
     coverage = coverage,
@@ -1122,6 +1125,7 @@ run_susie_w_retries <- function(
     
     fitted_rss <- run_susie_w_tryCatch(
       D_sub,
+      D_var_y,
       susie_ld,
       L = 1,
       coverage = coverage,
@@ -1141,6 +1145,7 @@ run_susie_w_retries <- function(
     
     fitted_rss <- run_susie_w_tryCatch(
       D_sub,
+      D_var_y,
       susie_ld,
       L = L,
       coverage = coverage_value_updated,
@@ -1153,6 +1158,7 @@ run_susie_w_retries <- function(
     message("Final attempt failed, reached minimum coverage of ", min_coverage, ". Re-running with L=1")
     fitted_rss <- run_susie_w_tryCatch(
       D_sub,
+      D_var_y,
       susie_ld,
       L = 1,
       coverage = coverage,
@@ -1173,6 +1179,7 @@ run_susie_w_retries <- function(
     message("Re-running fine-mapping with L=1")
     fitted_rss <- run_susie_w_tryCatch(
       D_sub,
+      D_var_y,
       susie_ld,
       L = 1,
       coverage = coverage,
