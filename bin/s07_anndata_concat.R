@@ -70,10 +70,11 @@ finemap2anndata <- function(
     preloaded_list = FALSE,
     study_id = NULL,
     phenotype_id = NULL,
+    chr_start_end_positions = NULL,
     snp_panel = NULL,
     panel = NULL
 ){
-  
+
   # Initialize a list to store the filtered data
   filtered_data_list <- list()
   
@@ -88,20 +89,6 @@ finemap2anndata <- function(
   failed_count <- 0       # to count failed reads
   
   # all_snps <- c() # to collect all SNPs, tested in finemapping
-  
-  # Extract start and end positions from the credible set names
-  get_chr_start_end <- function(file_name) {
-    # Modify the pattern to capture both 'susie' and 'cojo'
-    pattern <- "locus_(chr[0-9XY]+)_([0-9]+)_([0-9]+)(_susie|_cojo)?_finemap\\.rds$"
-    
-    # Use regmatches and regexec to extract matches
-    matches <- regmatches(file_name, regexec(pattern, file_name))
-    
-    # Extract chromosome, start, and end positions
-    chr_start_end <- unlist(lapply(matches, function(x) x[2:4]))
-    
-    return(chr_start_end)
-  }
   
   # List of data.tables with snp, chr and pos columns
   snp_chr_pos <- list()
@@ -153,7 +140,7 @@ finemap2anndata <- function(
       
       new_rows <- data.table(
         snp = finemap$snp,
-        chr = get_chr_start_end(finemap_file)[1],
+        chr = paste0("chr", unique(chr_start_end_positions$chr)),
         pos = finemap$pos
       )
       
@@ -198,7 +185,6 @@ finemap2anndata <- function(
   
   snp_chr_pos <- snp_chr_pos %>% filter(!duplicated(snp))
   
-  print("")
   print(paste0("We have ",nrow(snp_chr_pos)," SNPs in ", length(filtered_data_list), " credible sets."))
   
   if(preloaded_list)
@@ -264,22 +250,24 @@ finemap2anndata <- function(
     col_indices <- element_indices[credible_data$snp]
     
     lABF_values <- credible_data$lABF
-    beta_values <- credible_data$b
+    beta_values <- credible_data$bC ####
+    se_values <- credible_data$bC_se ####
+    p_values <- pchisq((credible_data$bC/credible_data$bC_se)**2,1,lower.tail=TRUE)
     
-    if(all(c("b","p") %in% colnames(credible_data)))
-      se_values <- abs(
-        1/(
-          sqrt(
-            qchisq(credible_data$p,df=1,lower.tail=FALSE)
-          ) / credible_data$b
-        )
-      )
+    # if(all(c("bC","pC") %in% colnames(credible_data))) ####
+    #   se_values <- abs(
+    #     1/(
+    #       sqrt(
+    #         qchisq(credible_data$pC,df=1,lower.tail=FALSE) ####
+    #       ) / credible_data$bC ####
+    #     )
+    #   )
     
     lABF_matrix_sparse[row_index, col_indices] <- lABF_values
     beta_matrix_sparse[row_index, col_indices] <- beta_values
     se_matrix_sparse[row_index, col_indices] <- se_values
     
-    top_pvalue <- c(top_pvalue,min(credible_data$p))
+    top_pvalue <- c(top_pvalue, min(p_values))
     n = which(credible_sets == credible_set)
     if(n %% 10 == 0){
       cat("\rFinished", n, "of", length(credible_sets))
@@ -318,9 +306,9 @@ finemap2anndata <- function(
   
   print("Creating obs meta data...")
   
-  # Collect chromosome, start, and end positions for each credible set
-  chr_start_end_positions <- t(sapply(credible_sets, get_chr_start_end))
-  colnames(chr_start_end_positions) <- c("chr", "start", "end")
+  # # Collect chromosome, start, and end positions for each credible set
+  # chr_start_end_positions <- t(sapply(credible_sets, get_chr_start_end))
+  # colnames(chr_start_end_positions) <- c("chr", "start", "end")
   
   # Fill the ad$obs matrix which describes the credible sets
   obs_df <- as.data.frame(chr_start_end_positions, stringsAsFactors = FALSE)
@@ -365,80 +353,27 @@ finemap2anndata <- function(
 
 # List all finemap files
 input_files <- strsplit(opt$input, ",")[[1]]
-
-
-
-# Function to extract study_id and phenotype_id from filename
-get_study_phenotype_id <- function(file_name) {
-  pattern <- "^(.*)_chr\\d+:\\d+:\\w+:\\w+_locus_chr\\d+_\\d+_\\d+_.*finemap.rds$"
-  matches <- regmatches(file_name, regexec(pattern, file_name))
-  study_phenotype_id <- unlist(lapply(matches, function(x) x[2:3]))
-  return(study_phenotype_id)
-}
+finemap_files <- unlist(lapply(input_files, readRDS), recursive = FALSE)
 
 # Collect study_id and phenotype_id for each credible set
-study_phenotype_ids <- t(sapply(basename(input_files), get_study_phenotype_id))
-#' colnames(study_phenotype_ids) <- c("study_id", "phenotype_id")
-#' ad_chr_22 <- finemap2anndata(
-#'   finemap_files = finemap_chr22_files,
-#'   study_id = study_phenotype_ids$study_id,
-#'   phenotype_id = study_phenotype_ids$phenotype_id,
-#'   output_file = output_file_chr22,
-#'   panel = "HRC"
-#' )
-#'
-#' finemap_chr21_files <- list.files(finemap_folder, pattern = "chr21.*\\.rds", full.names = TRUE)
-#' finemap_chr21_files <- finemap_chr21_files[!grepl("GWAS", finemap_chr21_files)]
-#'
-#' # List all ATAC files matching the pattern and filter out those containing "GWAS"
-#' finemap_chr22_ATAC_files <- list.files(finemap_folder, pattern = "^ATAC.*\\chr22.*\\.rds", full.names = TRUE)
-#' finemap_chr22_ATAC_files <- finemap_chr22_ATAC_files[!grepl("GWAS", finemap_chr22_ATAC_files)]
-#'
-#' # List all ChipSeq files matching the pattern and filter out those containing "GWAS"
-#' finemap_chr22_ChipSeq_files <- list.files(finemap_folder, pattern = "^ChipSeq.*\\chr22.*\\.rds", full.names = TRUE)
-#' finemap_chr22_ChipSeq_files <- finemap_chr22_ChipSeq_files[!grepl("GWAS", finemap_chr22_ChipSeq_files)]
-#'
-#' ad_chr_22 <- finemap2anndata(
-#'   finemap_files = finemap_chr22_files,
-#'   panel = "HRC"
-#' )
-#'
-#' ad_chr_21 <- finemap2anndata(
-#'   finemap_files = finemap_chr21_files,
-#'   panel = "HRC"
-#' )
-#'
-#' ad_chr_22_ATAC <- finemap2anndata(
-#'   finemap_files = finemap_chr22_ATAC_files,
-#'   panel = "HRC"
-#' )
-#'
-#' ad_chr_22_ChipSeq <- finemap2anndata(
-#'   finemap_files = finemap_chr22_ChipSeq_files,
-#'   panel = "HRC"
-#' )
-#'
-#' chr_21_chr_22_outer <- concat(list(ad_chr_21, ad_chr_22), join = "outer")
-#' chr_22_ATAC_chr_22_ChipSeq_outer <- concat(list(ad_chr_22_ATAC, ad_chr_22_ChipSeq), join = "outer")
-#' }
+study_phenotype_ids <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(study_id, phenotype_id)
 
+# Collect chr, start and end for each credible set
+chr_start_ends <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(chr,start,end)
 
+# SNP panel
+snp_panel <- unique(unlist(lapply(finemap_files, function(x) x$finemapping_lABFs$snp)))
 
+ad <- finemap2anndata(
+  finemap_files = finemap_files,
+  preloaded_list = TRUE,
+  study_id = study_phenotype_ids$study_id,
+  phenotype_id = study_phenotype_ids$phenotype_id,
+  chr_start_end_positions = chr_start_ends,
+  snp_panel = snp_panel,
+  panel = "HRC"
+)
 
-library(stringr)
-
-chr22_molQTL_ad$obs$study_id <- str_extract(chr22_molQTL_ad$obs$cs_name, "^[A-Za-z]+_chr[0-9]+")
-
-chr22_molQTL_ad$obs$phenotype_id <- str_match(chr22_molQTL_ad$obs$cs_name, "chr[0-9]+_([^_]+_[0-9]+|ENSG[0-9]+)")[,2]
-
-# Perform colocalization analysis on the GWAS AnnData object
-gwas_ad.coloc <- anndata2coloc(gwas_ad)
-
-# View summary of colocalization results
-print(gwas_ad.coloc$summary)
-
-# View detailed results by SNP
-print(gwas_ad.coloc$results)
-
+anndata::write_h5ad(ad, filename = opt$output_file)
 
 
