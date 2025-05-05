@@ -28,10 +28,29 @@ def main():
     table_files = pd.read_csv(args.table, sep = "\t")
 
     # Check that the builds are consistent
-    if args.liftover:
-        if len(set(table_files[["grch"]]))>1:
-            print("Error: multiple GRCh build detected in input file but run_liftover is false.", file=sys.stderr)
+    if "grch_bfile" in table_files.columns:
+        #check that the grch_bfile column contains specifically only the values 37 or 38 and for example not 39
+        # Check that the grch_bfile column contains only 37 or 38
+        if not table_files["grch_bfile"].isin(["37", "38"]).all():
+            print("Error: Some values in the grch_bfile colunm are 37 or 38.", file=sys.stderr)
             return sys.exit(1)
+        if args.liftover == False:
+            if len(set(table_files[["grch_bfile"]]))>1:
+                print("Error: multiple GRCh build detected in grch_bfile column but run_liftover is false.", file=sys.stderr)
+                return sys.exit(1)
+            if not (table_files['grch_bfile'] == table_files['grch']).all():
+                print("Error: grch_bfile and grch columns do not match.", file=sys.stderr)
+                return sys.exit(1)
+    
+    if not table_files["grch"].isin(["37", "38"]).all():
+            print("Error: Some values in the grch colunm are 37 or 38.", file=sys.stderr)
+            return sys.exit(1)
+    if args.liftover == False:
+            if len(set(table_files[["grch"]]))>1:
+                print("Error: multiple GRCh build detected in grch column but run_liftover is false.", file=sys.stderr)
+                return sys.exit(1)
+    
+            
            
     for index, record in table_files.iterrows():
         gwas_path = fill_path(record["input"], args.launchdir)
