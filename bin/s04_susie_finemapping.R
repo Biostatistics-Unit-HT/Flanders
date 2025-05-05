@@ -139,12 +139,12 @@ if (is.null(fitted_rss$sets$cs)) {
   quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
 } else {
   message("Success! Found sets with coverage: ", coverage_value)
-
+  
   # Store final coverage and convergence status ???????????
   susie_final_coverage <- coverage_value 
   susie_convergence <- fitted_rss$converged ######################
   
-#### Sodbo's function QCing Susie output --> check with him all the parameters required
+  #### Sodbo's function QCing Susie output --> check with him all the parameters required
   fitted_rss_cleaned <- susie.cs.ht(
     fitted_rss,
     D_sub$p,
@@ -154,8 +154,8 @@ if (is.null(fitted_rss$sets$cs)) {
     purity_min_r2_threshold = 0.5, # TODO: this should be a pipeline argument
     verbose = FALSE
   )
-    
-### Proceed only if fitted_rss_cleaned is not null    
+  
+  ### Proceed only if fitted_rss_cleaned is not null    
   if(!is.null(fitted_rss_cleaned)){
     
     # vector of AF with SNP names
@@ -169,7 +169,7 @@ if (is.null(fitted_rss$sets$cs)) {
     finemap.res <- lapply(fitted_rss_cleaned$sets$cs_index, function(x){
       
       beta_se_list <- get_beta_se_susie(fitted_rss_cleaned,x)
-        
+      
       # Extract lABF values  
       lABF_df <- data.frame(
         SNP = colnames(fitted_rss_cleaned$lbf_variable),
@@ -202,77 +202,89 @@ if (is.null(fitted_rss$sets$cs)) {
       N_top <- N[snp_top]
       beta_top <- effect$bC
       se_top <- effect$bC_se
-      
+       
       effect <- data.frame(
         snp = snp_top,
         a1 = a1_top,
         a0 = a0_top,
         freq = freq_top,
-        N = N_top,
-        beta = beta_top,
-        se = se_top
-        )
+         N = N_top,
+         beta = beta_top,
+         se = se_top
+       )
       
       qc_metrics = fitted_rss_cleaned$sets$purity[paste0("L",x),]
-        
+      
+      metadata_df <- data.frame(
+        study_id=opt$study_id,
+        phenotype_id=opt$phenotype_id,
+        chr=opt$chr,
+        start=opt$start,
+        end=opt$end
+      )
+      
       return(
         list(
           finemapping_lABFs = susie_reformat,
           effect = effect,
-          qc_metrics = qc_metrics
-          )
+          qc_metrics = qc_metrics,
+          metadata = metadata_df
         )
+      )
     })
-      
-# Name set with the highest lABF SNP      
-    names(finemap.res) <- sapply(finemap.res, function(x) x$finemapping_lABF$snp[1])
+    
+    # Name each credible set
+    names(finemap.res) <- paste(
+      paste0("chr", opt$chr),
+      opt$study_id,
+      opt$phenotype_id,
+      sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
+      sep="::"
+    )
+    
+    top_lABF_snps <- sapply(finemap.res, function(x) x$finemapping_lABF$snp[1])
     
     
     #########################################
     # Organise list of what needs to be saved
     #########################################
-
-    core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
-    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
     
-
+    core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
+#    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
+    
     ## Create and save ind.snps-like table
     ind.snps <- D_sub %>%
-      dplyr::filter(SNP %in% names(finemap.res)) %>%
+      dplyr::filter(SNP %in% top_lABF_snps) %>%
       dplyr::mutate(freq_geno=NA, bJ=b, bJ_se=se, pJ=p, LD_r=NA, start=opt$start, end=opt$end, study_id=opt$study_id) %>%
       dplyr::select(CHR,SNP,BP,A1,freq,b,se,p,N,freq_geno,bJ,bJ_se,pJ,LD_r,snp_original,A2,type,any_of(c("sdY","s")),start,end,study_id,phenotype_id) %>%
       dplyr::rename("Chr"="CHR","bp"="BP","refA"="A1","n"="N","othA"="A2")
     
     fwrite(ind.snps, paste0(core_file_name, "_locus_chr", locus_name,"_ind_snps.tsv"), sep="\t", quote=F, na=NA)
-
+    
+    
+    ## Save .rds object
+    saveRDS(finemap.res, file = paste0(core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"))
+    
+    
+    # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
+    #  --> append each row to a master table collecting all info from processed sum stats
+    ### Idea: create guidelines for generating study ids
     
     ## Save lABF of each conditional dataset
-    lapply(names(finemap.res), function(x){
-        
-      sp_file_name <- paste0(core_file_name, "_", x, "_locus_chr", locus_name)
+    tmp <- rbindlist(lapply(finemap.res, function(x){              
       
-      # Create list object for lABFs to save in .rds file
-      finemap_list <- finemap.res[[x]]
-        
-        # .rds object collecting 1) lABF, 2) pos for all SNPs, 3) list of SNPs in the credible set
-      saveRDS(finemap_list, file = paste0(sp_file_name, "_susie_finemap.rds"))
-        
-        # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
-        #  --> append each row to a master table collecting all info from processed sum stats
-        ### Idea: create guidelines for generating study ids
-        
-      tmp <- data.frame(
+      data.frame(
         study_id = opt$study_id,
-        phenotype_id = ifelse(opt$phenotype_id=="full", NA, opt$phenotype_id),
-        credible_set = paste0(finemap_list$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
-        top_pvalue = min(pchisq((finemap_list$finemapping_lABFs$bC/finemap_list$finemapping_lABFs$bC_se)**2,1,lower.tail=TRUE), na.rm=T),
-          #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
-        path_rds = paste0(opt$results_path, "/results/finemap/", sp_file_name, "_susie_finemap.rds"),
+        phenotype_id = opt$phenotype_id,
+        credible_set = paste0(x$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
+        top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=TRUE), na.rm=T),
+        #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
+        path_rds = paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
         path_ind_snps = paste0(opt$results_path, "/results/gwas_and_loci_tables/", opt$study_id, "_final_ind_snps_table.tsv"),
-        chr=opt$chr
+        chr = opt$chr
       )
-      
-      fwrite(tmp, paste0(sp_file_name, "_susie_coloc_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
-    })
+    }))   
+    
+    fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_susie_coloc_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
   }
 }
