@@ -6,7 +6,7 @@ process RDS_TO_ANNDATA {
   publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.h5ad"
 
   input:
-    path(all_rds)
+    val(all_rds)
   
   output:
     path "*.h5ad", optional:true, emit: finemap_anndata
