@@ -1,4 +1,5 @@
-#!/usr/bin/env Rscript
+#!/usr/bin/env -S Rscript --vanilla
+
 # anndata_concat.R
 # This script concatenates multiple AnnData files into a single object,
 # fixes the variable table (var) by extracting SNP, chromosome, and position,
@@ -375,5 +376,3 @@ ad <- finemap2anndata(
 )
 
 anndata::write_h5ad(ad, filename = opt$output_file)
-
-
