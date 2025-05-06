@@ -42,7 +42,6 @@ workflow RUN_FINEMAPPING {
     all_rds = SUSIE_FINEMAPPING.out.susie_results_rds
       .collect()
       .map { files -> files.join(',') }
-    all_rds.view()
     
     RDS_TO_ANNDATA(all_rds)
 
