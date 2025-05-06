@@ -5,14 +5,14 @@ process SUSIE_FINEMAPPING {
   publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds"
 
   input:
-    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index)
+    tuple val(meta_study_id), val(meta_finemapping), path(bfile_dataset), val(meta_loci), path(gwas_final), path(gwas_final_index)
     val outdir
   
   output:
     path "*_susie_finemap.rds", optional:true, emit: susie_results_rds
     tuple val(meta_study_id), path ("*_coloc_info_table.tsv"), optional:true, emit:susie_info_coloc_table
     tuple val(meta_study_id), path ("*_ind_snps.tsv"), optional:true, emit:ind_snps_table    
-    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
+    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path(bfile_dataset), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
 
   script:
   def args = task.ext.args ?: ''
@@ -26,7 +26,7 @@ process SUSIE_FINEMAPPING {
         --phenotype_id ${meta_loci.phenotype_id} \
         --dataset_aligned ${gwas_final} \
         --maf ${meta_finemapping.maf} \
-        --bfile ${meta_finemapping.bfile} \
+        --bfile ${bfile_dataset[0].baseName} \
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
         --results_path ${outdir} \
