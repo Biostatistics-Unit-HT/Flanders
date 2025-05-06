@@ -268,7 +268,6 @@ if (is.null(fitted_rss$sets$cs)) {
     
     # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
     #  --> append each row to a master table collecting all info from processed sum stats
-    ### Idea: create guidelines for generating study ids
     
     ## Save lABF of each conditional dataset
     tmp <- rbindlist(lapply(finemap.res, function(x){              
@@ -283,7 +282,7 @@ if (is.null(fitted_rss$sets$cs)) {
         path_ind_snps = paste0(opt$results_path, "/results/gwas_and_loci_tables/", opt$study_id, "_final_ind_snps_table.tsv"),
         chr = opt$chr
       )
-    }))   
+    })) 
     
     fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_susie_coloc_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
   }

@@ -2,6 +2,8 @@ include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validat
 include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
+include { PROCESS_BFILE } from "./modules/local/process_bfile"
+include { completionSummary } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
@@ -28,26 +30,57 @@ workflow {
 
 		// Validate input file
 		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
+		
+		// Collect and process distinct bim datasets
+		INPUT_COLUMNS_VALIDATION.out.table_out
+			.splitCsv(header:true, sep:"\t")
+			.map{ row -> 
+				def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
+				tuple(
+					row.process_bfile,
+					row.bfile,
+					"${row.grch_bfile ? row.grch_bfile : row.grch}",
+					"${params.run_liftover ? "T" : "F"}",
+					bfile_dataset
+				)
+			}
+			.unique()
+			.branch { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset ->
+				need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T")
+				processed: true 
+			}
+			.set { bfile_datasets }
 
-		finemapping_config = Channel  
-		.of(sumstats_input_file)
+		PROCESS_BFILE(bfile_datasets.need_processing, chain_file)
+
+		processed_bfile_datasets = bfile_datasets.processed
+			.map { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset -> 
+				tuple(bfile_id, bfile_dataset)
+			}
+			.mix(PROCESS_BFILE.out.processed_dataset)
+
+		// Generate a channel with finemapping configuration
+		finemapping_config = INPUT_COLUMNS_VALIDATION.out.table_out
 		.splitCsv(header:true, sep:"\t")
 		.map{ row -> 
-			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			tuple(
+				row.bfile,
 				[
 				"study_id": row.study_id
 				],
 				[  
 				"p_thresh3": row.p_thresh3,
 				"p_thresh4": row.p_thresh4,
-				"bfile": bfile_string,
 				"skip_dentist": params.skip_dentist,
 				"maf": row.maf,
 				"hole": row.hole,
 				"cs_thresh": row.cs_thresh
 				]
 			)
+		}
+		.combine(processed_bfile_datasets, by: 0)
+		.map { bfile_id, study_id, finemap_config, bfile_dataset ->
+			tuple(study_id, finemap_config, bfile_dataset)
 		}
 
 		// Define input channel for munging of GWAS sum stats
@@ -57,6 +90,7 @@ workflow {
 			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
 			tuple(
+				row.bfile,
 				[
 				"study_id": row.study_id
 				],
@@ -78,7 +112,6 @@ workflow {
 				"sdY": row.sdY,
 				"s": row.s,
 				"grch": row.grch,
-				"bfile": bfile_string,
 				"maf": row.maf,
 				"p_thresh1": row.p_thresh1,
 				"p_thresh2": row.p_thresh2,
@@ -86,6 +119,10 @@ workflow {
 				],
 				gwas_file
 			)
+		}
+		.combine(processed_bfile_datasets, by: 0)
+		.map { bfile_id, study_id, munging_config, gwas_file, bfile_dataset ->
+			tuple(study_id, munging_config, gwas_file, bfile_dataset)
 		}
 
 		RUN_MUNGING(sumstas_input_ch, chain_file)
@@ -135,5 +172,24 @@ workflow {
 			.combine(full_credible_sets)
 
 		RUN_COLOCALIZATION( colocalization_input )
+	}
+
+	// At the end store params in yml and input files
+	file("${params.outdir}/pipeline_inputs").mkdirs()
+	Channel
+		.fromList(params.entrySet())
+		.map { entry -> "${entry.key}: ${entry.value}" }
+		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_inputs", newLine: true)
+		
+		if (params.summarystats_input) {
+			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
+		}
+		if (params.coloc_input) {
+			file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv")
+		}
+
+	workflow.onComplete {
+		// At the end store log status
+		completionSummary()
 	}
 }

@@ -3,7 +3,7 @@ process COLOC {
   label "process_medium"
   
   input:
-    tuple val(meta_chr_cs), path(coloc_pairs_by_batches) // why not path(coloc_pairs_by_batches) ?
+    tuple val(meta_chr_cs), path(coloc_pairs_by_batches), path(rds_files) // why not path(coloc_pairs_by_batches) ?
   
   output:
     path "${params.coloc_id}_chr${meta_chr_cs.chr_cs}_colocalization.table.all.tsv", emit:colocalization_table_all_by_chunk
