@@ -3,6 +3,19 @@
 Set of tools and pipeline to efficiently colocalise association signals across large sets of traits.
 Colocalization is mainly composed of two steps, which are generally merged in a single function finemapping of the locus and colocalization itself. Given that the expensive part of the computation is the finemapping, to minimise its cost we have split the process in two parts:    
 
+## Current implementation 
+
+By default the pipeline takes a TSV input file `--summarystats_input` defining a series of summary stats input tables and corresponding settings and performs munging, finemapping and colocalization in a single run. 
+
+One can set `--run_colocalization` to `false` to skip the colocalization step and only run the finemapping step.
+
+It is also possible to provide a TSV input file to `--coloc_input` to run the colocalization part only. The input file here is a master table of finemapped loci as generated during the finemapping step.
+
+When both inputs are provided, the pipeline will run the finemapping step first, combine the new finemapped loci with the previous ones and colocalize across all finemapped loci for all traits.
+
+Use `--help` to see full help with all parameters.
+
+
 ## Step 1: Munging, significant genomic region identification and Finemapping with Susie
 
 1) Munging and harmonising of summary statistics

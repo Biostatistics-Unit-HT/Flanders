@@ -1,158 +1,195 @@
-#!/usr/bin/env nextflow
-
-nextflow.enable.dsl=2 // specify the Domain Specific Language version to be used in the Nextflow script
-
-// Set parameter for pipeline version - only for documenting sake
-//params.pipe_vers="1.0"
-// Source all processes
-include { MUNG_AND_LOCUS_BREAKER  }  from "./modules/local/mung_and_locus_breaker"
-include { SUSIE_FINEMAPPING       }  from "./modules/local/susie_finemapping"
-include { COJO_AND_FINEMAPPING    }  from "./modules/local/cojo_and_finemapping"
-include { APPEND_TO_MASTER_COLOC  }  from "./modules/local/append_to_master_coloc"
-include { APPEND_TO_IND_SNPS_TAB  }  from "./modules/local/append_to_ind_snps_tab"
 include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
-include { samplesheetToList } from 'plugin/nf-schema'
-
+include { RUN_MUNGING } from "./workflows/munging"
+include { RUN_FINEMAPPING } from "./workflows/finemap"
+include { RUN_COLOCALIZATION } from "./workflows/coloc"
+include { PROCESS_BFILE } from "./modules/local/process_bfile"
+include { completionSummary } from "./modules/local/pipeline_utils"
+include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
 workflow {
+	// validate and log pipeline parameters
+	validateParameters()
+	log.info paramsSummaryLog(workflow)
 
-  // Define asset files
-  chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
-  outdir_abspath = file(params.outdir).toAbsolutePath().toString()
+	// Define asset files
+  	chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
+  	outdir_abspath = file(params.outdir).toAbsolutePath().toString()
+	
+	// In case we are running a test profile, we need to set the base_dir to the projectDir
+	base_dir = params.is_test_profile ? "${projectDir}" : "${launchDir}"
+	
+	// Initialize empty channels for finemapping results
+	credible_sets_from_finemapping = Channel.empty()
+	credible_sets_from_input = Channel.empty()
 
-  // Ensure the folder to store not finemapped loci exists
-  file("${params.outdir}/results/not_finemapped_loci").mkdirs()
+	if (params.summarystats_input) {
+		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
-  // Use nf-schema to read and validate the sample sheet
-  samplesheetToList(params.inputFileList, params.schema)
+		// Use nf-schema to read and validate the sample sheet
+		samplesheetToList(params.summarystats_input, 'assets/summarystats_input_schema.json')
 
-  // Validate input file
-  // In case we are running a test profile, we need to set the base_dir to the projectDir
-  base_dir = params.is_test_profile ? "${projectDir}" : "${launchDir}"
-  INPUT_COLUMNS_VALIDATION(file(params.inputFileList), base_dir)
+		// Validate input file
+		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
+		
+		// Collect and process distinct bim datasets
+		INPUT_COLUMNS_VALIDATION.out.table_out
+			.splitCsv(header:true, sep:"\t")
+			.map{ row -> 
+				def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
+				tuple(
+					row.process_bfile,
+					row.bfile,
+					"${row.grch_bfile ? row.grch_bfile : row.grch}",
+					"${params.run_liftover ? "T" : "F"}",
+					bfile_dataset
+				)
+			}
+			.unique()
+			.branch { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset ->
+				need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T")
+				processed: true 
+			}
+			.set { bfile_datasets }
 
-  // Define input channel for munging of GWAS sum stats
-  gwas_input = INPUT_COLUMNS_VALIDATION.out.table_out
-  .splitCsv(header:true, sep:"\t")
-  .map { row -> 
-    def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
-    def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
-    tuple(
-      [
-        "study_id": row.study_id
-      ],
-      [
-        "is_molQTL": row.is_molQTL,
-        "run_liftover": params.run_liftover ? "T" : "F",
-        "key": row.key,
-        "chr_lab": row.chr_lab,
-        "pos_lab": row.pos_lab,
-        "rsid_lab": row.rsid_lab,
-        "a1_lab": row.a1_lab,
-        "a0_lab": row.a0_lab,
-        "freq_lab": row.freq_lab,
-        "n_lab": row.n_lab,
-        "effect_lab": row.effect_lab,
-        "se_lab": row.se_lab,
-        "pvalue_lab": row.pvalue_lab,
-        "type": row.type,
-        "sdY": row.sdY,
-        "s": row.s,
-        "grch": row.grch,
-        "bfile": bfile_string,
-        "maf": row.maf,
-        "p_thresh1": row.p_thresh1,
-        "p_thresh2": row.p_thresh2,
-        "hole": row.hole
-      ],
-      gwas_file
-    )
-  }
-  // Run MUNG_AND_LOCUS_BREAKER process on gwas_input channel
-  MUNG_AND_LOCUS_BREAKER(gwas_input, chain_file)
+		PROCESS_BFILE(bfile_datasets.need_processing, chain_file)
 
-// Output channel of LOCUS_BREAKER *** process one locus at a time ***
-  MUNG_AND_LOCUS_BREAKER.out.loci_table
-    .splitCsv(header:true, sep:"\t")
-    .map{ row -> tuple(
-      [
-        "study_id": row.study_id
-      ],
-      [
-        "chr":row.chr,
-        "start":row.start,
-        "end":row.end,
-        "locus_size":row.locus_size,
-        "phenotype_id":row.phenotype_id
-      ]
-      )
-    }
-    .branch { study_meta, locus_meta ->
-      small: locus_meta.locus_size.toInteger() < params.large_locus_size
-      large: locus_meta.locus_size.toInteger() >= params.large_locus_size
-    }
-    .set { loci_for_finemapping }
+		processed_bfile_datasets = bfile_datasets.processed
+			.map { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset -> 
+				tuple(bfile_id, bfile_dataset)
+			}
+			.mix(PROCESS_BFILE.out.processed_dataset)
 
-// Large loci are collected in a file and published
-  loci_for_finemapping.large
-    .map{ study, locus ->
-      [study.study_id, locus.chr, locus.start, locus.end, locus.locus_size, locus.phenotype_id].join('\t')
-    }
-    .collectFile(
-      newLine: true, 
-      name: "large_loci.tsv", storeDir: "${params.outdir}/results/not_finemapped_loci",
-      seed: "study_id\tchr\tstart\tend\tlocus_size\tphenotype_id")
+		// Generate a channel with finemapping configuration
+		finemapping_config = INPUT_COLUMNS_VALIDATION.out.table_out
+		.splitCsv(header:true, sep:"\t")
+		.map{ row -> 
+			tuple(
+				row.bfile,
+				[
+				"study_id": row.study_id
+				],
+				[  
+				"p_thresh3": row.p_thresh3,
+				"p_thresh4": row.p_thresh4,
+				"skip_dentist": params.skip_dentist,
+				"maf": row.maf,
+				"hole": row.hole,
+				"cs_thresh": row.cs_thresh
+				]
+			)
+		}
+		.combine(processed_bfile_datasets, by: 0)
+		.map { bfile_id, study_id, finemap_config, bfile_dataset ->
+			tuple(study_id, finemap_config, bfile_dataset)
+		}
 
-// Define metadata channel for COJO/SUSIE FINEMAPPING
-// Only small loci will be used for finemapping
-  finemapping_input = Channel  
-    .of(file(params.inputFileList))
-    .splitCsv(header:true, sep:"\t")
-    .map{ row -> 
-    def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
-    tuple(
-      [
-        "study_id": row.study_id
-      ],
-      [  
-        "p_thresh3": row.p_thresh3,
-        "p_thresh4": row.p_thresh4,
-        "bfile": bfile_string,
-        "skip_dentist": params.skip_dentist,
-        "maf": row.maf,
-        "hole": row.hole,
-        "cs_thresh": row.cs_thresh
-      ]
-    )
-  }
-  .combine(loci_for_finemapping.small, by:0)
-  .combine(MUNG_AND_LOCUS_BREAKER.out.dataset_munged_aligned, by:0)
-//  .map{study_id, meta_finemapping, meta_loci, gwas_final, gwas_final_index -> tuple(study_id, meta_finemapping+meta_loci, gwas_final, gwas_final_index)}
+		// Define input channel for munging of GWAS sum stats
+		sumstas_input_ch = INPUT_COLUMNS_VALIDATION.out.table_out
+		.splitCsv(header:true, sep:"\t")
+		.map { row -> 
+			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
+			def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
+			tuple(
+				row.bfile,
+				[
+				"study_id": row.study_id
+				],
+				[
+				"is_molQTL": row.is_molQTL,
+				"run_liftover": params.run_liftover ? "T" : "F",
+				"key": row.key,
+				"chr_lab": row.chr_lab,
+				"pos_lab": row.pos_lab,
+				"rsid_lab": row.rsid_lab,
+				"a1_lab": row.a1_lab,
+				"a0_lab": row.a0_lab,
+				"freq_lab": row.freq_lab,
+				"n_lab": row.n_lab,
+				"effect_lab": row.effect_lab,
+				"se_lab": row.se_lab,
+				"pvalue_lab": row.pvalue_lab,
+				"type": row.type,
+				"sdY": row.sdY,
+				"s": row.s,
+				"grch": row.grch,
+				"maf": row.maf,
+				"p_thresh1": row.p_thresh1,
+				"p_thresh2": row.p_thresh2,
+				"hole": row.hole
+				],
+				gwas_file
+			)
+		}
+		.combine(processed_bfile_datasets, by: 0)
+		.map { bfile_id, study_id, munging_config, gwas_file, bfile_dataset ->
+			tuple(study_id, munging_config, gwas_file, bfile_dataset)
+		}
 
+		RUN_MUNGING(sumstas_input_ch, chain_file)
+		RUN_FINEMAPPING(
+			finemapping_config, 
+			RUN_MUNGING.out.finemapped_loci, 
+			RUN_MUNGING.out.munged_stats, 
+			outdir_abspath
+			)
+		credible_sets_from_finemapping = RUN_FINEMAPPING.out.coloc_master.collectFile(
+			newLine: false, 
+			name: "all_credible_sets_from_finemapping.tsv", 
+			storeDir: "${params.outdir}/results/finemap",
+			keepHeader: true,
+			skip: 1
+		)
+	}
 
-// Run SUSIE_FINEMAPPING process on finemapping_input channel
-  SUSIE_FINEMAPPING(finemapping_input, outdir_abspath)
+	if (params.coloc_input) {
+		credible_sets_from_input = Channel.fromPath(params.coloc_input, checkIfExists:true)
 
+		// Use nf-schema to read and validate the sample sheet
+		samplesheetToList(params.coloc_input, 'assets/coloc_input_schema.json')
+	}
 
-// Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
-//  COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, outdir_abspath)
-   
-// Append all to independent SNPs table /// What if the channel is empty?? Can you check and behave accordingly?
-  append_ind_snps = SUSIE_FINEMAPPING.out.ind_snps_table
-//    .mix(COJO_AND_FINEMAPPING.out.ind_snps_table)
-    .groupTuple()
-    .map{ it.flatten().collect() }
-    .map{ tuple( it[0], it[1..-1])}
+	if (params.run_colocalization || params.coloc_input) {
+		file("${params.outdir}/results/coloc_info_tables").mkdirs()
+		
+		full_credible_sets = credible_sets_from_input
+			.mix(credible_sets_from_finemapping)
+			.collectFile(
+				newLine: false, 
+				name: "ALL_COMBINED_coloc_info_master_table.tsv", 
+				storeDir: "${params.outdir}/results/coloc_info_tables",
+				keepHeader: true,
+				skip: 1
+			)
+		
+		colocalization_input = full_credible_sets
+			.splitCsv(header:true, sep:"\t")
+			.map{ row ->
+				[
+				"chr_cs": row.chr
+				]
+			}
+			.unique()
+			.combine(full_credible_sets)
 
-  APPEND_TO_IND_SNPS_TAB(append_ind_snps)
+		RUN_COLOCALIZATION( colocalization_input )
+	}
 
+	// At the end store params in yml and input files
+	file("${params.outdir}/pipeline_inputs").mkdirs()
+	Channel
+		.fromList(params.entrySet())
+		.map { entry -> "${entry.key}: ${entry.value}" }
+		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_inputs", newLine: true)
+		
+		if (params.summarystats_input) {
+			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
+		}
+		if (params.coloc_input) {
+			file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv")
+		}
 
-// Append all to coloc_info_master_table
-  append_input_coloc = SUSIE_FINEMAPPING.out.susie_info_coloc_table
-//    .mix(COJO_AND_FINEMAPPING.out.cojo_info_coloc_table)
-    .groupTuple()
-    .map{ it.flatten().collect() }
-    .map{ tuple( it[0], it[1..-1])}
-
-  APPEND_TO_MASTER_COLOC(append_input_coloc)
+	workflow.onComplete {
+		// At the end store log status
+		completionSummary()
+	}
 }
