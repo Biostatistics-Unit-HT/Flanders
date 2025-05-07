@@ -31,6 +31,7 @@ process SUSIE_FINEMAPPING {
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
         --susie_max_iter ${params.susie_max_iters}\
+        --publish_susie ${params.publish_susie}\
         --results_path ${outdir} \
         --study_id ${meta_study_id.study_id}
     """

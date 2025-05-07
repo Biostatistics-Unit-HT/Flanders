@@ -15,6 +15,7 @@ option_list <- list(
   make_option("--skip_dentist", default=TRUE, help="Whether to skip the match of SNPs LD between GWAS sum stat and LD reference (performed by DENTIST), and consequent removal of mismatched SNPs"),
   make_option("--cs_thresh", default=0.99, help="Percentage of credible set"),
   make_option("--susie_max_iter", default=400, help="Maximum number of susie iterations"),
+  make_option("--publish_susie", default=FALSE, help=" Whether to publish the susie finemap .rds intermediate files"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study")
 );
@@ -229,7 +230,10 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         end = opt$end,
         top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=TRUE), na.rm=T),
           #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
-        path_rds = paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
+        path_rds = ifelse(
+          opt$publish_susie,
+          paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
+          NA),
         x$effect
       )
     }))
