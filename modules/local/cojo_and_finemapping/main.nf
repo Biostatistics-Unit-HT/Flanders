@@ -6,7 +6,7 @@ process COJO_AND_FINEMAPPING {
   publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_cojo_finemap.rds"
 
   input:
-    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path(susie_error_message)
+    tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index),  path(bfile_dataset), path(susie_error_message)
     val outdir
   
   output:
@@ -28,7 +28,7 @@ process COJO_AND_FINEMAPPING {
         --dataset_aligned ${gwas_final} \
         --p_thresh3 ${meta_finemapping.p_thresh3} \
         --maf ${meta_finemapping.maf} \
-        --bfile ${meta_finemapping.bfile} \
+        --bfile ${bfile_dataset[0].baseName} \
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --p_thresh4 ${meta_finemapping.p_thresh4} \
         --hole ${meta_finemapping.hole} \

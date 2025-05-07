@@ -8,7 +8,7 @@ process APPEND_TO_IND_SNPS_TAB {
     tuple val(meta_study_id), path(ind_snps_table)
   
   output:
-    path "${meta_study_id.study_id}_final_ind_snps_table.tsv"  
+    path "${meta_study_id.study_id}_final_ind_snps_table.tsv", emit: ind_snps_table  
 
   script:
     """

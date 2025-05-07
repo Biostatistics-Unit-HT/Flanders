@@ -8,7 +8,7 @@ process APPEND_TO_MASTER_COLOC {
     tuple val(meta_study_id), path(info_coloc_table)
   
   output:
-    path "${meta_study_id.study_id}_coloc_info_master_table.tsv"
+    path "${meta_study_id.study_id}_coloc_info_master_table.tsv", emit: coloc_master
 
   script:
     """

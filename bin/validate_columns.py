@@ -28,10 +28,21 @@ def main():
     table_files = pd.read_csv(args.table, sep = "\t")
 
     # Check that the builds are consistent
-    if args.liftover:
-        if len(set(table_files[["grch"]]))>1:
-            print("Error: multiple GRCh build detected in input file but run_liftover is false.", file=sys.stderr)
-            return sys.exit(1)
+    if "grch_bfile" in table_files.columns:
+        if args.liftover == False:
+            if len(set(table_files[["grch_bfile"]]))>1:
+                print("Error: multiple GRCh build detected in grch_bfile column but run_liftover is false.", file=sys.stderr)
+                return sys.exit(1)
+            if not (table_files['grch_bfile'] == table_files['grch']).all():
+                print("Error: grch_bfile and grch columns do not match.", file=sys.stderr)
+                return sys.exit(1)
+    
+    if args.liftover == False:
+            if len(set(table_files[["grch"]]))>1:
+                print("Error: multiple GRCh build detected in grch column but run_liftover is false.", file=sys.stderr)
+                return sys.exit(1)
+    
+            
            
     for index, record in table_files.iterrows():
         gwas_path = fill_path(record["input"], args.launchdir)

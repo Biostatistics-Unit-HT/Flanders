@@ -205,13 +205,11 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
     ## Save .rds object collecting 1) lABF, 2) pos for all SNPs, 3) list of SNPs in the credible set
     saveRDS(finemap.res, file = paste0(core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"))
-    
-     
-        # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
-        #  --> append each row to a master table collecting all info from processed sum stats
-        ### Idea: create guidelines for generating study ids
 
-      ## Save lABF of each conditional dataset
+    # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
+    #  --> append each row to a master table collecting all info from processed sum stats
+
+    ## Save lABF of each conditional dataset in the same R object
     tmp <- rbindlist(lapply(finemap.res, function(x){              
       
       data.frame(

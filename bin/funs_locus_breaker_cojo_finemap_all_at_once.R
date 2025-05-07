@@ -508,7 +508,7 @@ cojo.ht=function(D=dataset_aligned
     write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
     
     # Prepare subset of plink LD files    
-    exist_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+    exit_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
 
     # Raise an error if the external command fails
     if (exit_status != 0) {
@@ -715,7 +715,7 @@ finemap.cojo <- function(D, cs_threshold=0.99){
 # Format input  
     D <- D %>%
       dplyr::mutate(varbeta=bC_se^2) %>%
-      dplyr::select("SNP","Chr","bp", "b", "bC","varbeta","n","pC","freq","type",any_of(c("sdY","s"))) %>%
+      dplyr::select("SNP","Chr","bp", "bC", "bC_se","varbeta","n","pC","freq","type",any_of(c("sdY","s"))) %>%
       rename("snp"="SNP","chr"="Chr","position"="bp","beta"="bC","N"="n","pvalues"="pC","MAF"="freq")
   
   D_list <- as.list(na.omit(D)) ### move to list and keep unique value of "type" otherwise ANNOYING ERROR!
@@ -724,9 +724,9 @@ finemap.cojo <- function(D, cs_threshold=0.99){
   
 # Finemap
   fine.res <- finemap.abf_NO_PRIOR(D_list) %>%
-    left_join(D %>% dplyr::select(snp, b, beta, pvalues), by="snp") %>%
+    left_join(D %>% dplyr::select(snp, beta, bC_se), by="snp") %>%
     dplyr::mutate(cojo_snp=cojo_snp) %>%
-    dplyr::rename(bC=beta, bC_se=se, "lABF"="lABF.") %>%
+    dplyr::rename(bC=beta, "lABF"="lABF.") %>%
     arrange(desc(SNP.PP)) %>% 
     mutate(cred.set = cumsum(SNP.PP)) %>%
 # Add cojo_hit info, to merge with loci table later
