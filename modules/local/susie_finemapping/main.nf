@@ -30,7 +30,7 @@ process SUSIE_FINEMAPPING {
         --bfile ${bfile_dataset[0].baseName} \
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
-        --susie_max_iter ${params.susie_max_iters}\
+        --susie_max_iter ${params.susie_max_iter}\
         --publish_susie ${params.publish_susie}\
         --results_path ${outdir} \
         --study_id ${meta_study_id.study_id}
