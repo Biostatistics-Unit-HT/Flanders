@@ -1117,9 +1117,9 @@ run_susie_w_retries <- function(
     coverage = coverage,
     max_iter = max_iter
   )
+  fitted_rss$comment_section <- NA
   
-  
-  # "Estimated prior variance is unreasonably large" error - jump to L=1 (?)
+  # "Estimated prior variance is unreasonably large" error - jump to L=1
   if (identical(fitted_rss, "SKIP_TO_L1")) {
     message("Re-running fine-mapping with L=1")
     
@@ -1131,7 +1131,12 @@ run_susie_w_retries <- function(
       coverage = coverage,
       max_iter = max_iter
     )
-
+    fitted_rss$comment_section <- "The estimated prior variance is unreasonably large. This is usually caused by mismatch between the summary statistics and the LD matrix. Please check the input."
+    
+    # If cs are still NULL, return NULL
+    if(is.null(fitted_rss$sets$cs)){
+      return(NULL)  # return early - stop here function!
+    }
 #    write.table(msg, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
 #    quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully # would not work in a loop setting
 #    return(NULL)
@@ -1155,7 +1160,6 @@ run_susie_w_retries <- function(
 
   # If still no credible sets, try L = 1 as last resort
   if (coverage_value_updated < min_coverage) {
-    message("Final attempt failed, reached minimum coverage of ", min_coverage, ". Re-running with L=1")
     fitted_rss <- run_susie_w_tryCatch(
       D_sub,
       D_var_y,
@@ -1164,18 +1168,18 @@ run_susie_w_retries <- function(
       coverage = coverage,
       max_iter = max_iter
     )
+    fitted_rss$comment_section <- paste0("Final attempt of fine-mapping failed, reached minimum coverage of ", min_coverage, ". Re-run with L=1")
 
     # If cs are still NULL, return NULL
     if(is.null(fitted_rss$sets$cs)){
-      message("Region ", unique(D_sub$REGION), " for trait ", unique(D_sub$TRAITID), " was not fine-mapped.")
       return(NULL)  # return early - stop here function!
     }
   }
     
     
-  # Check if susie converged in given number of iterations - if not, either save for later of jump to L=1
+  # Check if susie converged in given number of iterations - if not, jump to L=1
   if (!(fitted_rss$converged)) {
-    message(paste0("IBSS algorithm did not converge in ", max_iter, " iterations"))
+    message("IBSS algorithm did not converge in ", max_iter, " iterations")
     message("Re-running fine-mapping with L=1")
     fitted_rss <- run_susie_w_tryCatch(
       D_sub,
@@ -1185,6 +1189,12 @@ run_susie_w_retries <- function(
       coverage = coverage,
       max_iter = max_iter
     )
+    fitted_rss$comment_section <- paste0("IBSS algorithm did not converge in ", max_iter, " iterations! Please check consistency between summary statistics and LD matrix. See https://stephenslab.github.io/susieR/articles/susierss_diagnostic.html")
+    
+    # If cs are still NULL, return NULL
+    if(!(fitted_rss$converged)){
+      return(NULL)  # return early - stop here function!
+    }
   }
     
   return(fitted_rss)
