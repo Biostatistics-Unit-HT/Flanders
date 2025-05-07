@@ -228,7 +228,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         chr = opt$chr,
         start = opt$start,
         end = opt$end,
-        top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=TRUE), na.rm=T),
+        top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=FALSE), na.rm=T),
           #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
         path_rds = ifelse(
           opt$publish_susie,
