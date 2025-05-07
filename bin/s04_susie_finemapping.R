@@ -98,7 +98,7 @@ fitted_rss <- run_susie_w_retries(
   L = L,
   coverage = opt$cs_thresh,
   min_coverage = min_coverage,
-  max_iter = opt$susie_max_iter,
+  max_iter = opt$susie_max_iter
 )
 
 # If successful, perform QC
@@ -236,5 +236,31 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     }))   
     
     fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_susie_coloc_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
+    
+    
+    ## List of loci which were still fine-mapped but with L=1 (and why)
+    if(!is.na(fitted_rss_cleaned$comment_section)){
+      L1_finemap <- data.frame(
+        study_id = opt$study_id,
+        phenotype_id = opt$phenotype_id,
+        chr = opt$chr,
+        start = opt$start,
+        end = opt$end,
+        switched_to_L1_reason = fitted_rss_cleaned$comment_section
+      )
+      fwrite(L1_finemap, paste0(random.number, "_switched_to_L1_finemap_report.tsv"), sep="\t", na=NA, quote=F)
+    }
+    
   }
+} else { ### if region was not fine-mapped at all!
+  
+  failed_finemap <- data.frame(
+    study_id = opt$study_id,
+    phenotype_id = opt$phenotype_id,
+    chr = opt$chr,
+    start = opt$start,
+    end = opt$end
+  )
+  fwrite(failed_finemap, paste0(random.number, "_failed_finemap_report.tsv"), sep="\t", na=NA, quote=F)
+  
 }
