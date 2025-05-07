@@ -14,9 +14,11 @@ option_list <- list(
   make_option("--bfile", default=NULL, help="Path and prefix name of custom LD bfiles (PLINK format .bed .bim .fam)"),
   make_option("--skip_dentist", default=TRUE, help="Whether to skip the match of SNPs LD between GWAS sum stat and LD reference (performed by DENTIST), and consequent removal of mismatched SNPs"),
   make_option("--cs_thresh", default=0.99, help="Percentage of credible set"),
+  make_option("--susie_max_iter", default=400, help="Maximum number of susie iterations"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study")
 );
+
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
@@ -94,10 +96,9 @@ fitted_rss <- run_susie_w_retries(
   D_var_y,
   susie_ld,
   L = L,
-  coverage = opt$cs_thresh, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
+  coverage = opt$cs_thresh,
   min_coverage = min_coverage,
-#  max_iter = opt$susie_niters, ### TO ADD AS ARGUMENT? GIVE DEFAULT?
-  max_iter = 10000 ### HARDCODED
+  max_iter = opt$susie_max_iter,
 )
 
 # If successful, perform QC
