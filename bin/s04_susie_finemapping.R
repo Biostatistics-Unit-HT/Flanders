@@ -193,17 +193,22 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
           )
         )
     })
-      
-# Name set with the highest lABF SNP      
-    names(finemap.res) <- sapply(finemap.res, function(x) x$finemapping_lABF$snp[1])
-    
+
+    # Name each credible set
+    names(finemap.res) <- paste(
+      paste0("chr", opt$chr),
+      opt$study_id,
+      opt$phenotype_id,
+      sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
+      sep="::"
+    )
     
     #########################################
     # Organise list of what needs to be saved
     #########################################
 
     core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
-    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
+#    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
     
 
     ## Create and save ind.snps-like table
@@ -225,7 +230,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       
       data.frame(
         study_id = opt$study_id,
-        phenotype_id = ifelse(opt$phenotype_id=="full", NA, opt$phenotype_id),
+#        phenotype_id = ifelse(opt$phenotype_id=="full", NA, opt$phenotype_id),
+        phenotype_id = opt$phenotype_id,
         credible_set = paste0(x$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
         top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=TRUE), na.rm=T),
           #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
