@@ -173,13 +173,23 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         se = se_top
         )
       
-      qc_metrics = fitted_rss_cleaned$sets$purity[paste0("L",x),]
-        
+      qc_metrics <- fitted_rss_cleaned$sets$purity[paste0("L",x),] %>%
+        dplyr::mutate(coverage = fitted_rss_cleaned$sets$coverage[x], L = length(fitted_rss_cleaned$KL)) # Add also requested coverage and L
+      
+      metadata_df <- data.frame(
+        study_id=opt$study_id,
+        phenotype_id=opt$phenotype_id,
+        chr=opt$chr,
+        start=opt$start,
+        end=opt$end
+      )
+      
       return(
         list(
           finemapping_lABFs = susie_reformat,
           effect = effect,
-          qc_metrics = qc_metrics
+          qc_metrics = qc_metrics,
+          metadata = metadata_df
           )
         )
     })
