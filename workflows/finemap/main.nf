@@ -18,6 +18,20 @@ workflow RUN_FINEMAPPING {
     // Run SUSIE_FINEMAPPING process on finemapping_input channel
     SUSIE_FINEMAPPING(finemapping_input, outdir_abspath)
 
+    // Concatenate all susie switched to L=1 and failed fine-mapping loci and publish it
+    SUSIE_FINEMAPPING.out.switched_to_L1_finemap_report
+    .collectFile(
+      keepHeader: true,
+      name: "switched_to_L1_loci.tsv",
+      storeDir: "${params.outdir}/results/switched_to_L1_loci")
+
+    SUSIE_FINEMAPPING.out.failed_finemap_report
+    .collectFile(
+      keepHeader: true,
+      name: "failed_finemap_loci.tsv",
+      storeDir: "${params.outdir}/results/not_finemapped_loci")
+
+
     // Run COJO on failed SUSIE loci (only for specific errors!! Stored in the R script of susie)
     COJO_AND_FINEMAPPING(SUSIE_FINEMAPPING.out.failed_susie_loci, outdir_abspath)
     
