@@ -209,39 +209,31 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
     core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
 #    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
-    
 
-    ## Create and save ind.snps-like table
-    ind.snps <- D_sub %>%
-      dplyr::filter(SNP %in% names(finemap.res)) %>%
-      dplyr::mutate(freq_geno=NA, bJ=b, bJ_se=se, pJ=p, LD_r=NA, start=opt$start, end=opt$end, study_id=opt$study_id) %>%
-      dplyr::select(CHR,SNP,BP,A1,freq,b,se,p,N,freq_geno,bJ,bJ_se,pJ,LD_r,snp_original,A2,type,any_of(c("sdY","s")),start,end,study_id,phenotype_id) %>%
-      dplyr::rename("Chr"="CHR","bp"="BP","refA"="A1","n"="N","othA"="A2")
-    fwrite(ind.snps, paste0(core_file_name, "_locus_chr", locus_name,"_ind_snps.tsv"), sep="\t", quote=F, na=NA)
-
-    ## Save .rds object collecting 1) lABF, 2) pos for all SNPs, 3) list of SNPs in the credible set
+    ## Save .rds object
     saveRDS(finemap.res, file = paste0(core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"))
 
-    # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
-    #  --> append each row to a master table collecting all info from processed sum stats
-
-    ## Save lABF of each conditional dataset in the same R object
+    ## Save info about each cs
     tmp <- rbindlist(lapply(finemap.res, function(x){              
-      
       data.frame(
-        study_id = opt$study_id,
-#        phenotype_id = ifelse(opt$phenotype_id=="full", NA, opt$phenotype_id),
-        phenotype_id = opt$phenotype_id,
-        credible_set = paste0(x$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
+        credible_set_name = paste(
+          paste0("chr", opt$chr),
+          opt$study_id,
+          opt$phenotype_id,
+          x$finemapping_lABF$snp[1],
+          sep="::"
+        ),
+        credible_set_snps = paste0(x$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
+        chr = opt$chr,
+        start = opt$start,
+        end = opt$end,
         top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=TRUE), na.rm=T),
           #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
         path_rds = paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
-        path_ind_snps = paste0(opt$results_path, "/results/gwas_and_loci_tables/", opt$study_id, "_final_ind_snps_table.tsv"),
-        chr = opt$chr
+        x$effect
       )
-    }))   
-    
-    fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_susie_coloc_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
+    }))
+    fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
     
     
     ## List of loci which were still fine-mapped but with L=1 (and why)
