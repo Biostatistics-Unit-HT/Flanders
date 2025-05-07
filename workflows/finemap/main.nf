@@ -54,5 +54,5 @@ workflow RUN_FINEMAPPING {
   emit:
     susie_results_rds = SUSIE_FINEMAPPING.out.susie_results_rds
     coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
-    ind_snps_table = APPEND_TO_IND_SNPS_TAB.out.ind_snps_table
+//    ind_snps_table = APPEND_TO_IND_SNPS_TAB.out.ind_snps_table
 }
