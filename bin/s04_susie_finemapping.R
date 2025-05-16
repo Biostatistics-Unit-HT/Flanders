@@ -250,7 +250,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         end = opt$end,
         switched_to_L1_reason = fitted_rss_cleaned$comment_section
       )
-      fwrite(L1_finemap, paste0(random.number, "_switched_to_L1_finemap_report.tsv"), sep="\t", na=NA, quote=F)
+      fwrite(L1_finemap, paste0(random.number, "_switched_to_L1_finemap_loci_report.tsv"), sep="\t", na=NA, quote=F)
     }
     
   }
@@ -263,6 +263,6 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     start = opt$start,
     end = opt$end
   )
-  fwrite(failed_finemap, paste0(random.number, "_failed_finemap_report.tsv"), sep="\t", na=NA, quote=F)
+  fwrite(failed_finemap, paste0(random.number, "_no_credible_sets_found_loci_report.tsv"), sep="\t", na=NA, quote=F)
   
 }

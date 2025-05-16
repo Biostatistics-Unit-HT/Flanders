@@ -12,8 +12,8 @@ process SUSIE_FINEMAPPING {
     path "*_susie_finemap.rds", optional:true, emit: susie_results_rds
     tuple val(meta_study_id), path ("*_cs_info_table.tsv"), optional:true, emit:susie_info_coloc_table
     tuple val(meta_study_id), val(meta_finemapping), val(meta_loci), path(gwas_final), path(gwas_final_index), path(bfile_dataset), path("failed_susie.txt"), optional:true, emit:failed_susie_loci
-    path "*_switched_to_L1_finemap_report.tsv", optional:true, emit: switched_to_L1_finemap_report
-    path "*_failed_finemap_report.tsv", optional:true, emit: failed_finemap_report
+    path "*_switched_to_L1_finemap_loci_report.tsv", optional:true, emit: switched_to_L1_finemap_loci_report
+    path "*_no_credible_sets_found_loci_report.tsv", optional:true, emit: no_credible_sets_found_loci_report
 
   script:
   def args = task.ext.args ?: ''

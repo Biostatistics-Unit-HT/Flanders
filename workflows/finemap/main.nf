@@ -18,17 +18,17 @@ workflow RUN_FINEMAPPING {
     // Run SUSIE_FINEMAPPING process on finemapping_input channel
     SUSIE_FINEMAPPING(finemapping_input, outdir_abspath)
 
-    // Concatenate all susie switched to L=1 and failed fine-mapping loci and publish it
-    SUSIE_FINEMAPPING.out.switched_to_L1_finemap_report
+    // Concatenate all susie switched to L=1 and no credible sets found fine-mapping loci and publish it
+    SUSIE_FINEMAPPING.out.switched_to_L1_finemap_loci_report
     .collectFile(
       keepHeader: true,
-      name: "switched_to_L1_loci.tsv",
+      name: "switched_to_L1_loci_report.tsv",
       storeDir: "${params.outdir}/results/switched_to_L1_loci")
 
-    SUSIE_FINEMAPPING.out.failed_finemap_report
+    SUSIE_FINEMAPPING.out.no_credible_sets_found_loci_report
     .collectFile(
       keepHeader: true,
-      name: "failed_finemap_loci.tsv",
+      name: "no_credible_sets_found_loci_report.tsv",
       storeDir: "${params.outdir}/results/not_finemapped_loci")
 
 
