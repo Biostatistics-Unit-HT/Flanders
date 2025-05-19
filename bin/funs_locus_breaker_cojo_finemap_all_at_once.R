@@ -1125,7 +1125,6 @@ run_susie_w_retries <- function(
     coverage = coverage,
     max_iter = max_iter
   )
-  fitted_rss$comment_section <- NA
   
   # "Estimated prior variance is unreasonably large" error - jump to L=1
   if (identical(fitted_rss, "SKIP_TO_L1")) {
@@ -1148,7 +1147,7 @@ run_susie_w_retries <- function(
 #    write.table(msg, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
 #    quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully # would not work in a loop setting
 #    return(NULL)
-  }
+  } else { fitted_rss$comment_section <- NA }
 
 
   # If result or cs is NULL (but not for L=1 cases) - retry lowering coverage, if still NULL jump to L=1
