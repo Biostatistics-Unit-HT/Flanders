@@ -1076,7 +1076,8 @@ run_susie_w_tryCatch <- function(
     susie_ld,
     L = L,
     coverage = coverage_value,
-    max_iter = max_iter
+    max_iter = max_iter,
+    min_abs_corr = min_abs_corr
 ) {  
   tryCatch({
     susie_rss(
@@ -1088,7 +1089,8 @@ run_susie_w_tryCatch <- function(
       estimate_residual_variance = FALSE,
       L = L,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = min_abs_corr
     )
   }, error = function(e) {
     msg <- conditionMessage(e)
@@ -1136,7 +1138,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = 1,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0 ### avoid susie QC based of LD!
     )
     fitted_rss$comment_section <- "The estimated prior variance is unreasonably large. This is usually caused by mismatch between the summary statistics and the LD matrix. Please check the input."
     
@@ -1174,7 +1177,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = 1,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0
     )
     fitted_rss$comment_section <- paste0("Final attempt of fine-mapping failed, reached minimum coverage of ", min_coverage, ". Re-run with L=1")
 
@@ -1195,7 +1199,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = 1,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0
     )
     fitted_rss$comment_section <- paste0("IBSS algorithm did not converge in ", max_iter, " iterations! Please check consistency between summary statistics and LD matrix. See https://stephenslab.github.io/susieR/articles/susierss_diagnostic.html")
     
