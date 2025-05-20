@@ -17,22 +17,22 @@ workflow RUN_FINEMAPPING {
     SUSIE_FINEMAPPING(finemapping_input, outdir_abspath)
 
     // Concatenate all susie switched to L=1 and no credible sets found fine-mapping loci and publish it
-    SUSIE_FINEMAPPING.out.FINEMAPPED_L1-prior_variance_too_large
+    SUSIE_FINEMAPPING.out.finemapped_L1_prior_variance_too_large
     .collectFile(
       keepHeader: true,
-      name: "FINEMAPPED_L1-prior_variance_too_large.tsv",
+      name: "FINEMAPPED_L1_prior_variance_too_large.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
 
-    SUSIE_FINEMAPPING.out.FINEMAPPED_L1-IBSS_algorithm_did_not_converge
+    SUSIE_FINEMAPPING.out.finemapped_L1_IBSS_algorithm_did_not_converge
     .collectFile(
       keepHeader: true,
-      name: "FINEMAPPED_L1-IBSS_algorithm_did_not_converge",
+      name: "FINEMAPPED_L1_IBSS_algorithm_did_not_converge",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
 
-    SUSIE_FINEMAPPING.out.NOT_FINEMAPPED-no_credible_sets_found
+    SUSIE_FINEMAPPING.out.not_finemapped_no_credible_sets_found
     .collectFile(
       keepHeader: true,
-      name: "NOT_FINEMAPPED-no_credible_sets_found.tsv",
+      name: "NOT_FINEMAPPED_no_credible_sets_found.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
     
     // Append all to coloc_info_master_table

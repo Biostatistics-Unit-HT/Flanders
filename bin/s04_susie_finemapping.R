@@ -237,7 +237,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
           paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
           NA),
         x$effect
-      )
+      ) %>%
+        dplyr::rename(bC=beta, bC_se=se)
     }))
     fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
     
@@ -253,11 +254,16 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         finemapped_L1_reason = fitted_rss_cleaned$comment_section
       )
       
-      fwrite(L1_finemap %>% filter(grepl("The estimated prior variance is unreasonably large", comment_section)),
-             paste0(random.number, "_FINEMAPPED_L1-prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
+      L1_finemap_variance_too_large <- L1_finemap %>% filter(grepl("The estimated prior variance is unreasonably large", finemapped_L1_reason))
+      if(nrow(L1_finemap_variance_too_large) > 0){
+        fwrite(L1_finemap_variance_too_large, paste0(random.number, "_FINEMAPPED_L1_prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
+      }
       
-      fwrite(L1_finemap %>% filter(grepl("IBSS algorithm did not converge", comment_section)),
-             paste0(random.number, "_FINEMAPPED_L1-IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
+      L1_finemap_did_not_converge <- L1_finemap %>% filter(grepl("IBSS algorithm did not converge", finemapped_L1_reason))
+      if(nrow(L1_finemap_did_not_converge) > 0){
+        fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
+      }      
+  
     }
     
   }
@@ -270,6 +276,6 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     start = opt$start,
     end = opt$end
   )
-  fwrite(failed_finemap, paste0(random.number, "_NOT_FINEMAPPED-no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
+  fwrite(failed_finemap, paste0(random.number, "_NOT_FINEMAPPED_no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
   
 }
