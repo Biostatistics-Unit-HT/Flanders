@@ -11,8 +11,9 @@ process SUSIE_FINEMAPPING {
   output:
     path "*_susie_finemap.rds", optional:true, emit: susie_results_rds
     tuple val(meta_study_id), path ("*_cs_info_table.tsv"), optional:true, emit:susie_info_coloc_table
-    path "*_switched_to_L1_finemap_loci_report.tsv", optional:true, emit: switched_to_L1_finemap_loci_report
-    path "*_no_credible_sets_found_loci_report.tsv", optional:true, emit: no_credible_sets_found_loci_report
+    path "*_FINEMAPPED_L1-prior_variance_too_large.tsv", optional:true, emit: FINEMAPPED_L1-prior_variance_too_large
+    path "*_FINEMAPPED_L1-IBSS_algorithm_did_not_converge.tsv", optional:true, emit: FINEMAPPED_L1-IBSS_algorithm_did_not_converge
+    path "*_NOT_FINEMAPPED-no_credible_sets_found.tsv", optional:true, emit: NOT_FINEMAPPED-no_credible_sets_found.tsv
 
   script:
   def args = task.ext.args ?: ''

@@ -41,7 +41,7 @@ workflow RUN_MUNGING {
     }
     .collectFile(
       newLine: true, 
-      name: "large_loci.tsv", storeDir: "${params.outdir}/results/not_finemapped_loci",
+      name: "NOT_FINEMAPPED-locus_too_large.tsv", storeDir: "${params.outdir}/results/finemapping_exceptions",
       seed: "study_id\tchr\tstart\tend\tlocus_size\tphenotype_id")
 
   emit:

@@ -250,9 +250,14 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         chr = opt$chr,
         start = opt$start,
         end = opt$end,
-        switched_to_L1_reason = fitted_rss_cleaned$comment_section
+        finemapped_L1_reason = fitted_rss_cleaned$comment_section
       )
-      fwrite(L1_finemap, paste0(random.number, "_switched_to_L1_finemap_loci_report.tsv"), sep="\t", na=NA, quote=F)
+      
+      fwrite(L1_finemap %>% filter(grepl("The estimated prior variance is unreasonably large", comment_section)),
+             paste0(random.number, "_FINEMAPPED_L1-prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
+      
+      fwrite(L1_finemap %>% filter(grepl("IBSS algorithm did not converge", comment_section)),
+             paste0(random.number, "_FINEMAPPED_L1-IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
     }
     
   }
@@ -265,6 +270,6 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     start = opt$start,
     end = opt$end
   )
-  fwrite(failed_finemap, paste0(random.number, "_no_credible_sets_found_loci_report.tsv"), sep="\t", na=NA, quote=F)
+  fwrite(failed_finemap, paste0(random.number, "_NOT_FINEMAPPED-no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
   
 }
