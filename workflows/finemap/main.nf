@@ -30,8 +30,7 @@ workflow RUN_FINEMAPPING {
       storeDir: "${params.outdir}/results/not_finemapped_loci")
     
     // Append all to coloc_info_master_table
-    append_input_coloc = COJO_AND_FINEMAPPING.out.cojo_info_coloc_table
-      .mix(SUSIE_FINEMAPPING.out.susie_info_coloc_table)
+    append_input_coloc = SUSIE_FINEMAPPING.out.susie_info_coloc_table
       .groupTuple()
       .map{ tuple( it[0], it[1].flatten())}
 

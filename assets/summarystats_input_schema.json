@@ -26,8 +26,6 @@
       "maf": { "type": "number", "minimum": 0, "maximum": 1 },
       "p_thresh1": { "type": "number" },
       "p_thresh2": { "type": "number" },
-      "p_thresh3": { "type": "number" },
-      "p_thresh4": { "type": "number" },
       "cs_thresh": { "oneOf": [{ "type": "number" }, { "const": "NA" }] },
       "hole": { "type": "number" },
       "grch_bfile": { "type": "number", "enum": [37, 38] },
@@ -55,8 +53,6 @@
       "maf",
       "p_thresh1",
       "p_thresh2",
-      "p_thresh3",
-      "p_thresh4",
       "cs_thresh",
       "hole"
     ]
