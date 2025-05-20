@@ -46,7 +46,7 @@ workflow {
 			}
 			.unique()
 			.branch { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset ->
-				need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T")
+				need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T") || process_bfile_flag == null
 				processed: true 
 			}
 			.set { bfile_datasets }
