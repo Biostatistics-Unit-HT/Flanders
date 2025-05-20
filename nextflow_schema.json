@@ -97,7 +97,6 @@
         }
       },
       "required": [
-        "run_colocalization",
         "coloc_batch_size",
         "pph3_threshold",
         "pph4_threshold"
