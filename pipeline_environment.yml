@@ -27,6 +27,9 @@ dependencies:
   - r-patchwork=1.2.0
   - r-ggplot2=3.5.0
   - r-cowplot=1.1.3
+  - r-rfast=2.1.0
+  - r-anndata=0.7.5.6
+  - anndata=0.11.4
   - tabix=1.11
   - bioconductor-rhtslib=2.4.0
   - pandas=2.2.3

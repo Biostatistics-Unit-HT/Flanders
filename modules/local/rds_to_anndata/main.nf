@@ -14,6 +14,8 @@ process RDS_TO_ANNDATA {
   script:
   def args = task.ext.args ?: ''
     """
+    export RETICULATE_PYTHON=\$(which python)
+
     s07_anndata_concat.R \
         ${args} \
         --input ${all_rds} \
