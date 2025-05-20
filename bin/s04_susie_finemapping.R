@@ -225,6 +225,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
           sep="::"
         ),
         credible_set_snps = paste0(x$finemapping_lABFs %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
+        study_id = opt$study_id,
+        phenotype_id = opt$phenotype_id,
         chr = opt$chr,
         start = opt$start,
         end = opt$end,
