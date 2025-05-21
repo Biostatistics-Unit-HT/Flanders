@@ -22,7 +22,7 @@ tb <- fread(opt$coloc_info_table) %>% dplyr::filter(chr==opt$chr_cs)
 nrows_tb <- nrow(tb)
 tb <- tb  %>% dplyr::mutate(cs_name=paste0("cs", seq(1,nrows_tb)))
 
-cs_list <- strsplit(tb$credible_set, ",", fixed=TRUE) # If TRUE match split exactly, otherwise use regular expressions - hoping is more memory efficient! https://stackoverflow.com/questions/55919893/more-memory-efficient-way-than-strsplit-to-split-a-string-into-two-in-r
+cs_list <- strsplit(tb$credible_set_snps, ",", fixed=TRUE) # If TRUE match split exactly, otherwise use regular expressions - hoping is more memory efficient! https://stackoverflow.com/questions/55919893/more-memory-efficient-way-than-strsplit-to-split-a-string-into-two-in-r
 names(cs_list) <- tb$cs_name
 
 # Get unique elements present in all text vectors
@@ -91,14 +91,14 @@ if(length(unlist(cs_list)) > length(all_elements)){
   # Retrieve trait info
   coloc_combo <- merge(
     shared_elements_unique,
-    tb %>% dplyr::select(-credible_set),
+    tb %>% dplyr::select(credible_set_name, study_id, phenotype_id, top_pvalue, path_rds, cs_name),
     by.x = "t1",
     by.y = "cs_name"
   )
   
   coloc_combo <- merge(
     coloc_combo,
-    tb %>% dplyr::select(-credible_set),
+    tb %>% dplyr::select(credible_set_name, study_id, phenotype_id, top_pvalue, path_rds, cs_name),
     by.x = "t2",
     by.y = "cs_name",
     suffixes = c("_t1", "_t2")
@@ -107,10 +107,10 @@ if(length(unlist(cs_list)) > length(all_elements)){
   # Remove pair testing different conditional dataset for the same trait (study_id + phenotype_id)
   coloc_combo <- coloc_combo %>%
     dplyr::filter(study_id_t1 != study_id_t2 | (study_id_t1==study_id_t2 & phenotype_id_t1 != phenotype_id_t2)) %>%
-    dplyr::select(-t1, -t2, -chr_t1, -chr_t2)
+    dplyr::select(-t1, -t2)
   
   colnames(coloc_combo) <- c(
-    "t1_study_id", "t1_phenotype_id", "t1_top_pvalue", "t1_path_rds", "t1_path_ind_snps",
-    "t2_study_id", "t2_phenotype_id", "t2_top_pvalue", "t2_path_rds", "t2_path_ind_snps")
+    "t1_credible_set_name", "t1_study_id", "t1_phenotype_id", "t1_top_pvalue", "t1_path_rds",
+    "t2_credible_set_name", "t2_study_id", "t2_phenotype_id", "t2_top_pvalue", "t2_path_rds")
   fwrite(coloc_combo, paste0(opt$coloc_id, "_chr", opt$chr_cs, "_coloc_pairwise_guide_table.tsv"), quote=F, na=NA, sep="\t")
 }
