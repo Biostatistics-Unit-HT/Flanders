@@ -69,7 +69,7 @@ dataset.munge_hor=function(sumstats.file
   # Load sumstat
   dataset = gwas
   if(is.character(sumstats.file)){
-    dataset=read_tsv(sumstats.file, data.table=F)
+    dataset=read_delim(sumstats.file, data.table=F)
     dataset <- as.data.table(dataset)
   }
   
@@ -156,7 +156,7 @@ dataset.munge_hor=function(sumstats.file
     colname_for_type <- "sdY"
     # If multiple values (one per key if the GWAS is mol_QTL) are provided in a file
     if (is.character(sdY) && file.exists(sdY)) {
-      sdY_list <- read_tsv(sdY, data.table = F)
+      sdY_list <- read_delim(sdY, data.table = F)
       sdY_list <- as.data.table(sdY_list)
       
       if(all(c("sdY", "phenotype_id") %in% names(sdY_list))){
@@ -239,7 +239,7 @@ dataset.align <- function(dataset, bfile) {
   
   # Load munged dataset sumstat in .rds format (if necessary)
   if(is.character(dataset)){
-    dataset <- read_tsv(dataset, data.table=F)
+    dataset <- read_delim(dataset, data.table=F)
     dataset <- as.data.table(dataset)
   }
   
@@ -276,8 +276,8 @@ dataset.align <- function(dataset, bfile) {
 
     # Load-in frequency and position info from plink files
     freqs <- as.data.table(cbind(
-      read_tsv(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),
-      read_tsv(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
+      read_delim(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),
+      read_delim(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
     ))
     
     # Compute frequency for effect allele, create SNP column for merging
@@ -421,9 +421,7 @@ find_positions <- function(A, B) {
   positions_A_in_B <- match(A, B)
   positions_A_in_B <- positions_A_in_B[!is.na(positions_A_in_B)]
   
-  all_positions_B <- seq_along(B)
-  
-  return(all_positions_B)
+  return(positions_A_in_B)
 }
 
 # Function to round scientific notation to a specific number of decimal places
@@ -502,7 +500,7 @@ dtypes <- rep("c", length(input_colnames))
 dtypes[idx_int_columns] <- 'i'
 dtypes[idx_dbl_columns] <- 'd'
 
-gwas <- read_tsv(opt$input, na = c("", "NA"), num_threads = opt$threads, col_types = dtypes, lazy=TRUE) # treat both "NA" as character and empty strings ("") as NA
+gwas <- read_delim(opt$input, na = c("", "NA"), num_threads = opt$threads, col_types = dtypes, lazy=TRUE) # treat both "NA" as character and empty strings ("") as NA
 gwas <- as.data.table(gwas)
 #gwas <- fread(opt$input, na.strings = c("", "NA"), tmpdir=getwd()) # treat both "NA" as character and empty strings ("") as NA
 
