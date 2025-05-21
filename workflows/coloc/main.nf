@@ -27,7 +27,7 @@ workflow RUN_COLOCALIZATION {
     // Run COLOC process on coloc_pairs_by_batches channel
     COLOC(coloc_pairs_by_batches)
 
-    // Define input channel for identifying regulatory modules - collect all tables (coloc performed in batches of n pairwise tests)
+    // Collect all tables (coloc performed in batches of n pairwise tests)
     coloc_results_all = COLOC.out.colocalization_table_all_by_chunk
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.all.tsv",
@@ -51,7 +51,7 @@ workflow RUN_COLOCALIZATION {
         name: "${params.coloc_id}_colocalization.table.H3.tsv",
         storeDir: "${params.outdir}/results/coloc",
         newLine: true,
-        seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\thit1\tt2_study_id\tt2\thit2"
+        seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1_phenotype_id\tt1\thit1\tt2_study_id\tt2_phenotype_id\tt2\thit2"
         ) { it.values().toList().join('\t') }
     
     coloc_results_subset.pph4
@@ -59,9 +59,7 @@ workflow RUN_COLOCALIZATION {
         name: "${params.coloc_id}_colocalization.table.H4.tsv",
         storeDir: "${params.outdir}/results/coloc",
         newLine: true,
-        seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\thit1\tt2_study_id\tt2\thit2"
+        seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1_phenotype_id\tt1\thit1\tt2_study_id\tt2_phenotype_id\tt2\thit2"
         ) { it.values().toList().join('\t') }
 
-    // Run COLOC process on coloc_pairs_by_batches channel
-    // IDENTIFY_REG_MODULES(coloc_results_all)
 }

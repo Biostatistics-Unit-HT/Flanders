@@ -12,7 +12,7 @@ process APPEND_TO_MASTER_COLOC {
 
   script:
     """
-    echo -e "credible_set_name\tcredible_set_snps\tstudy_id\tphenotype_id\tchr\tstart\tend\ttop_pvalue\tpath_rds\tsnp\ta1\ta0\tfreq\tN\tb\tse" > ${meta_study_id.study_id}_coloc_info_master_table.tsv
+    echo -e "credible_set_name\tcredible_set_snps\tstudy_id\tphenotype_id\tchr\tstart\tend\ttop_pvalue\tpath_rds\tsnp\ta1\ta0\tfreq\tN\tbC\tbC_se" > ${meta_study_id.study_id}_coloc_info_master_table.tsv
     cat ${info_coloc_table} >> ${meta_study_id.study_id}_coloc_info_master_table.tsv
     """
 
