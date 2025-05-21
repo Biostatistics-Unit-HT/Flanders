@@ -421,9 +421,7 @@ find_positions <- function(A, B) {
   positions_A_in_B <- match(A, B)
   positions_A_in_B <- positions_A_in_B[!is.na(positions_A_in_B)]
   
-  all_positions_B <- seq_along(B)
-  
-  return(all_positions_B)
+  return(positions_A_in_B)
 }
 
 # Function to round scientific notation to a specific number of decimal places
