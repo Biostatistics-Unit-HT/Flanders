@@ -97,10 +97,7 @@
         }
       },
       "required": [
-        "run_colocalization",
-        "coloc_batch_size",
-        "pph3_threshold",
-        "pph4_threshold"
+        "coloc_batch_size"
       ],
       "fa_icon": "fas fa-map-marker-alt"
     },
@@ -124,7 +121,7 @@
         }
       },
       "fa_icon": "fas fa-tools",
-      "required": ["is_test_profile", "publish_dir_mode"]
+      "required": ["publish_dir_mode"]
     }
   },
   "allOf": [
