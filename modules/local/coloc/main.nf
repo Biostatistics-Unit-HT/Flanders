@@ -7,7 +7,7 @@ process COLOC {
   
   output:
     path "${params.coloc_id}_chr${meta_chr_cs.chr_cs}_colocalization.table.all.tsv", emit:colocalization_table_all_by_chunk
- 
+
   script:
   def args = task.ext.args ?: ''
     """
