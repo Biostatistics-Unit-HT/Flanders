@@ -99,7 +99,8 @@ fitted_rss <- run_susie_w_retries(
   L = L,
   coverage = opt$cs_thresh,
   min_coverage = min_coverage,
-  max_iter = opt$susie_max_iter
+  max_iter = opt$susie_max_iter,
+  min_abs_corr = NULL
 )
 
 # If successful, perform QC
@@ -261,7 +262,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       
       L1_finemap_did_not_converge <- L1_finemap %>% filter(grepl("IBSS algorithm did not converge", finemapped_L1_reason))
       if(nrow(L1_finemap_did_not_converge) > 0){
-        fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge"), sep="\t", na=NA, quote=F)
+        fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
       }      
   
     }
