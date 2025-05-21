@@ -2,12 +2,12 @@
 suppressMessages(library(optparse))
 suppressMessages(library(data.table))
 suppressMessages(library(R.utils))
-#suppressMessages(library(coloc))
+suppressMessages(library(coloc))
 suppressMessages(library(susieR))
 #suppressMessages(library(bigsnpr))
 suppressMessages(library(stringi))
 suppressMessages(library(stringr))
-suppressMessages(library(reshape2))
+#suppressMessages(library(reshape2))
 suppressMessages(library(purrr))
 suppressMessages(library(tidyr))
 suppressMessages(library(plyr))
@@ -349,7 +349,8 @@ run_susie_w_tryCatch <- function(
     susie_ld,
     L = L,
     coverage = coverage_value,
-    max_iter = max_iter
+    max_iter = max_iter,
+    min_abs_corr = NULL
 ) {  
   tryCatch({
     susie_rss(
@@ -361,7 +362,8 @@ run_susie_w_tryCatch <- function(
       estimate_residual_variance = FALSE,
       L = L,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = min_abs_corr
     )
   }, error = function(e) {
     msg <- conditionMessage(e)
@@ -382,7 +384,8 @@ run_susie_w_retries <- function(
     L = L,
     coverage = coverage,
     max_iter = max_iter,
-    min_coverage = min_coverage
+    min_coverage = min_coverage,
+    min_abs_corr = NULL
 ){
   
   fitted_rss <- NULL  # Initialize
@@ -395,7 +398,8 @@ run_susie_w_retries <- function(
     susie_ld,
     L = L,
     coverage = coverage,
-    max_iter = max_iter
+    max_iter = max_iter,
+    min_abs_corr = 0.5 ## default value
   )
   
   # "Estimated prior variance is unreasonably large" error - jump to L=1
@@ -408,7 +412,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = 1,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0 ## do not filter for anything
     )
     fitted_rss$comment_section <- "The estimated prior variance is unreasonably large. This is usually caused by mismatch between the summary statistics and the LD matrix. Please check the input."
     
@@ -435,7 +440,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = L,
       coverage = coverage_value_updated,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0.5 ## default value
     )
     fitted_rss$comment_section <- NA
   }
@@ -448,7 +454,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = 1,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0 ## do not filter for anything
     )
     fitted_rss$comment_section <- paste0("Final attempt of fine-mapping failed, reached minimum coverage of ", min_coverage, ". Re-run with L=1")
 
@@ -469,7 +476,8 @@ run_susie_w_retries <- function(
       susie_ld,
       L = 1,
       coverage = coverage,
-      max_iter = max_iter
+      max_iter = max_iter,
+      min_abs_corr = 0 ## do not filter for anything
     )
     fitted_rss$comment_section <- paste0("IBSS algorithm did not converge in ", max_iter, " iterations! Please check consistency between summary statistics and LD matrix. See https://stephenslab.github.io/susieR/articles/susierss_diagnostic.html")
     
