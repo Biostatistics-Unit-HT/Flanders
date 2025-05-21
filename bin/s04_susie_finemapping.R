@@ -99,7 +99,8 @@ fitted_rss <- run_susie_w_retries(
   L = L,
   coverage = opt$cs_thresh,
   min_coverage = min_coverage,
-  max_iter = opt$susie_max_iter
+  max_iter = opt$susie_max_iter,
+  min_abs_corr = NULL
 )
 
 # If successful, perform QC
