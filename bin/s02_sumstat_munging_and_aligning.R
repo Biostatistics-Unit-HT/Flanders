@@ -312,7 +312,7 @@ dataset.align <- function(dataset, bfile) {
   }
   
   #### You can finally calculate sdY! If sdY is not provided, calculate it - ONLY IF type is not cc or sdY has not been already provided or calculated
-  if( !(type=="cc" | "sdY" %in% names(dataset)) ){
+  if( !(unique(dataset$type)=="cc" | "sdY" %in% names(dataset)) ){
     dataset[, sdY := coloc:::sdY.est(varbeta, MAF, N), by = phenotype_id]
   }
   
