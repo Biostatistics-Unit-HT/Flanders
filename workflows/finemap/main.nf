@@ -41,7 +41,8 @@ workflow RUN_FINEMAPPING {
     // Collect all fine-map .rds files in AnnData
     all_rds = SUSIE_FINEMAPPING.out.susie_results_rds
       .collect()
-      .map { files -> files.join(',') }
+//      .map { files -> files.join(',') }
+    all_rds.view()
     
     RDS_TO_ANNDATA(all_rds)
 

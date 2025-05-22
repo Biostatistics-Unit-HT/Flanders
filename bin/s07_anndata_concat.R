@@ -351,8 +351,8 @@ finemap2anndata <- function(
 }
 
 # Read list of finemap files
-#input_files <- readLines(opt$input) ### to implement later - files stored in a text file rather than as Rscript arguments
-input_files <- strsplit(opt$input, ",")[[1]]
+input_files <- readLines(opt$input) ### to implement later - files stored in a text file rather than as Rscript arguments
+#input_files <- strsplit(opt$input, ",")[[1]]
 finemap_files <- unlist(lapply(input_files, readRDS), recursive = FALSE)
 
 # Collect study_id and phenotype_id for each credible set
