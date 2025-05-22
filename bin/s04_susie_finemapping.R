@@ -75,6 +75,13 @@ susie_ld <- prep_susie_ld(
   skip_dentist=opt$skip_dentist
 )
 
+# Check if susie_ld is NULL
+if (is.null(susie_ld)) {
+  susie_error_message <- "prep_susie_ld returned NULL. No SNPs found in the locus or LD matrix could not be computed."
+  write.table(susie_error_message, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
+  quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
+}
+
 # Compute trait variance
 #dataset_aligned$MAF <- ifelse(dataset_aligned$freq < 0.5, dataset_aligned$freq, (1-dataset_aligned$freq))
 D_var_y <- median(dataset_aligned$se^2*dataset_aligned$N*2*dataset_aligned$freq*(1-dataset_aligned$freq), na.rm = T)
