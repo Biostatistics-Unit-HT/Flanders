@@ -111,6 +111,11 @@ dataset.munge_hor=function(sumstats.file
     stop("pos.lab has not been defined or the column is missing") ### Can be as well retrieved from LD reference bfiles??
   }
   
+  #### Put either frequency of N mandatory
+  if( !( freq.lab %in% names(dataset) | n.lab %in% names(dataset) )) {
+    stop("Either effect allele frequency or N sample size needs to be provided!")
+  }
+  
   if(!is.null(freq.lab) & freq.lab %in% names(dataset)){
     names(dataset)[names(dataset)==freq.lab]="freq"
   } ### if effect allele frequency is not reported, it will calculated from the LD reference bfiles in the alignment step
