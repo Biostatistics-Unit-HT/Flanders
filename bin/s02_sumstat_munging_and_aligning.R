@@ -311,9 +311,10 @@ dataset.align <- function(dataset, bfile) {
     dataset[ , N := ceiling(N_hat)]
   }
   
-  #### You can finally calculate sdY! If sdY is not provided, calculate it
-  dataset[, sdY := coloc:::sdY.est(varbeta, MAF, N), by = phenotype_id]
-  
+  #### You can finally calculate sdY! If sdY is not provided, calculate it - ONLY IF type is not cc or sdY has not been already provided or calculated
+  if( !(type=="cc" | "sdY" %in% names(dataset)) ){
+    dataset[, sdY := coloc:::sdY.est(varbeta, MAF, N), by = phenotype_id]
+  }
   
   # Select columns in the specified order
   cols <- c("snp_original", "SNP", "CHR", "BP", "A1", "A2", "freq", "b", "varbeta", "SE", "P", "MAF", "N", "type", intersect(c("s", "sdY"), names(dataset)), "phenotype_id")
