@@ -56,6 +56,11 @@ def main():
             print(f"One of the bfiles {bfile_path} was not found.", file=sys.stderr)
             return sys.exit(1)
 
+        # Check that freq_lab and n_lab are not both missing
+        if pd.isna(record['freq_lab']) and pd.isna(record['n_lab']):
+            print(f"Error: freq_lab and n_lab are both missing/NA in the input table for {gwas_path}. At least one is needed", file=sys.stderr)
+            return sys.exit(1)
+
         # Check that the desired columns are found in sumstats file
         gwas_sub = read_gwas_file(gwas_path)
         
