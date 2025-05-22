@@ -63,9 +63,20 @@
           "type": "integer",
           "default": 2000000,
           "description": "Maximum size for a locus to enter finemapping and colocalization analysis"
+        },
+        "susie_max_iter": {
+          "type": "integer",
+          "default": 400,
+          "description": "Maximum number of IBSS iterations to perform when running SUSIE, see https://stephenslab.github.io/susieR/reference/susie.html"
+        },
+        "publish_susie": {
+          "type": "boolean",
+          "default": true,
+          "hidden": true,
+          "description": "Whether to publish the susie finemap .rds intermediate files"
         }
       },
-      "required": ["run_liftover", "skip_dentist", "large_locus_size"],
+      "required": ["large_locus_size", "susie_max_iter"],
       "fa_icon": "fas fa-bezier-curve"
     },
     "colocalization": {
@@ -96,11 +107,7 @@
           "description": "The PP.H4 ABF threshold value to save results into a separate H4 table"
         }
       },
-      "required": [
-        "coloc_batch_size",
-        "pph3_threshold",
-        "pph4_threshold"
-      ],
+      "required": ["coloc_batch_size", "pph3_threshold", "pph4_threshold"],
       "fa_icon": "fas fa-map-marker-alt"
     },
     "advanced_parameters": {
