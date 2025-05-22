@@ -4,6 +4,8 @@ suppressMessages(library(optparse))
 suppressMessages(library(readr))
 suppressMessages(library(R.utils))
 suppressMessages(library(data.table))
+suppressMessages(library(stringi))
+
 liftOver <- rtracklayer::liftOver
 import.chain <- rtracklayer::import.chain
 GRanges <- GenomicRanges::GRanges
@@ -178,7 +180,8 @@ dataset.munge_hor=function(sumstats.file
   
   # Select only necessary columns
   columns <- c("phenotype_id","snp_original","CHR","BP","A1","A2","freq","BETA","varbeta","SE","P","MAF","N","type", colname_for_type)
-  dataset <- dataset[, ..columns]
+  valid_cols <- intersect(columns, names(dataset))
+  dataset <- dataset[, ..valid_cols]
   
   if(type == "quant" && "s" %in% names(dataset)){
     dataset$s <- NULL
