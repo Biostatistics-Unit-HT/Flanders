@@ -700,6 +700,14 @@ prep_susie_ld <- function(
   rownames(snp_info) <- NULL
   colnames(geno) <- snp_info$SNP
   
+##### Ideally to have in the bfile processin step  
+  # Remove SNPs with duplicated ids (all occurrencies!)
+  dup_snps_index <- which((duplicated(snp_info$SNP) | duplicated(snp_info$SNP, fromLast = TRUE)))
+  
+  snp_info <- snp_info[-dup_snps_index, ]
+  geno <- geno[, -..dup_snps_index]
+#####  
+  
   # check for which columns genotypes should be reverted
   index_to_revert <- which(!(snp_info$ea <= snp_info$oa))
   
@@ -1080,3 +1088,150 @@ get_beta_se_susie <- function(sus,L_index){
   
 }
 
+
+# Helper function to run susie_rss with error handling
+run_susie_w_tryCatch <- function(
+    D_sub,
+    D_var_y,
+    susie_ld,
+    L = L,
+    coverage = coverage_value,
+    max_iter = max_iter,
+    min_abs_corr = NULL
+) {  
+  tryCatch({
+    susie_rss(
+      bhat = D_sub$b, 
+      shat = D_sub$se, 
+      n = max(D_sub$N), 
+      R = susie_ld, 
+      var_y = D_var_y,
+      estimate_residual_variance = FALSE,
+      L = L,
+      coverage = coverage,
+      max_iter = max_iter,
+      min_abs_corr = min_abs_corr
+    )
+  }, error = function(e) {
+    msg <- conditionMessage(e)
+    message(msg)
+    if (grepl("The estimated prior variance is unreasonably large", msg)) {
+      return("SKIP_TO_L1")
+    }
+    stop(e)  # Re-throw other errors
+  })
+}
+
+
+# Run SuSiE with retries
+run_susie_w_retries <- function(
+    D_sub,
+    D_var_y,
+    susie_ld,
+    L = L,
+    coverage = coverage,
+    max_iter = max_iter,
+    min_coverage = min_coverage,
+    skip_to_L1 = skip_to_L1,
+    min_abs_corr = NULL
+){
+  
+  fitted_rss <- NULL  # Initialize
+  coverage_value_updated <- coverage
+  
+  # First run!  
+  fitted_rss <- run_susie_w_tryCatch(
+    D_sub,
+    D_var_y,
+    susie_ld,
+    L = L,
+    coverage = coverage,
+    max_iter = max_iter,
+    min_abs_corr = 0.5 ## default value
+  )
+  
+  # "Estimated prior variance is unreasonably large" error - jump to L=1
+  if (identical(fitted_rss, "SKIP_TO_L1")) {
+    message("Re-running fine-mapping with L=1")
+    
+    fitted_rss <- run_susie_w_tryCatch(
+      D_sub,
+      D_var_y,
+      susie_ld,
+      L = 1,
+      coverage = coverage,
+      max_iter = max_iter,
+      min_abs_corr = 0 ### avoid susie QC based of LD!
+    )
+    fitted_rss$comment_section <- "The estimated prior variance is unreasonably large. This is usually caused by mismatch between the summary statistics and the LD matrix. Please check the input."
+    
+    # If cs are still NULL, return NULL
+    if(is.null(fitted_rss$sets$cs)){
+      return(NULL)  # return early - stop here function!
+    }
+#    write.table(msg, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
+#    quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully # would not work in a loop setting
+#    return(NULL)
+  } else { fitted_rss$comment_section <- NA }
+
+
+  # If result or cs is NULL (but not for L=1 cases) - retry lowering coverage, if still NULL jump to L=1
+  while ( (is.null(fitted_rss) || is.null(fitted_rss$sets$cs)) && coverage_value_updated >= min_coverage) {
+    coverage_value_updated <- coverage_value_updated - 0.01
+    message("Re-running with reduced coverage: ", coverage_value_updated)
+    
+    fitted_rss <- run_susie_w_tryCatch(
+      D_sub,
+      D_var_y,
+      susie_ld,
+      L = L,
+      coverage = coverage_value_updated,
+      max_iter = max_iter,
+      min_abs_corr = 0.5 ## default value
+    )
+    fitted_rss$comment_section <- NA
+  }
+
+  # If still no credible sets, try L = 1 as last resort
+  if (coverage_value_updated < min_coverage) {
+    fitted_rss <- run_susie_w_tryCatch(
+      D_sub,
+      D_var_y,
+      susie_ld,
+      L = 1,
+      coverage = coverage,
+      max_iter = max_iter,
+      min_abs_corr = 0 ## do not filter for anything
+    )
+    fitted_rss$comment_section <- paste0("Final attempt of fine-mapping failed, reached minimum coverage of ", min_coverage, ". Re-run with L=1")
+
+    # If cs are still NULL, return NULL
+    if(is.null(fitted_rss$sets$cs)){
+      return(NULL)  # return early - stop here function!
+    }
+  }
+    
+    
+  # Check if susie converged in given number of iterations - if not, jump to L=1
+  if (!(fitted_rss$converged)) {
+    message("IBSS algorithm did not converge in ", max_iter, " iterations")
+    message("Re-running fine-mapping with L=1")
+    fitted_rss <- run_susie_w_tryCatch(
+      D_sub,
+      D_var_y,
+      susie_ld,
+      L = 1,
+      coverage = coverage,
+      max_iter = max_iter,
+      min_abs_corr = 0 ## do not filter for anything
+    )
+    fitted_rss$comment_section <- paste0("IBSS algorithm did not converge in ", max_iter, " iterations! Please check consistency between summary statistics and LD matrix. See https://stephenslab.github.io/susieR/articles/susierss_diagnostic.html")
+    
+    # If cs are still NULL, return NULL
+    if(!(fitted_rss$converged)){
+      return(NULL)  # return early - stop here function!
+    }
+  }
+    
+  return(fitted_rss)
+}
