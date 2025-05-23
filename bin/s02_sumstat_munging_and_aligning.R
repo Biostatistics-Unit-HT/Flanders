@@ -468,7 +468,7 @@ option_list <- list(
   make_option("--se_lab", default="SE", help="Name of standard error of effect column"), 
   make_option("--pvalue_lab", default="P", help="Name of p-value of effect column"),
   make_option("--type", default=NULL, help="Type of phenotype analysed - either 'quant' or 'cc' to denote quantitative or case-control"),
-  make_option("--sdY", default=NULL, help="For a quantitative trait (type==quant), the population standard deviation of the trait. If not given, it will be estimated beta and MAF"),
+  make_option("--sdY", default=NULL, help="For a quantitative trait (type==quant), the population standard deviation of the trait. For quantitative traits, it can be a single value or a file containing per-phenotype `sdY` values. If not given, it will be estimated from beta and MAF"),
   make_option("--s", default=NULL, help="For a case control study (type==cc), the proportion of samples in dataset 1 that are cases"),
   make_option("--bfile", default=NULL, help="Path and prefix name of custom/default LD bfiles (PLINK format .bed .bim .fam) - to compute effect allele frequency if missing"),
   make_option("--grch", default=NULL, help="Genome reference build of GWAS sum stats"),
