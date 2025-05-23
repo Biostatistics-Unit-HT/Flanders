@@ -36,9 +36,9 @@ dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phen
 colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
 
 if(unique(dataset_aligned$type=="quant")){
-  dataset_aligned <- dataset_aligned %>% rename(sdY=temp)
+  dataset_aligned <- dataset_aligned |> rename(sdY=temp)
 } else {
-  dataset_aligned <- dataset_aligned %>% rename(s=temp)
+  dataset_aligned <- dataset_aligned |> rename(s=temp)
 }
 
 
@@ -96,7 +96,7 @@ if(!is.null(conditional.dataset)){ ### is there smarter way to exit the script h
   ###################
   
   # Add (original) start and end columns to independent SNPs df
-  conditional.dataset$ind.snps <- conditional.dataset$ind.snps %>%
+  conditional.dataset$ind.snps <- conditional.dataset$ind.snps |>
     dplyr::mutate(
       start = opt$start,
       end = opt$end,
@@ -109,7 +109,7 @@ if(!is.null(conditional.dataset)){ ### is there smarter way to exit the script h
   ### Check if there's any SNP at p-value lower than the set threshold
     x <- conditional.dataset$results[[i]]
     
-    if(isTRUE(any(x %>% pull(pC) < opt$p_thresh4))){
+    if(isTRUE(any(x |> pull(pC) < opt$p_thresh4))){
       new_bounds <- locus.breaker(
         x,
         p.sig = as.numeric(opt$p_thresh4),
@@ -120,32 +120,32 @@ if(!is.null(conditional.dataset)){ ### is there smarter way to exit the script h
         pos.label="bp")
       
       # Slightly enlarge locus by 200kb!
-      new_bounds <- new_bounds %>%
-        dplyr::mutate(start=as.numeric(start)-100000, end=as.numeric(end)+100000) %>%
+      new_bounds <- new_bounds |>
+        dplyr::mutate(start=as.numeric(start)-100000, end=as.numeric(end)+100000) |>
         # It could happen (should be rare) that more than one locus if found - take only the one with lowest pC
-        dplyr::arrange(pC) %>%
+        dplyr::arrange(pC) |>
         slice(1)
       
       # Remove SNPs not included in loci boundaries
-      conditional.dataset$results[[i]] <- x %>% 
+      conditional.dataset$results[[i]] <- x |> 
         dplyr::filter(bp >= new_bounds$start & bp <= new_bounds$end)
       
       # Add locus start and end to ind snps df
-      conditional.dataset$ind.snps[i,] <- conditional.dataset$ind.snps[i,] %>%
+      conditional.dataset$ind.snps[i,] <- conditional.dataset$ind.snps[i,] |>
         dplyr::mutate(start=new_bounds$start, end=new_bounds$end)
     }
   }
   
   
   # Prepare table of independent SNPs - add study and pheno ids, whether a credible set will be calculated for each SNP
-  #conditional.dataset$ind.snps <- conditional.dataset$ind.snps %>%
+  #conditional.dataset$ind.snps <- conditional.dataset$ind.snps |>
   #  dplyr::mutate(
       # Check whether the corresponding conditional dataset is empty (thus not passing the p-value thresholds)
   #    is_cs_avail = !(sapply(conditional.dataset$results, is.null))
   #  )
   
   # Remove eventually empty dataframes
-  conditional.dataset$results <- conditional.dataset$results %>% discard(is.null)
+  conditional.dataset$results <- conditional.dataset$results |> discard(is.null)
   
   
   
@@ -177,7 +177,7 @@ if(!is.null(conditional.dataset)){ ### is there smarter way to exit the script h
     sp_file_name <- paste0(core_file_name, "_", unique(x$cojo_snp), "_locus_chr", locus_name)
     
     # .rds object collecting 1) lABF, 2) beta, 3) pos for all SNPs, 3) list of SNPs in the credible set
-    saveRDS(list(finemapping_lABFs=x, topSNP=unique(x$cojo_snp)) #%>% select(-cojo_snp)
+    saveRDS(list(finemapping_lABFs=x, topSNP=unique(x$cojo_snp)) #|> select(-cojo_snp)
             , file=paste0(sp_file_name, "_cojo_finemap.rds")) ### cojo_snp reported in the file name
     
     # .tsv with 1) study id and trait (if molQTL) locus info, 2) list of SNPs in the 99% credible set, 3) path and name of correspondent .rds file and 4) path and name of correspondent ind_snps.tsv table
@@ -187,7 +187,7 @@ if(!is.null(conditional.dataset)){ ### is there smarter way to exit the script h
     tmp <- data.frame(
       study_id = opt$study_id,
       phenotype_id = ifelse(opt$phenotype_id=="full", NA, opt$phenotype_id),
-      credible_set = paste0(x %>% filter(is_cs==TRUE) %>% pull(snp), collapse=","),
+      credible_set = paste0(x |> filter(is_cs==TRUE) |> pull(snp), collapse=","),
       top_pvalue = min(x$pC, na.rm=T),
       path_rds = paste0(opt$results_path, "/results/finemap/", sp_file_name, "_cojo_finemap.rds"),
       path_ind_snps = paste0(opt$results_path, "/results/gwas_and_loci_tables/", opt$study_id, "_final_ind_snps_table.tsv"),

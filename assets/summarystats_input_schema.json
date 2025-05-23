@@ -29,7 +29,15 @@
       "cs_thresh": { "oneOf": [{ "type": "number" }, { "const": "NA" }] },
       "hole": { "type": "number" },
       "grch_bfile": { "type": "number", "enum": [37, 38] },
-      "process_bfile": { "type": "string", "enum": ["T", "F", "TRUE", "FALSE"] }
+      "process_bfile": {
+        "oneOf": [
+          { "type": "boolean" },
+          {
+            "type": "string",
+            "enum": ["T", "F", "TRUE", "FALSE", "True", "False"]
+          }
+        ]
+      }
     },
     "required": [
       "study_id",

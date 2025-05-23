@@ -89,6 +89,8 @@ workflow {
 		.map { row -> 
 			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
+			def sdY_string = file(row.sdY).exists() ? file(row.sdY).name : row.sdY
+			def sdY_file = file(row.sdY).exists() ? file(row.sdY) : file('NO_SDY_FILE')
 			tuple(
 				row.bfile,
 				[
@@ -109,7 +111,7 @@ workflow {
 				"se_lab": row.se_lab,
 				"pvalue_lab": row.pvalue_lab,
 				"type": row.type,
-				"sdY": row.sdY,
+				"sdY": sdY_string,
 				"s": row.s,
 				"grch": row.grch,
 				"maf": row.maf,
@@ -117,12 +119,13 @@ workflow {
 				"p_thresh2": row.p_thresh2,
 				"hole": row.hole
 				],
-				gwas_file
+				gwas_file,
+				sdY_file
 			)
 		}
 		.combine(processed_bfile_datasets, by: 0)
-		.map { bfile_id, study_id, munging_config, gwas_file, bfile_dataset ->
-			tuple(study_id, munging_config, gwas_file, bfile_dataset)
+		.map { bfile_id, study_id, munging_config, gwas_file, sdY_file, bfile_dataset ->
+			tuple(study_id, munging_config, gwas_file, sdY_file, bfile_dataset)
 		}
 
 		RUN_MUNGING(sumstas_input_ch, chain_file)

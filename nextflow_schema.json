@@ -130,7 +130,7 @@
         }
       },
       "fa_icon": "fas fa-tools",
-      "required": ["is_test_profile", "publish_dir_mode"]
+      "required": ["publish_dir_mode"]
     }
   },
   "allOf": [

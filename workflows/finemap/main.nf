@@ -1,5 +1,6 @@
 include { SUSIE_FINEMAPPING       }  from "../../modules/local/susie_finemapping"
 include { APPEND_TO_MASTER_COLOC  }  from "../../modules/local/append_to_master_coloc"
+include { RDS_TO_ANNDATA          }  from "../../modules/local/rds_to_anndata"
 
 workflow RUN_FINEMAPPING {
   take:
@@ -41,8 +42,15 @@ workflow RUN_FINEMAPPING {
       .map{ tuple( it[0], it[1].flatten())}
 
     APPEND_TO_MASTER_COLOC(append_input_coloc)
+    
+    // Collect all fine-map .rds files in AnnData
+    all_rds = SUSIE_FINEMAPPING.out.susie_results_rds
+      .collect()
+      
+    RDS_TO_ANNDATA(all_rds)
 
   emit:
+    finemap_anndata = RDS_TO_ANNDATA.out.finemap_anndata
     susie_results_rds = SUSIE_FINEMAPPING.out.susie_results_rds
     coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
 }

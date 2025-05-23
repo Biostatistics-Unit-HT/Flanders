@@ -272,7 +272,7 @@ dataset.align <- function(dataset, bfile) {
     message("Allele frequency not found in summary stat - Computing allele frequency from LD reference panel")
     ## Compute allele frequency from LD reference panel provided    
     random.number <- stringi::stri_rand_strings(n=1, length=20, pattern = "[A-Za-z0-9]")
-    exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-bed --out ", random.number))
+    exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-just-bim --out ", random.number))
 
     # Raise an error if the external command fails
     if (exit_status != 0) {
@@ -281,19 +281,36 @@ dataset.align <- function(dataset, bfile) {
     }
 
     # Load-in frequency and position info from plink files
-    freqs <- as.data.table(cbind(
-      read_delim(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),
-      read_delim(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
-    ))
+    # freqs <- as.data.table(cbind(
+    #   read_delim(paste0(random.number,".bim"), col_names = FALSE) %>% dplyr::select(X1, X4) %>% dplyr::rename(CHR=X1, BP=X4),
+    #   read_delim(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
+    # ))
+    
+    # Read .bim and select/rename columns
+    bim <- read_delim(paste0(random.number, ".bim"), col_names = FALSE)
+    bim <- bim[, c(1, 4)]
+    names(bim) <- c("CHR", "BP")
+    
+    # Read .afreq and select needed columns
+    afreq <- read_delim(paste0(random.number, ".afreq"))
+    afreq <- afreq[, c("REF", "ALT", "ALT_FREQS")]
+    
+    # Combine and convert to data.table
+    freqs <- as.data.table(cbind(bim, afreq))
     
     # Compute frequency for effect allele, create SNP column for merging
     freqs[, `:=`(
       A1 = pmin(REF, ALT),
-      A2 = pmax(REF, ALT),
-      freq = ifelse(ALT == A1 & REF == A2, ALT_FREQS, (1 - ALT_FREQS)),
-      MAF = ifelse(freq < 0.5, freq, (1 - freq)),
+      A2 = pmax(REF, ALT)
+    )]
+    
+    freqs[, freq := ifelse(ALT == A1 & REF == A2, ALT_FREQS, 1 - ALT_FREQS)]
+    
+    freqs[, `:=`(
+      MAF = ifelse(freq < 0.5, freq, 1 - freq),
       SNP = paste0("chr", CHR, ":", BP, ":", A1, ":", A2)
     )]
+    
     freqs <- freqs[, .(SNP, freq, MAF)]
     
     # Add freq and MAF info to dataset 
@@ -468,7 +485,7 @@ option_list <- list(
   make_option("--se_lab", default="SE", help="Name of standard error of effect column"), 
   make_option("--pvalue_lab", default="P", help="Name of p-value of effect column"),
   make_option("--type", default=NULL, help="Type of phenotype analysed - either 'quant' or 'cc' to denote quantitative or case-control"),
-  make_option("--sdY", default=NULL, help="For a quantitative trait (type==quant), the population standard deviation of the trait. If not given, it will be estimated beta and MAF"),
+  make_option("--sdY", default=NULL, help="For a quantitative trait (type==quant), the population standard deviation of the trait. For quantitative traits, it can be a single value or a file containing per-phenotype `sdY` values. If not given, it will be estimated from beta and MAF"),
   make_option("--s", default=NULL, help="For a case control study (type==cc), the proportion of samples in dataset 1 that are cases"),
   make_option("--bfile", default=NULL, help="Path and prefix name of custom/default LD bfiles (PLINK format .bed .bim .fam) - to compute effect allele frequency if missing"),
   make_option("--grch", default=NULL, help="Genome reference build of GWAS sum stats"),
@@ -511,6 +528,7 @@ idx_dbl_columns <- find_positions(double_columns, input_colnames)
 dtypes <- rep("c", length(input_colnames))
 dtypes[idx_int_columns] <- 'i'
 dtypes[idx_dbl_columns] <- 'd'
+dtypes <- paste(dtypes, collapse="")
 
 gwas <- read_delim(opt$input, na = c("", "NA"), num_threads = opt$threads, col_types = dtypes, lazy=TRUE) # treat both "NA" as character and empty strings ("") as NA
 gwas <- as.data.table(gwas)
