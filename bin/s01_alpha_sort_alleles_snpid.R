@@ -45,7 +45,6 @@ hg19ToHg38_liftover <- function(
   dataset_ranges38_df <- dataset_ranges38_df[, .(BP, snp_original)]
   
   dataset_lifted <- merge(dataset_munged[, !"BP"], dataset_ranges38_df, by = "snp_original", all = FALSE)
-  
   return(dataset_lifted)
 }
 
@@ -68,7 +67,9 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   bim_lifted <- hg19ToHg38_liftover(bim)
   
 # Remove rows with duplicated SNP (all occurrences!)
-  bim_lifted_no_dups <- bim_lifted[, if (.N == 1) .SD, by = snp_original]
+# Remove only with duplicated positions and IDs
+  bim_lifted_no_dups <- bim_lifted[!duplicated(bim_lifted[, .(snp_original, CHR, BP)]), ]
+  bim_lifted_no_dups <- bim_lifted_no_dups[, if (.N == 1) .SD, by = snp_original]
 
 # Save list of SNP ids to extract from .bed
   fwrite(bim_lifted_no_dups %>% dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
