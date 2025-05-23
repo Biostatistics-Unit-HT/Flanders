@@ -72,7 +72,7 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
 
 }
 # Remove rows with duplicated SNP (all occurrences!)
-bim_cleaned <- bim_to_clean[!duplicated(bim_lifted[, .(snp_original, CHR, BP)]), ]
+bim_cleaned <- bim_to_clean[!duplicated(bim_to_clean[, .(snp_original, CHR, BP)]), ]
 
 # Save list of SNP ids to extract from .bed
 fwrite(bim_cleaned %>% dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
