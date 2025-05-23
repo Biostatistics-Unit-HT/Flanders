@@ -119,9 +119,9 @@ prep_susie_ld <- function(
   geno <- geno[, ..not_same_geno]
   
   # split the SNP names into rsID, effective and other alleles
-  snp_info <- strsplit(colnames(geno), "_|\\(/|\\)") |>
-    Reduce(rbind,.) |>
-    base::data.frame
+  snp_info <- strsplit(colnames(geno), "_|\\(/|\\)")
+  snp_info <- Reduce(rbind,snp_info) |>
+    base::data.frame()
 
 # If there's only one SNP in the plink .raw file, it will need further formatting
   if(ncol(snp_info)==1){
