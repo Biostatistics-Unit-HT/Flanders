@@ -9,7 +9,7 @@ process MUNG_AND_LOCUS_BREAKER {
   publishDir "${params.outdir}/results/gwas_and_loci_tables", mode: params.publish_dir_mode, pattern:"${meta_study_id.study_id}_loci.tsv"  
   
   input:
-    tuple val(meta_study_id), val(meta_parameters), path(gwas_input), path(bfile_dataset)
+    tuple val(meta_study_id), val(meta_parameters), path(gwas_input), path(sdY_file), path(bfile_dataset)
     path chain_file
 
   output:
