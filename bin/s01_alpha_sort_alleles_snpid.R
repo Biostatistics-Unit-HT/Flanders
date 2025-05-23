@@ -71,7 +71,7 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   bim_lifted_no_dups <- bim_lifted[, if (.N == 1) .SD, by = snp_original]
 
 # Save list of SNP ids to extract from .bed
-  fwrite(bim_lifted_no_dups %>% dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
+  fwrite(bim_lifted_no_dups |> dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
   
 # Extract list of SNPs from .bim (to match it with .bed!)
   exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
@@ -96,12 +96,12 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
 }
 
 # Alpha sort alleles
-bim_alpha_sorted <- bim_cleaned %>%
+bim_alpha_sorted <- bim_cleaned |>
   dplyr::mutate(
     A1 = pmin(V5, V6), # Sort A1 and A2 alphabetically
     A2 = pmax(V5, V6),
     snp_original = paste0("chr", CHR, ":", BP, ":", A1, ":", A2)
-  ) %>%
+  ) |>
   dplyr::select(CHR, snp_original, V3, BP, V5, V6)
 
 fwrite(

@@ -18,8 +18,8 @@ opt = parse_args(opt_parser);
 source(paste0(opt$pipeline_path, "funs_locus_breaker_cojo_finemap_all_at_once.R"))
 
 # Load-in summary statistics munged and aligned and filter by MAF (doesn't make sense to do this later!)
-dataset_aligned <- fread(opt$dataset_aligned, data.table=F) %>%
-  dplyr::filter(MAF > opt$maf) %>%
+dataset_aligned <- fread(opt$dataset_aligned, data.table=F) |>
+  dplyr::filter(MAF > opt$maf) |>
   dplyr::arrange(CHR)
 
 
@@ -28,9 +28,9 @@ dataset_aligned <- fread(opt$dataset_aligned, data.table=F) %>%
 ################
 
 loci_list <- as.data.frame(rbindlist(
-  lapply(dataset_aligned %>% group_split(phenotype_id), function(x){
+  lapply(dataset_aligned |> group_split(phenotype_id), function(x){
     ### Check if there's any SNP at p-value lower than the set threshold. Otherwise stop here
-    if(any(x %>% pull(p) < opt$p_thresh1)){
+    if(any(x |> pull(p) < opt$p_thresh1)){
       ### Loci identification
       locus.breaker(
         x,
@@ -41,7 +41,7 @@ loci_list <- as.data.frame(rbindlist(
         chr.label="CHR",
         pos.label="BP")
     }
-  }) %>% discard(is.null)
+  }) |> discard(is.null)
 ))
 
 # Slightly enlarge locus by 200kb!
@@ -52,7 +52,7 @@ loci_list$end <- as.numeric(loci_list$end) + 100000
 
 if(nrow(loci_list) > 0){
 ### Add study ID to the loci table. Save
-  loci_list <- loci_list %>% mutate(study_id=opt$study_id)
+  loci_list <- loci_list |> mutate(study_id=opt$study_id)
   
   ### Check if locus spans the HLA locus chr6:28,510,120-33,480,577
   ### https://www.ncbi.nlm.nih.gov/grc/human/regions/MHC?asm=GRCh38
@@ -60,7 +60,7 @@ if(nrow(loci_list) > 0){
   hla_end=33480577
   hla_coord <- seq(hla_start,hla_end)
   
-  loci_list <- loci_list %>%
+  loci_list <- loci_list |>
     mutate(is_in_hla = chr == 6 & ((start <= hla_end & end >= hla_start) | (start >= hla_start & end <= hla_end) | (start <= hla_end & end >= hla_end) | (start <= hla_start & end >= hla_start)))
   
   # This code checks for four conditions to determine if a locus partially or completely spans the HLA region:

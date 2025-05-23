@@ -33,8 +33,8 @@ run_dentist <- function(D=dataset_aligned
   
   
   # Save list of snps included in the locus    
-  locus_only.snp <- D %>% 
-    dplyr::filter(CHR==locus_chr, BP >= locus_start, BP <= locus_end) %>%
+  locus_only.snp <- D |> 
+    dplyr::filter(CHR==locus_chr, BP >= locus_start, BP <= locus_end) |>
     dplyr::pull(SNP)
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
@@ -55,10 +55,10 @@ run_dentist <- function(D=dataset_aligned
   if(length(snsp_extracted) > 0){
     
     # Format gwas sum stat input
-    D <- D %>%
+    D <- D |>
       dplyr::select("SNP","A1","A2","freq","b","se","p","N","snp_original","type", any_of(c("sdY","s")))
     
-    fwrite(D %>% dplyr::select(-snp_original, -type, -any_of(c("sdY", "s"))), # to match with input required by Dentist
+    fwrite(D |> dplyr::select(-snp_original, -type, -any_of(c("sdY", "s"))), # to match with input required by Dentist
            file=paste0(random.number,"_sum.txt"), row.names=F,quote=F,sep="\t", na=NA)
     
     # We don't catch the exit status of the system call here, as we want to continue even if DENTIST fails
@@ -97,8 +97,8 @@ prep_susie_ld <- function(
   
   if (skip_dentist == TRUE){
     # Save list of snps included in the locus    
-    locus_only.snp <- D %>% 
-      dplyr::filter(CHR==locus_chr, BP >= locus_start, BP <= locus_end) %>%
+    locus_only.snp <- D |> 
+      dplyr::filter(CHR==locus_chr, BP >= locus_start, BP <= locus_end) |>
       dplyr::pull(SNP)
     write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   }
@@ -119,8 +119,8 @@ prep_susie_ld <- function(
   geno <- geno[, ..not_same_geno]
   
   # split the SNP names into rsID, effective and other alleles
-  snp_info <- strsplit(colnames(geno), "_|\\(/|\\)") %>%
-    Reduce(rbind,.) %>%
+  snp_info <- strsplit(colnames(geno), "_|\\(/|\\)") |>
+    Reduce(rbind,.) |>
     data.frame
 
 # If there's only one SNP in the plink .raw file, it will need further formatting
@@ -176,8 +176,8 @@ hcolo.cojo.ht=function(df1 = conditional.dataset1,
                        p12=1e-5
                        ){
   
-  df1 <- df1 %>% dplyr::rename("lABF.df1"="lABF")
-  df2 <- df2 %>% dplyr::rename("lABF.df2"="lABF")
+  df1 <- df1 |> dplyr::rename("lABF.df1"="lABF")
+  df2 <- df2 |> dplyr::rename("lABF.df2"="lABF")
   
   p1 <- coloc:::adjust_prior(p1, nrow(df1), "1")
   p2 <- coloc:::adjust_prior(p2, nrow(df2), "2")
@@ -204,7 +204,7 @@ hcolo.cojo.ht=function(df1 = conditional.dataset1,
   colo.sum <- data.frame(t(colo.res$summary))
       
 ## Save coloc result by SNP
-  colo.full_res <- colo.res$results %>% dplyr::select(snp,lABF.df1,lABF.df2,SNP.PP.H4)
+  colo.full_res <- colo.res$results |> dplyr::select(snp,lABF.df1,lABF.df2,SNP.PP.H4)
 
 ## Organise all in a list ( composed of summary + results)
   coloc.final <- list(summary=colo.sum, results=colo.full_res)

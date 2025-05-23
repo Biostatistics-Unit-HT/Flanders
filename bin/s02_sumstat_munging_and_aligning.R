@@ -282,8 +282,8 @@ dataset.align <- function(dataset, bfile) {
 
     # Load-in frequency and position info from plink files
     freqs <- as.data.table(cbind(
-      read_delim(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),
-      read_delim(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
+      read_delim(paste0(random.number,".bim")) |> dplyr::select(V1, V4) |> dplyr::rename(CHR=V1, BP=V4),
+      read_delim(paste0(random.number,".afreq")) |> dplyr::select(REF, ALT, ALT_FREQS)
     ))
     
     # Compute frequency for effect allele, create SNP column for merging

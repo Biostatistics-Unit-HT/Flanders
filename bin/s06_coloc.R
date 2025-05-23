@@ -40,12 +40,12 @@ coloc.full <- lapply(coloc_combo_ls, function(x){
   
 # Perform colocalisation for each combination of independent SNPs
   coloc.res <- hcolo.cojo.ht(
-    df1 = conditional.dataset1 %>% dplyr::select(snp, lABF),
-    df2 = conditional.dataset2 %>% dplyr::select(snp, lABF)
+    df1 = conditional.dataset1 |> dplyr::select(snp, lABF),
+    df2 = conditional.dataset2 |> dplyr::select(snp, lABF)
   )
   
   # Add top SNPs and traits
-  coloc.res$summary <- coloc.res$summary %>%
+  coloc.res$summary <- coloc.res$summary |>
     mutate(
       t1_study_id=x$t1_study_id,
       t1_phenotype_id=x$t1_phenotype_id,
