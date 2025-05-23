@@ -511,6 +511,7 @@ idx_dbl_columns <- find_positions(double_columns, input_colnames)
 dtypes <- rep("c", length(input_colnames))
 dtypes[idx_int_columns] <- 'i'
 dtypes[idx_dbl_columns] <- 'd'
+dtypes <- paste(dtypes, collapse="")
 
 gwas <- read_delim(opt$input, na = c("", "NA"), num_threads = opt$threads, col_types = dtypes, lazy=TRUE) # treat both "NA" as character and empty strings ("") as NA
 gwas <- as.data.table(gwas)
