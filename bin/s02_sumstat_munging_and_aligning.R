@@ -272,7 +272,7 @@ dataset.align <- function(dataset, bfile) {
     message("Allele frequency not found in summary stat - Computing allele frequency from LD reference panel")
     ## Compute allele frequency from LD reference panel provided    
     random.number <- stringi::stri_rand_strings(n=1, length=20, pattern = "[A-Za-z0-9]")
-    exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-bed --out ", random.number))
+    exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-just-bim --out ", random.number))
 
     # Raise an error if the external command fails
     if (exit_status != 0) {
@@ -281,19 +281,36 @@ dataset.align <- function(dataset, bfile) {
     }
 
     # Load-in frequency and position info from plink files
-    freqs <- as.data.table(cbind(
-      read_delim(paste0(random.number,".bim")) %>% dplyr::select(V1, V4) %>% dplyr::rename(CHR=V1, BP=V4),
-      read_delim(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
-    ))
+    # freqs <- as.data.table(cbind(
+    #   read_delim(paste0(random.number,".bim"), col_names = FALSE) %>% dplyr::select(X1, X4) %>% dplyr::rename(CHR=X1, BP=X4),
+    #   read_delim(paste0(random.number,".afreq")) %>% dplyr::select(REF, ALT, ALT_FREQS)
+    # ))
+    
+    # Read .bim and select/rename columns
+    bim <- read_delim(paste0(random.number, ".bim"), col_names = FALSE)
+    bim <- bim[, c(1, 4)]
+    names(bim) <- c("CHR", "BP")
+    
+    # Read .afreq and select needed columns
+    afreq <- read_delim(paste0(random.number, ".afreq"))
+    afreq <- afreq[, c("REF", "ALT", "ALT_FREQS")]
+    
+    # Combine and convert to data.table
+    freqs <- as.data.table(cbind(bim, afreq))
     
     # Compute frequency for effect allele, create SNP column for merging
     freqs[, `:=`(
       A1 = pmin(REF, ALT),
-      A2 = pmax(REF, ALT),
-      freq = ifelse(ALT == A1 & REF == A2, ALT_FREQS, (1 - ALT_FREQS)),
-      MAF = ifelse(freq < 0.5, freq, (1 - freq)),
+      A2 = pmax(REF, ALT)
+    )]
+    
+    freqs[, freq := ifelse(ALT == A1 & REF == A2, ALT_FREQS, 1 - ALT_FREQS)]
+    
+    freqs[, `:=`(
+      MAF = ifelse(freq < 0.5, freq, 1 - freq),
       SNP = paste0("chr", CHR, ":", BP, ":", A1, ":", A2)
     )]
+    
     freqs <- freqs[, .(SNP, freq, MAF)]
     
     # Add freq and MAF info to dataset 
