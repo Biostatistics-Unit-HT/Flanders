@@ -64,38 +64,29 @@ names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
 # If necessary, lift to build 38
 if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   
-  bim_lifted <- hg19ToHg38_liftover(bim)
+  bim_to_clean <- hg19ToHg38_liftover(bim)
   
+} else if(as.numeric(opt$grch)==38){
+
+  bim_to_clean <- bim
+
+}
 # Remove rows with duplicated SNP (all occurrences!)
-# Remove only with duplicated positions and IDs
-  bim_lifted_no_dups <- bim_lifted[!duplicated(bim_lifted[, .(snp_original, CHR, BP)]), ]
-  bim_lifted_no_dups <- bim_lifted_no_dups[, if (.N == 1) .SD, by = snp_original]
+bim_cleaned <- bim_to_clean[!duplicated(bim_lifted[, .(snp_original, CHR, BP)]), ]
 
 # Save list of SNP ids to extract from .bed
-  fwrite(bim_lifted_no_dups %>% dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
+fwrite(bim_cleaned %>% dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
   
 # Extract list of SNPs from .bim (to match it with .bed!)
-  exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
   
-  # Raise an error if the external command fails
-  if (exit_status != 0) {
+# Raise an error if the external command fails
+if (exit_status != 0) {
     cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
     quit(status = 1, save = "no")
   }
   
-  system(paste0("rm ", opt$bfile, "_snps_to_extract.txt"))
-  
-  bim_cleaned <- bim_lifted_no_dups
-  
-} else if(as.numeric(opt$grch)==38){
-  
-  bim_cleaned <- bim
-  system(paste0("cp ", opt$bfile, ".fam ", opt$bfile, ".GRCh38.alpha_sorted_alleles.fam"))
-  system(paste0("cp ", opt$bfile, ".bed ", opt$bfile, ".GRCh38.alpha_sorted_alleles.bed"))
-  #system(paste0("ln -s ", opt$bfile, ".fam ", opt$bfile, "_alpha_sorted_alleles.fam"))
-  #system(paste0("ln -s ", opt$bfile, ".bed ", opt$bfile, "_alpha_sorted_alleles.bed"))
-}
-
+system(paste0("rm ", opt$bfile, "_snps_to_extract.txt"))
 # Alpha sort alleles
 bim_alpha_sorted <- bim_cleaned %>%
   dplyr::mutate(
