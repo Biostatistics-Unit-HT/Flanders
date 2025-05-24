@@ -61,6 +61,30 @@ opt = parse_args(opt_parser);
 bim <- fread(paste0(opt$bfile, ".bim"))
 names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
 
+# Make a standardized snp id as CHR:BP:V5:V6
+bim <- bim |>
+  dplyr::mutate(
+    snp_original = paste0(CHR, ":", BP, ":", V5, ":", V6)
+  )
+
+# Remove SNPs where SNP ID is duplicated since this can mess up liftOver and other operations downstream
+if (sum(duplicated(bim$snp_original)) > 0 ) {
+  message("Duplicated snp ids in bim file. Removing thenm")
+  exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --rm-dup exclude-all list --make-bed --out ", opt$bfile, ".unique"))
+  if (exit_status != 0) {
+    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
+    quit(status = 1, save = "no")
+  }
+
+  bim <- fread(paste0(opt$bfile, ".unique.bim"))
+  names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
+
+  bim <- bim |>
+    dplyr::mutate(
+      snp_original = paste0(CHR, ":", BP, ":", V5, ":", V6)
+    )
+}
+
 # If necessary, lift to build 38
 if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   
@@ -71,15 +95,16 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   bim_to_clean <- bim
 
 }
-# Remove rows with duplicated SNP (all occurrences!)
-bim_cleaned <- bim_to_clean[!duplicated(bim_to_clean[, .(snp_original, CHR, BP)]), ]
+# Remove rows with duplicated SNP by CHR POS
+# This get rid of multi-allelic variants and any other odd situations
+bim_cleaned <- bim_to_clean[!duplicated(bim_to_clean[, .(CHR, BP)]), ]
 
 # Save list of SNP ids to extract from .bed
-fwrite(bim_cleaned |> dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
+extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
+fwrite(bim_cleaned |> dplyr::pull(snp_original) |> unique(), extract_file, col.names=F, quote=F)
 
-  
 # Extract list of SNPs from .bim (to match it with .bed!)
-exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
   
 # Raise an error if the external command fails
 if (exit_status != 0) {
@@ -87,7 +112,6 @@ if (exit_status != 0) {
     quit(status = 1, save = "no")
   }
   
-system(paste0("rm ", opt$bfile, "_snps_to_extract.txt"))
 # Alpha sort alleles
 bim_alpha_sorted <- bim_cleaned |>
   dplyr::mutate(
@@ -99,6 +123,6 @@ bim_alpha_sorted <- bim_cleaned |>
 
 fwrite(
   bim_alpha_sorted,
-  paste0(basename(opt$bfile), ".GRCh38.alpha_sorted_alleles.bim"),
+  paste0(opt$bfile, ".GRCh38.alpha_sorted_alleles.bim"),
   quote=F, na=NA, sep="\t", col.names = F)
 
