@@ -14,7 +14,9 @@ IRanges <- IRanges::IRanges
 #'
 #' This function processes a GWAS summary statistics file by renaming columns to standardized labels,
 #' filtering for autosomal chromosomes (1-22), calculating MAF and sample size when missing,
-#' and calculating the variance of effect size estimates if not provided by the user. It supports both quantitative and case-control traits.
+#' and calculating the variance of effect size estimates if not provided by the user. 
+#' Duplicated SNPs according to CHR:BP are removed to remove potential multi-allelic variants.
+#' It supports both quantitative and case-control traits.
 #'
 #' @param sumstats.file A character string specifying the path to a GWAS summary statistics file, or a data frame containing the summary statistics.
 #' @param snp.lab A character string specifying the name of the SNP column in the summary statistics dataset. Default is `"SNP"`.
@@ -181,6 +183,14 @@ dataset.munge_hor=function(sumstats.file
     }
   }
   
+  # Make a temporary SNPID column as CHR:BP as remove duplicated SNPs
+  dataset[, TMP_SNPID := paste0("chr", CHR, ":", BP)]
+  n_dups_removed <- sum(duplicated(dataset$TMP_SNPID) | duplicated(dataset$TMP_SNPID, fromLast = TRUE))
+  dataset <- dataset[!duplicated(TMP_SNPID) | !duplicated(TMP_SNPID, fromLast = TRUE)]
+  if (n_dups_removed > 0) {
+    message("Removed ", n_dups_removed, " duplicated SNPs based on CHR:BP")
+  }
+  
   # Select only necessary columns
   columns <- c("phenotype_id","snp_original","CHR","BP","A1","A2","BETA","varbeta","SE","P","type", intersect(c("N","freq","MAF","s", "sdY"), names(dataset)))
   cols_to_remove <- setdiff(names(dataset), columns)
@@ -343,6 +353,7 @@ dataset.align <- function(dataset, bfile) {
   setkey(dataset, SNP, phenotype_id)
   
   # Remove all rows with duplicated values in the SNP column, by phenotype
+  # This is needed to ensure that reordering of alleles does not create duplicated SNPs
   dataset <- dataset[, .SD[!duplicated(SNP) & !duplicated(SNP, fromLast =TRUE)], by = phenotype_id]
   
   return(dataset)
@@ -569,13 +580,31 @@ gc()
 # If necessary, lift to build 38
 if(as.numeric(opt$grch)==37 & isTRUE(opt$run_liftover)){
   message("Performing liftOver to GRCh38")
+  # To ensure coordinate mapping works correctly, we temporarly set snp_original to CHR:BP:A1:A2
+  # We store the snp_original value in a temporary column
+  dataset_munged[, TMP_SNPID := snp_original] 
+  dataset_munged[, snp_original := paste0("chr", CHR, ":", BP, ":", A1, ":", A2)] 
+
   dataset_munged <- hg19ToHg38_liftover(dataset_munged)
+
+  # Restore the original snp_original column
+  dataset_munged[, snp_original := TMP_SNPID]
+  dataset_munged[, TMP_SNPID := NULL] # Remove the temporary column
   gc()
 }
 
 # Align GWAS sum stats
 message("Align alleles to BIM file")
 dataset_munged <- dataset.align(dataset_munged, bfile=opt$bfile)
+
+# Now that we have clean, aligned data, do a final check for duplicated CHR BP and remove all duplicates
+# Report the number of duplicates removed
+n_vars_before <- nrow(dataset_munged)
+dataset_munged <- dataset_munged[, .SD[!(duplicated(.SD[, .(CHR, BP)]) | duplicated(.SD[, .(CHR, BP)], fromLast = TRUE))], by = phenotype_id]
+n_vars_removed <- n_vars_before - nrow(dataset_munged)
+if (n_vars_removed > 0) {
+  message("Removed ", n_vars_removed, " during final check of duplicated CHR:BP variants")
+}
 
 # Perform MAF filter here (doesn't make sense to do this later!)
 dataset_munged <- dataset_munged[MAF > opt$maf]

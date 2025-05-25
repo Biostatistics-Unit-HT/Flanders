@@ -97,7 +97,7 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
 }
 # Remove rows with duplicated SNP by CHR POS
 # This get rid of multi-allelic variants and any other odd situations
-bim_cleaned <- bim_to_clean[!duplicated(bim_to_clean[, .(CHR, BP)]), ]
+bim_cleaned <- bim_to_clean[!(duplicated(bim_to_clean[, .(CHR, BP)]) | duplicated(bim_to_clean[, .(CHR, BP)], fromLast=T))]
 
 # Save list of SNP ids to extract from .bed
 extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
