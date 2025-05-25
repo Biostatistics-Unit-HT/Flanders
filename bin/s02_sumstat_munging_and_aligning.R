@@ -184,11 +184,11 @@ dataset.munge_hor=function(sumstats.file
   }
   
   # Make a temporary SNPID column as CHR:BP as remove duplicated SNPs
-  dataset[, TMP_SNPID := paste0("chr", CHR, ":", BP)]
-  n_dups_removed <- sum(duplicated(dataset$TMP_SNPID) | duplicated(dataset$TMP_SNPID, fromLast = TRUE))
-  dataset <- dataset[!duplicated(TMP_SNPID) | !duplicated(TMP_SNPID, fromLast = TRUE)]
-  if (n_dups_removed > 0) {
-    message("Removed ", n_dups_removed, " duplicated SNPs based on CHR:BP")
+  n_vars_before <- nrow(dataset)
+  dataset <- dataset[, .SD[!(duplicated(.SD[, .(CHR, BP)]) | duplicated(.SD[, .(CHR, BP)], fromLast = TRUE))], by = phenotype_id]
+  n_vars_removed <- n_vars_before - nrow(dataset)
+  if (n_vars_removed > 0) {
+    message("Removed ", n_vars_removed, " during final check of duplicated CHR:BP variants")
   }
   
   # Select only necessary columns
