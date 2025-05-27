@@ -33,21 +33,32 @@ Colocalization is mainly composed of two steps, which are generally merged in a 
 ## Requirements
 Before running the pipeline, ensure you have the following installed:
 
-Nextflow (version 24.04 or higher)
-Docker / Singularity / Conda
+[Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) (version 24.04 or higher)</br>
+[Docker](https://www.docker.com/) or [Conda](https://docs.conda.io/en/latest/) for environment management
+</br>
 </br>
 
 ## Installation
-Clone the repository and navigate into the project directory:
+1. Clone the Repository:
 ```
 git clone https://github.com/Biostatistics-Unit-HT/Flanders.git
 ```
+2. Set Up the Environment:
+
+   Using Conda:
+```
+conda env create -f pipeline_environment.yml
+conda activate flanders_env
+```
+</br>
 </br>
 
 ## Input Data
 - GWAS summary statistics in tab or comma separated format, even gzipped
 - LD panel in plink .bed/.bim/.fam format
-- Input table in .tsv format → see example [example_data/example_data_finemapping_input_table.tsv}(https://github.com/Biostatistics-Unit-HT/Flanders/blob/main/example_data/example_data_finemapping_input_table.tsv)
+- Input table in .tsv format
+
+  
 
 #### A parenthesis - the importance of in sample LD reference
 Providing, if possible, in sample LD greatly improves the accuracy of fine-mapping
@@ -101,7 +112,7 @@ nextflow run Flanders/main.nf -profile test,conda -w ./work
 - Munged and index (and lifted) GWAS summary statistics
 - Significant loci table
 - Fine-mapping output per locus in multiple .rds files (lABFs, conditional beta and se, qc metrics and metadata for each cs)
-- Fine-mapping output in a single AnnData file (lABFs, conditional beta and se, qc metrics and metadata for each cs)
+- Fine-mapping output in a single AnnData file (lABFs, conditional beta and se, qc metrics and metadata for each cs). Check [here](https://github.com/Biostatistics-Unit-HT/flanders_r?tab=readme-ov-file#anndata-column-specifications) a detailed description of AnnData structure.
 - Tables collecting pairwise colocalisation test results
 </br>
 
