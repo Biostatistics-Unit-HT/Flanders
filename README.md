@@ -17,7 +17,7 @@ Colocalization is mainly composed of two steps, which are generally merged in a 
 
 4) For each genomic region finemapping is performed using Susie-rss. This step also requires reference genotypes to compute LD between the SNPs.</br>__WARNING: Whenever possible, it is best to use in sample LD.__ This is particularly true when finemapping molecular omic phenotypes where the explained variance can be very large.
 
-5) 99% credible sets from the fine mapping step are QC'd based on [SODBO to describe], and lABFs for each SNP in each credible set are stored in an AnnData object (https://anndata.dynverse.org/index.html). In addition to the lABFs for each snp 
+5) 99% credible sets from the fine mapping step are QC'd based on [SODBO to describe], and lABFs for each SNP in each credible set are stored in an [csAnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications) object. This is a specific implementation of general AnnData described [here](https://anndata.dynverse.org/index.html). In addition to the lABFs for each snp in the 99% credible set
    we store the average lABF of all the SNPs which are not in the 99% cs to be used later in the iColoc step.
    AnnData allows to efficiently store the lABF from all credible sets in a single sparse matrix while allowing to have metadata for credible sets and snps in the obs and var matrices. This way of storing the data has several advantages: a) all 
    the information needed for colocalization are stored in a single object b) it allows to store and reuse the finemapping results c) the resulting file is many times smaller than the initial files, for example ........... 
@@ -101,7 +101,7 @@ nextflow run Flanders/main.nf -profile test,conda -w ./work
 - Munged and index (and lifted) GWAS summary statistics
 - Significant loci table
 - Fine-mapping output per locus in multiple .rds files (lABFs, conditional beta and se, qc metrics and metadata for each cs)
-- Fine-mapping output in a single AnnData file (lABFs, conditional beta and se, qc metrics and metadata for each cs)
+- Fine-mapping output in a single [csAnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications) file (lABFs, conditional beta and se, qc metrics and metadata for each cs)
 - Tables collecting pairwise colocalisation test results
 </br>
 
