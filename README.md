@@ -6,10 +6,9 @@ Colocalization is mainly composed of two steps, which are generally merged in a 
 ## Step 1: Munging, significant genomic region identification and Finemapping with Susie
 
 ### 1) Munging and harmonising of summary statistics
-   GWAS summary statistics are lifted over to build 38 and snps IDs are converted to the Flanders internal format: __chromosome:position_bp:Effect_allele:Non_effect_allele__.\
-   Alleles are ordered according to alphabetical order so that the effect allele is always the one that comes first in alphabetical order. For example rs1570295954 would be called chr1:146054827:A:G and all effect sizes would be flipped to match the A allele being the coded one.\
+   GWAS summary statistics are lifted over to build 38 and snps IDs are converted to the Flanders internal format: `chromosome:position_bp:Effect_allele:Non_effect_allele`. Alleles are ordered according to alphabetical order so that the effect allele is always the one that comes first in alphabetical order. For example rs1570295954 would be called chr1:146054827:A:G and all effect sizes would be flipped to match the A allele being the coded one.
    
-   __WARNING: This is different from the commonly used REF/ALT schema.__\
+   __WARNING: This is different from the commonly used REF/ALT schema.__
    
    This choice allows reconstruction of the effect and non-effect alleles directly from the SNP id. 
    Liftover is strongly suggested, although optional. </br>
@@ -49,7 +48,7 @@ This format has several advantages:
 ## Requirements
 Before running the pipeline, ensure you have the following installed:
 
-Nextflow (version 24.04 or higher)
+Nextflow (>= version 24.04) </br>
 Docker / Singularity / Conda
 </br>
 
@@ -61,12 +60,13 @@ git clone https://github.com/Biostatistics-Unit-HT/Flanders.git
 </br>
 
 ## Input Data
-- GWAS summary statistics in tab or comma separated format, even gzipped
-- LD panel in plink .bed/.bim/.fam format
-- Input table in .tsv format → see example [example_data/example_data_finemapping_input_table.tsv}(https://github.com/Biostatistics-Unit-HT/Flanders/blob/main/example_data/example_data_finemapping_input_table.tsv)
+### Fine-mapping
+- [GWAS summary statistics (.csv/.csv.gz/.tsv/.tsv.gz)](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#gwas-summary-statistics).
+- [Genotypes for LD reference panel in Plink .bed/.bim/.fam format](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#genotypes-for-ld-reference-panel). __Providing, if possible, in sample LD greatly improves the accuracy of fine-mapping__
+- [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#metadata-and-gwas-specific-parameters-table).
 
-#### A parenthesis - the importance of in sample LD reference
-Providing, if possible, in sample LD greatly improves the accuracy of fine-mapping
+### Colocalisation
+- [csAnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications)
 </br>
 
 ## Basic Usage
