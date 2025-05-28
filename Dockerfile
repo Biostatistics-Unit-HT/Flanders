@@ -1,6 +1,5 @@
 FROM cgr.dev/chainguard/wolfi-base:latest
 WORKDIR /app
-COPY . /app
 
 RUN apk update && \
     apk add --no-cache \
