@@ -1,6 +1,10 @@
 FROM cgr.dev/chainguard/wolfi-base:latest
+
+LABEL version="2.0"
+LABEL description="Dockerfile for pipeline environment using Miniconda on Wolfi base image for Flanders"
+LABEL maintainer="bruno.ariano@fht.org"
+
 WORKDIR /app
-COPY . /app
 
 RUN apk update && \
     apk add --no-cache \
