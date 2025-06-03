@@ -1,4 +1,9 @@
 FROM cgr.dev/chainguard/wolfi-base:latest
+
+LABEL version="2.0"
+LABEL description="Dockerfile for pipeline environment using Miniconda on Wolfi base image"
+LABEL maintainer="your-name@example.com"
+
 WORKDIR /app
 
 RUN apk update && \
