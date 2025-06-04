@@ -112,8 +112,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     D_sub$p,
     cs_lbf_thr = 2, # TODO: this should be a pipeline argument
     signal_pval_threshold = 1, # TODO: this should be a pipeline argument
-    purity_mean_r2_threshold = 0.5, # TODO: this should be a pipeline argument
-    purity_min_r2_threshold = 0.5, # TODO: this should be a pipeline argument
+    purity_mean_r2_threshold = 0, # TODO: this should be a pipeline argument
+    purity_min_r2_threshold = 0, # TODO: this should be a pipeline argument
     verbose = TRUE
   )
     
