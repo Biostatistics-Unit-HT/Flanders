@@ -79,6 +79,13 @@ susie_ld <- prep_susie_ld(
   skip_dentist=opt$skip_dentist
 )
 
+# Check if susie_ld is NULL
+if (is.null(susie_ld)) {
+  susie_error_message <- "prep_susie_ld returned NULL. No SNPs found in the locus or LD matrix could not be computed."
+  write.table(susie_error_message, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
+  quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
+}
+
 # Filter full GWAS sum stat for locus region
 D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
 
