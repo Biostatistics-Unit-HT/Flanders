@@ -194,7 +194,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
           finemapping_lABFs = susie_reformat,
           effect = effect,
           qc_metrics = qc_metrics,
-          metadata = metadata_df
+          metadata = metadata_df,
+          index = index
           )
         )
     })
@@ -205,8 +206,16 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       opt$study_id,
       opt$phenotype_id,
       sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
+      sapply(finemap.res, function(x) x$index),
       sep="::"
     )
+    
+    # Remove index part of finemap.res
+    finemap.res <- lapply(finemap.res, function(x) {
+      x$index <- NULL
+      x
+    })
+    
     
     #########################################
     # Organise list of what needs to be saved
