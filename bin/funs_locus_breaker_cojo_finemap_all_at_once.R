@@ -106,10 +106,20 @@ prep_susie_ld <- function(
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
   exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
   
-  # Raise an error if the external command fails
+  # Check if the command failed
   if (exit_status != 0) {
-    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
-    quit(status = 1, save = "no")
+    # Check if the error is due to no variants remaining
+    plink_log <- paste0(random.number, ".log")
+    if (file.exists(plink_log)) {
+      log_content <- readLines(plink_log)
+      if (any(grepl("No variants remaining after main filters", log_content))) {
+        cat("Warning: No variants remaining after filtering for locus. Skipping this locus.\n")
+        system(paste0("rm ", random.number, "*"))  # Clean up temporary files
+        return(NULL)  # Skip further processing for this locus
+      }
+    }
+    # If the error is not due to no variants, stop the pipeline
+    stop("Error: External command failed with exit code: ", exit_status)
   }
 
   geno <- fread(paste0(random.number, ".raw"))[,-c(1:6)] ### First 6 columns are FID, IID, PAT, MAT, SEX and PHENOTYPE
