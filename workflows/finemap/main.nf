@@ -27,7 +27,7 @@ workflow RUN_FINEMAPPING {
     SUSIE_FINEMAPPING.out.finemapped_L1_IBSS_algorithm_did_not_converge
     .collectFile(
       keepHeader: true,
-      name: "FINEMAPPED_L1_IBSS_algorithm_did_not_converge",
+      name: "FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
 
     SUSIE_FINEMAPPING.out.not_finemapped_no_credible_sets_found
