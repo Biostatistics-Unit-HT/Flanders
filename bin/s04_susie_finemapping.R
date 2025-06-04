@@ -81,8 +81,23 @@ susie_ld <- prep_susie_ld(
 
 # Check if susie_ld is NULL
 if (is.null(susie_ld)) {
+
   susie_error_message <- "prep_susie_ld returned NULL. No SNPs found in the locus or LD matrix could not be computed."
-  write.table(susie_error_message, "failed_susie.txt", row.names = FALSE, col.names = FALSE)
+  
+  L1_finemap <- data.frame(
+    study_id = opt$study_id,
+    phenotype_id = opt$phenotype_id,
+    chr = opt$chr,
+    start = opt$start,
+    end = opt$end,
+    not_finemapped_reason = susie_error_message
+  )
+  write.table(
+    susie_error_message,
+    paste0(random.number, "_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.txt"),
+    row.names = FALSE,
+    col.names = FALSE
+  )
   quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
 }
 
