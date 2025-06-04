@@ -16,24 +16,24 @@ suppressPackageStartupMessages(library(dplyr))
 
 
 
-# Define command-line options
-option_list <- list(
-  make_option(c("-i", "--input"),
-              type = "character",
-              default = NULL,
-              help = "List of .h5ad files",
-              metavar = "character"),
-  make_option(c("-o", "--output_file"),
-              type = "character",
-              default = NULL,
-              help = "Name of concatenated .h5ad output file",
-              metavar = "character")
-)
-
-# Parse the command-line options
-opt_parser <- OptionParser(usage = "Usage: %prog -i <input> -o <output_file>",
-                           option_list = option_list)
-opt <- parse_args(opt_parser)
+# # Define command-line options for the script
+# option_list <- list(
+#   make_option(c("-i", "--input"),
+#               type = "character",
+#               default = NULL,
+#               help = "List of .h5ad files",
+#               metavar = "character"),
+#   make_option(c("-o", "--output_file"),
+#               type = "character",
+#               default = NULL,
+#               help = "Name of concatenated .h5ad output file",
+#               metavar = "character")
+# )
+#
+# # Parse the command-line options
+# opt_parser <- OptionParser(usage = "Usage: %prog -i <input> -o <output_file>",
+#                            option_list = option_list)
+# opt <- parse_args(opt_parser)
 
 
 #' Convert finemap files to AnnData
@@ -101,6 +101,15 @@ finemap2anndata <- function(
   
   if(!preloaded_list)
     names(finemap_files) <- finemap_files
+
+  # If there are duplicated names in finemap_files, append suffix "L{index}" to each duplicate
+  if(any(duplicated(names(finemap_files)))) {
+    dup_names <- names(finemap_files)[duplicated(names(finemap_files)) | duplicated(names(finemap_files), fromLast = TRUE)]
+    for(name in unique(dup_names)) {
+      idx <- which(names(finemap_files) == name)
+      names(finemap_files)[idx] <- paste0(name, "::L", seq_along(idx))
+    }
+  }
   
   for (finemap_file in names(finemap_files)) {
     
@@ -141,7 +150,7 @@ finemap2anndata <- function(
       
       new_rows <- data.table(
         snp = finemap$snp,
-        chr = paste0("chr", unique(chr_start_end_positions$chr)),
+        chr = paste0("chr", chr_start_end_positions$chr[which(names(finemap_files)==finemap_file)]),
         pos = finemap$pos
       )
       
@@ -351,27 +360,27 @@ finemap2anndata <- function(
 }
 
 # Read list of finemap files
-input_files <- readLines(opt$input) ### to implement later - files stored in a text file rather than as Rscript arguments
-#input_files <- strsplit(opt$input, ",")[[1]]
-finemap_files <- unlist(lapply(input_files, readRDS), recursive = FALSE)
+# input_files <- readLines(opt$input) ### to implement later - files stored in a text file rather than as Rscript arguments
+# #input_files <- strsplit(opt$input, ",")[[1]]
+# finemap_files <- unlist(lapply(input_files, readRDS), recursive = FALSE)
 
-# Collect study_id and phenotype_id for each credible set
-study_phenotype_ids <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(study_id, phenotype_id)
+# # Collect study_id and phenotype_id for each credible set
+# study_phenotype_ids <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(study_id, phenotype_id)
 
-# Collect chr, start and end for each credible set
-chr_start_ends <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(chr,start,end)
+# # Collect chr, start and end for each credible set
+# chr_start_ends <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(chr,start,end)
 
-# SNP panel
-snp_panel <- unique(unlist(lapply(finemap_files, function(x) x$finemapping_lABFs$snp)))
+# # SNP panel
+# snp_panel <- unique(unlist(lapply(finemap_files, function(x) x$finemapping_lABFs$snp)))
 
-ad <- finemap2anndata(
-  finemap_files = finemap_files,
-  preloaded_list = TRUE,
-  study_id = study_phenotype_ids$study_id,
-  phenotype_id = study_phenotype_ids$phenotype_id,
-  chr_start_end_positions = chr_start_ends,
-  snp_panel = snp_panel,
-  panel = "HRC"
-)
+# ad <- finemap2anndata(
+#   finemap_files = finemap_files,
+#   preloaded_list = TRUE,
+#   study_id = study_phenotype_ids$study_id,
+#   phenotype_id = study_phenotype_ids$phenotype_id,
+#   chr_start_end_positions = chr_start_ends,
+#   snp_panel = snp_panel,
+#   panel = "HRC"
+# )
 
-anndata::write_h5ad(ad, filename = opt$output_file)
+# anndata::write_h5ad(ad, filename = opt$output_file)
