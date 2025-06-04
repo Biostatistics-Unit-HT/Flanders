@@ -176,7 +176,10 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         )
       
       qc_metrics <- fitted_rss_cleaned$sets$purity[paste0("L",x),] |>
-        dplyr::mutate(coverage = fitted_rss_cleaned$sets$coverage[x], L = length(fitted_rss_cleaned$KL)) # Add also requested coverage and L
+        dplyr::mutate(
+          coverage = fitted_rss_cleaned$sets$requested_coverage,
+          L = length(fitted_rss_cleaned$KL)
+      ) # Add also requested coverage and L
       
       metadata_df <- data.frame(
         study_id=opt$study_id,
