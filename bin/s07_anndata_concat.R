@@ -176,7 +176,7 @@ finemap2anndata <- function(
       #message(paste("Error in reading file:", basename(finemap_file), "- Skipping"))
       NULL  # return NULL on error
     })
-    n = which(names(finemap_files) == finemap_file)
+    n = length(names(finemap_files) == finemap_file)
     if(n %% 100 == 0){
       cat("\rFinished", n, "of", length(finemap_files))
     }
