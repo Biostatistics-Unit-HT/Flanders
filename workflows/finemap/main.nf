@@ -35,6 +35,12 @@ workflow RUN_FINEMAPPING {
       keepHeader: true,
       name: "NOT_FINEMAPPED_no_credible_sets_found.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
+
+    SUSIE_FINEMAPPING.out.not_finemapped_no_variants_from_locus_in_LD_ref
+    .collectFile(
+      keepHeader: true,
+      name: "NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv",
+      storeDir: "${params.outdir}/results/finemapping_exceptions")
     
     // Append all to coloc_info_master_table
     append_input_coloc = SUSIE_FINEMAPPING.out.susie_info_coloc_table
