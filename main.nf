@@ -69,8 +69,6 @@ workflow {
 				"study_id": row.study_id
 				],
 				[  
-				"p_thresh3": row.p_thresh3,
-				"p_thresh4": row.p_thresh4,
 				"skip_dentist": params.skip_dentist,
 				"maf": row.maf,
 				"hole": row.hole,
