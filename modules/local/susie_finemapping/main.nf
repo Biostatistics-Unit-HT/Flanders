@@ -14,7 +14,7 @@ process SUSIE_FINEMAPPING {
     path "*_FINEMAPPED_L1_prior_variance_too_large.tsv", optional:true, emit: finemapped_L1_prior_variance_too_large
     path "*_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv", optional:true, emit: finemapped_L1_IBSS_algorithm_did_not_converge
     path "*_NOT_FINEMAPPED_no_credible_sets_found.tsv", optional:true, emit: not_finemapped_no_credible_sets_found
-    path "*_NOT_FINEMAPPED_no_varaints_from_locus_in_LD_ref.txt", optional:true, emit: not_finemapped_no_variants_from_locus_in_LD_ref
+    path "*_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv", optional:true, emit: not_finemapped_no_variants_from_locus_in_LD_ref
 
   script:
   def args = task.ext.args ?: ''
