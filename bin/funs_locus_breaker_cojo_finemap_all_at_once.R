@@ -132,12 +132,14 @@ prep_susie_ld <- function(
   rownames(snp_info) <- NULL
   colnames(geno) <- snp_info$SNP
   
-  ##### Ideally to have in the bfile processin step  
+  ##### Ideally to have in the bfile processing step  
   # Remove SNPs with duplicated ids (all occurrencies!)
   dup_snps_index <- which((duplicated(snp_info$SNP) | duplicated(snp_info$SNP, fromLast = TRUE)))
   
-  snp_info <- snp_info[-dup_snps_index, ]
-  geno <- geno[, -..dup_snps_index]
+  if(length(dup_snps_index)>0){
+    snp_info <- snp_info[-dup_snps_index, ]
+    geno <- geno[, -..dup_snps_index]
+  }
   #####
   
   # check for which columns genotypes should be reverted
