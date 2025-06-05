@@ -92,12 +92,8 @@ if (is.null(susie_ld)) {
     end = opt$end,
     not_finemapped_reason = susie_error_message
   )
-  write.table(
-    no_variants_in_ld_ref,
-    paste0(random.number, "_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.txt"),
-    row.names = FALSE,
-    col.names = FALSE
-  )
+
+  fwrite(no_variants_in_ld_ref, paste0(random.number, "_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv"), sep="\t", na=NA, quote=F)
   quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
 }
 
