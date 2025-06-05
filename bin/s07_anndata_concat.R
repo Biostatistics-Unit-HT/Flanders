@@ -150,7 +150,7 @@ finemap2anndata <- function(
       
       new_rows <- data.table(
         snp = finemap$snp,
-        chr = paste0("chr", chr_start_end_positions$chr[which(names(finemap_files)==finemap_file)]),
+        chr = chr_start_end_positions$chr[which(names(finemap_files)==finemap_file)],
         pos = finemap$pos
       )
       
@@ -369,6 +369,8 @@ study_phenotype_ids <- rbindlist(lapply(finemap_files, function(x) x$metadata)) 
 
 # Collect chr, start and end for each credible set
 chr_start_ends <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(chr,start,end)
+
+chr_start_ends$chr <- paste0("chr", chr_start_ends$chr) # add "chr" prefix to chromosome names
 
 # SNP panel
 snp_panel <- unique(unlist(lapply(finemap_files, function(x) x$finemapping_lABFs$snp)))
