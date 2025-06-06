@@ -61,28 +61,21 @@ opt = parse_args(opt_parser);
 bim <- fread(paste0(opt$bfile, ".bim"))
 names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
 
-# Make a standardized snp id as CHR:BP:V5:V6
+# Make a standardized snp id as CHR:BP:V5:V6 and save this as reference for downstream operations
 bim <- bim |>
   dplyr::mutate(
     snp_original = paste0(CHR, ":", BP, ":", V5, ":", V6)
   )
+fwrite(
+  bim,
+  paste0(opt$bfile, ".standard_snpid.bim"),
+  quote=F, na=NA, sep="\t", col.names = F
+)
 
 # Remove SNPs where SNP ID is duplicated since this can mess up liftOver and other operations downstream
 if (sum(duplicated(bim$snp_original)) > 0 ) {
-  message("Duplicated snp ids in bim file. Removing thenm")
-  exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --rm-dup exclude-all list --make-bed --out ", opt$bfile, ".unique"))
-  if (exit_status != 0) {
-    cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
-    quit(status = 1, save = "no")
-  }
-
-  bim <- fread(paste0(opt$bfile, ".unique.bim"))
-  names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
-
-  bim <- bim |>
-    dplyr::mutate(
-      snp_original = paste0(CHR, ":", BP, ":", V5, ":", V6)
-    )
+  message(sum(duplicated(bim$snp_original)), " duplicated snp ids in bim file. Removing them")
+  bim <- bim[!(duplicated(bim[, .(snp_original)]) | duplicated(bim[, .(snp_original)], fromLast=T))]
 }
 
 # If necessary, lift to build 38
@@ -104,7 +97,7 @@ extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
 fwrite(list(bim_cleaned |> dplyr::pull(snp_original) |> unique()), extract_file, col.names=F, quote=F)
 
 # Extract list of SNPs from .bim (to match it with .bed!)
-exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+exit_status = system(paste0("plink2 --bed ", opt$bfile, ".bed --fam ", opt$bfile, ".fam --bim ", opt$bfile, ".standard_snpid.bim --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
   
 # Raise an error if the external command fails
 if (exit_status != 0) {
