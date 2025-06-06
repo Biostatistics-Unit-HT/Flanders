@@ -101,7 +101,7 @@ bim_cleaned <- bim_to_clean[!(duplicated(bim_to_clean[, .(CHR, BP)]) | duplicate
 
 # Save list of SNP ids to extract from .bed
 extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
-fwrite(bim_cleaned |> dplyr::pull(snp_original) |> unique(), extract_file, col.names=F, quote=F)
+fwrite(list(bim_cleaned |> dplyr::pull(snp_original) |> unique()), extract_file, col.names=F, quote=F)
 
 # Extract list of SNPs from .bim (to match it with .bed!)
 exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
