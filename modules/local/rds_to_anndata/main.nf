@@ -8,7 +8,7 @@ process RDS_TO_ANNDATA {
     path(all_rds)
   
   output:
-    path "*.h5ad", optional:true, emit: finemap_anndata
+    path "*.h5ad", emit: finemap_anndata
 
   script:
   def args = task.ext.args ?: ''
@@ -25,7 +25,6 @@ process RDS_TO_ANNDATA {
 
   stub:
     """
-    touch ${meta_study_id.study_id}_${meta_loci.phenotype_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_susie_finemap.rds
     touch finemap_results.h5ad
 
     """
