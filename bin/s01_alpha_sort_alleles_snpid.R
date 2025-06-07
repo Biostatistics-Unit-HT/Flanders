@@ -45,7 +45,6 @@ hg19ToHg38_liftover <- function(
   dataset_ranges38_df <- dataset_ranges38_df[, .(BP, snp_original)]
   
   dataset_lifted <- merge(dataset_munged[, !"BP"], dataset_ranges38_df, by = "snp_original", all = FALSE)
-  
   return(dataset_lifted)
 }
 
@@ -62,39 +61,50 @@ opt = parse_args(opt_parser);
 bim <- fread(paste0(opt$bfile, ".bim"))
 names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
 
+# Make a standardized snp id as CHR:BP:V5:V6 and save this as reference for downstream operations
+bim <- bim |>
+  dplyr::mutate(
+    snp_original = paste0(CHR, ":", BP, ":", V5, ":", V6)
+  )
+fwrite(
+  bim,
+  paste0(opt$bfile, ".standard_snpid.bim"),
+  quote=F, na=NA, sep="\t", col.names = F
+)
+
+# Remove SNPs where SNP ID is duplicated since this can mess up liftOver and other operations downstream
+if (sum(duplicated(bim$snp_original)) > 0 ) {
+  message(sum(duplicated(bim$snp_original)), " duplicated snp ids in bim file. Removing them")
+  bim <- bim[!(duplicated(bim[, .(snp_original)]) | duplicated(bim[, .(snp_original)], fromLast=T))]
+}
+
 # If necessary, lift to build 38
 if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   
-  bim_lifted <- hg19ToHg38_liftover(bim)
+  bim_to_clean <- hg19ToHg38_liftover(bim)
   
-# Remove rows with duplicated SNP (all occurrences!)
-  bim_lifted_no_dups <- bim_lifted[, if (.N == 1) .SD, by = snp_original]
+} else if(as.numeric(opt$grch)==38){
+
+  bim_to_clean <- bim
+
+}
+# Remove rows with duplicated SNP by CHR POS
+# This get rid of multi-allelic variants and any other odd situations
+bim_cleaned <- bim_to_clean[!(duplicated(bim_to_clean[, .(CHR, BP)]) | duplicated(bim_to_clean[, .(CHR, BP)], fromLast=T))]
 
 # Save list of SNP ids to extract from .bed
-  fwrite(bim_lifted_no_dups |> dplyr::select(snp_original), paste0(opt$bfile, "_snps_to_extract.txt"), col.names=F, quote=F)
-  
+extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
+fwrite(list(bim_cleaned |> dplyr::pull(snp_original) |> unique()), extract_file, col.names=F, quote=F)
+
 # Extract list of SNPs from .bim (to match it with .bed!)
-  exit_status = system(paste0("plink2 --bfile ", opt$bfile, " --extract ", opt$bfile, "_snps_to_extract.txt --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+exit_status = system(paste0("plink2 --bed ", opt$bfile, ".bed --fam ", opt$bfile, ".fam --bim ", opt$bfile, ".standard_snpid.bim --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
   
-  # Raise an error if the external command fails
-  if (exit_status != 0) {
+# Raise an error if the external command fails
+if (exit_status != 0) {
     cat(paste0("Error: External command failed with exit code: ", exit_status, "\n"))
     quit(status = 1, save = "no")
   }
   
-  system(paste0("rm ", opt$bfile, "_snps_to_extract.txt"))
-  
-  bim_cleaned <- bim_lifted_no_dups
-  
-} else if(as.numeric(opt$grch)==38){
-  
-  bim_cleaned <- bim
-  system(paste0("cp ", opt$bfile, ".fam ", opt$bfile, ".GRCh38.alpha_sorted_alleles.fam"))
-  system(paste0("cp ", opt$bfile, ".bed ", opt$bfile, ".GRCh38.alpha_sorted_alleles.bed"))
-  #system(paste0("ln -s ", opt$bfile, ".fam ", opt$bfile, "_alpha_sorted_alleles.fam"))
-  #system(paste0("ln -s ", opt$bfile, ".bed ", opt$bfile, "_alpha_sorted_alleles.bed"))
-}
-
 # Alpha sort alleles
 bim_alpha_sorted <- bim_cleaned |>
   dplyr::mutate(
@@ -106,6 +116,6 @@ bim_alpha_sorted <- bim_cleaned |>
 
 fwrite(
   bim_alpha_sorted,
-  paste0(basename(opt$bfile), ".GRCh38.alpha_sorted_alleles.bim"),
+  paste0(opt$bfile, ".GRCh38.alpha_sorted_alleles.bim"),
   quote=F, na=NA, sep="\t", col.names = F)
 
