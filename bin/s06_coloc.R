@@ -49,11 +49,11 @@ coloc.full <- lapply(coloc_combo_ls, function(x){
     mutate(
       t1_study_id=x$t1_study_id,
       t1_phenotype_id=x$t1_phenotype_id,
-      t1=paste0(x$t1_study_id, ":", x$t1_phenotype_id),
+      t1=paste0(x$t1_study_id, "::", x$t1_phenotype_id),
       hit1=top_snp1,
       t2_study_id=x$t2_study_id,
       t2_phenotype_id=x$t2_phenotype_id,
-      t2=paste0(x$t2_study_id, ":", x$t2_phenotype_id),
+      t2=paste0(x$t2_study_id, "::", x$t2_phenotype_id),
       hit2=top_snp2,
     )
   
