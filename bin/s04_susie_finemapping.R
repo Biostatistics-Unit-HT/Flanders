@@ -228,7 +228,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       sep="::"
     )
     
-    # Remove index part of finemap.res
+    # Remove index part of finemap.res - already saved in cs name
     finemap.res <- lapply(finemap.res, function(x) {
       x$index <- NULL
       x
@@ -248,13 +248,6 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     ## Save info about each cs
     tmp <- rbindlist(lapply(finemap.res, function(x){              
       data.frame(
-        credible_set_name = paste(
-          paste0("chr", opt$chr),
-          opt$study_id,
-          opt$phenotype_id,
-          x$finemapping_lABF$snp[1],
-          sep="::"
-        ),
         credible_set_snps = paste0(x$finemapping_lABFs |> dplyr::filter(is_cs==TRUE) |> dplyr::pull(snp), collapse=","),
         study_id = opt$study_id,
         phenotype_id = opt$phenotype_id,
@@ -271,6 +264,11 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       ) |>
         dplyr::rename(bC=beta, bC_se=se)
     }))
+    tmp$credible_set_name = names(finemap.res)
+
+# Move 'credible_set_name' as first column
+    tmp <- tmp |> dplyr:: select(credible_set_name, everything())
+
     fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
     
     
