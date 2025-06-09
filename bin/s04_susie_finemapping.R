@@ -227,7 +227,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       sapply(finemap.res, function(x) x$index),
       sep="::"
     )
-    
+
     # Remove index part of finemap.res - already saved in cs name
     finemap.res <- lapply(finemap.res, function(x) {
       x$index <- NULL
