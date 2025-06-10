@@ -19,7 +19,7 @@ source(paste0(opt$pipeline_path, "funs_locus_breaker_cojo_finemap_all_at_once.R"
 
 # Load-in summary statistics munged and aligned and filter by MAF (doesn't make sense to do this later!)
 
-dataset_aligned <- readr::read_delim(opt$dataset_aligned, data.table=F) 
+dataset_aligned <- readr::read_delim(opt$dataset_aligned) 
 dataset_alinged <- as.data.table(dataset_aligned) |> 
   dplyr::filter(MAF > opt$maf) |>
   dplyr::arrange(CHR)

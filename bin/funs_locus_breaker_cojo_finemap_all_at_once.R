@@ -66,7 +66,7 @@ run_dentist <- function(D=dataset_aligned
     
     if (file.exists(paste0(random.number, ".DENTIST.short.txt"))){ ### check that output was produced
       # Remove SNPs pointed out by DENTIST and proceed with COJO
-      dentist_exclude <- readr::read_delim(paste0(random.number, ".DENTIST.short.txt"), data.table = F, header = F)
+      dentist_exclude <- readr::read_delim(paste0(random.number, ".DENTIST.short.txt"), col_names = F)
       dentist_exclude <- as.data.table(dentist_exclude)
       if (nrow(dentist_exclude)>0){ ### check that output produced isn't empty
         locus_only.snp <- setdiff(locus_only.snp, dentist_exclude[,1])
