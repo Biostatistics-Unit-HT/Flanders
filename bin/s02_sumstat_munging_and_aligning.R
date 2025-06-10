@@ -543,7 +543,6 @@ dtypes <- paste(dtypes, collapse="")
 
 gwas <- read_delim(opt$input, na = c("", "NA"), num_threads = opt$threads, col_types = dtypes, lazy=TRUE) # treat both "NA" as character and empty strings ("") as NA
 gwas <- as.data.table(gwas)
-#gwas <- fread(opt$input, na.strings = c("", "NA"), tmpdir=getwd()) # treat both "NA" as character and empty strings ("") as NA
 
 # If the trait column is NOT provided, add the same one for the whole sum stat
 if(isFALSE(opt$is_molQTL)){

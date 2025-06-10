@@ -58,7 +58,8 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 ## Change snpids
-bim <- fread(paste0(opt$bfile, ".bim"))
+bim <- readr::read_delim(paste0(opt$bfile, ".bim"))
+bim <- as.data.table(bim)
 names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
 
 # Make a standardized snp id as CHR:BP:V5:V6 and save this as reference for downstream operations
