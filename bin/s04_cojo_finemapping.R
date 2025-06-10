@@ -32,9 +32,7 @@ opt$start <- as.numeric(opt$start)
 opt$end <- as.numeric(opt$end)
 
 # GWAS input
-command <- paste0("tabix ", opt$dataset_aligned, " ", opt$phenotype_id)
-dataset_aligned <- readr::read_delim(pipe(command))
-dataset_aligned <- as.data.table(dataset_aligned)
+dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phenotype_id))
 colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
 
 if(unique(dataset_aligned$type=="quant")){
