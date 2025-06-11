@@ -193,6 +193,9 @@
     },
     {
       "$ref": "#/$defs/advanced_parameters"
+    },
+    {
+      "$ref": "#/$defs/institutional_config_options"
     }
   ]
 }
