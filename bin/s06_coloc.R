@@ -20,7 +20,8 @@ source(paste0(opt$pipeline_path, "funs_locus_breaker_cojo_finemap_all_at_once.R"
 ###### COLOCALISTION ######
 
 # Import table listing all coloc pairwise tests to perform
-coloc_combo <- fread(opt$coloc_guide_table, data.table = F)
+coloc_combo <- readr::read_delim(opt$coloc_guide_table)
+coloc_combo <- as.data.table(coloc_combo)
 
 # Split the dataframe into a list of rows
 coloc_combo_ls <- split(coloc_combo, seq(nrow(coloc_combo)))

@@ -71,7 +71,7 @@ dataset.munge_hor=function(sumstats.file
   # Load sumstat
   dataset = gwas
   if(is.character(sumstats.file)){
-    dataset=read_delim(sumstats.file, data.table=F)
+    dataset=read_delim(sumstats.file)
     dataset <- as.data.table(dataset)
   }
   
@@ -163,7 +163,7 @@ dataset.munge_hor=function(sumstats.file
     colname_for_type <- "sdY"
     # If multiple values (one per key if the GWAS is mol_QTL) are provided in a file
     if (is.character(sdY) && file.exists(sdY)) {
-      sdY_list <- read_delim(sdY, data.table = F)
+      sdY_list <- read_delim(sdY)
       sdY_list <- as.data.table(sdY_list)
       
       if(all(c("sdY", "phenotype_id") %in% names(sdY_list))){
@@ -255,7 +255,7 @@ dataset.align <- function(dataset, bfile) {
   
   # Load munged dataset sumstat in .rds format (if necessary)
   if(is.character(dataset)){
-    dataset <- read_delim(dataset, data.table=F)
+    dataset <- read_delim(dataset)
     dataset <- as.data.table(dataset)
   }
   
@@ -543,7 +543,6 @@ dtypes <- paste(dtypes, collapse="")
 
 gwas <- read_delim(opt$input, na = c("", "NA"), num_threads = opt$threads, col_types = dtypes, lazy=TRUE) # treat both "NA" as character and empty strings ("") as NA
 gwas <- as.data.table(gwas)
-#gwas <- fread(opt$input, na.strings = c("", "NA"), tmpdir=getwd()) # treat both "NA" as character and empty strings ("") as NA
 
 # If the trait column is NOT provided, add the same one for the whole sum stat
 if(isFALSE(opt$is_molQTL)){

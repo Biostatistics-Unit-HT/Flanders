@@ -18,7 +18,8 @@ source(paste0(opt$pipeline_path, "funs_locus_breaker_cojo_finemap_all_at_once.R"
 
 
 # List all cs variants and filter by chr
-tb <- fread(opt$coloc_info_table) |> dplyr::filter(chr==opt$chr_cs)
+tb <- readr::read_delim(opt$coloc_info_table)
+tb <- as.data.table(tb) |> dplyr::filter(chr==opt$chr_cs)
 nrows_tb <- nrow(tb)
 tb <- tb  |> dplyr::mutate(cs_name=paste0("cs", seq(1,nrows_tb)))
 

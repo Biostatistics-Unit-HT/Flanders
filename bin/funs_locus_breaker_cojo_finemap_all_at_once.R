@@ -66,7 +66,8 @@ run_dentist <- function(D=dataset_aligned
     
     if (file.exists(paste0(random.number, ".DENTIST.short.txt"))){ ### check that output was produced
       # Remove SNPs pointed out by DENTIST and proceed with COJO
-      dentist_exclude <- fread(paste0(random.number, ".DENTIST.short.txt"), data.table = F, header = F) 
+      dentist_exclude <- readr::read_delim(paste0(random.number, ".DENTIST.short.txt"), col_names = F)
+      dentist_exclude <- as.data.table(dentist_exclude)
       if (nrow(dentist_exclude)>0){ ### check that output produced isn't empty
         locus_only.snp <- setdiff(locus_only.snp, dentist_exclude[,1])
         # SAVE UPDATED LIST OF SNPS!!!        
@@ -122,8 +123,9 @@ prep_susie_ld <- function(
     stop("Error: External command failed with exit code: ", exit_status)
   }
 
-  geno <- fread(paste0(random.number, ".raw"))[,-c(1:6)] ### First 6 columns are FID, IID, PAT, MAT, SEX and PHENOTYPE
-  
+  geno <- readr::read_delim(paste0(random.number, ".raw"))[,-c(1:6)] ### First 6 columns are FID, IID, PAT, MAT, SEX and PHENOTYPE
+  geno <- as.data.table(geno)
+
   # Check which SNPs have the same genotype for all samples and remove them
   not_same_geno <- which(sapply(geno, function(x) length(unique(x)) > 1))
   geno <- geno[, ..not_same_geno]
