@@ -17,7 +17,7 @@ process RDS_TO_ANNDATA {
     
     ls *.rds > all_rds_input_list.txt
     
-    s07_anndata_concat.R \
+    s07_rds2anndata.R \
         ${args} \
         --input all_rds_input_list.txt \
         --output_file finemap_results.h5ad
