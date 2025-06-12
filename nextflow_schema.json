@@ -34,6 +34,13 @@
           "mimetype": "text/tsv",
           "fa_icon": "fas fa-file-csv"
         },
+        "coloc_guide_table": {
+          "type": "string",
+          "description": "A guide table for colocalisation. When provided will take precedence",
+          "format": "file-path",
+          "mimetype": "text/csv",
+          "fa_icon": "fas fa-file-csv"
+        },
         "coloc_id": {
           "type": "string",
           "description": "An ID for the colocalization results, will be used as prefix in colocalization outputs",
