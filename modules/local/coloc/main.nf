@@ -13,9 +13,9 @@ process COLOC {
     """
     s06_coloc.R \
       ${args} \
-        --annData ${annData} \
-        --coloc_guide_table ${coloc_pairs_by_batches} \
-        --coloc_id ${params.coloc_id}
+      --annData ${annData} \
+      --coloc_guide_table ${coloc_pairs_by_batches} \
+      --coloc_id ${params.coloc_id}
     """
 
   stub:

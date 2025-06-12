@@ -23,8 +23,9 @@ workflow {
 	credible_sets_from_finemapping = Channel.empty()
 	credible_sets_from_input = Channel.empty()
 	
-	// A placeholder when we don't have previous studies imported
+	// Initialize empty channel for data from previous studies or coloc exclusions
 	previous_h5ad_studies = Channel.empty()
+	excluded_studies_from_input = Channel.empty()
 
 	// --- COLOCALIZATION ---
 	if (params.summarystats_input) {
@@ -145,7 +146,7 @@ workflow {
 	// --- COLOCALIZATION ---
 	if (params.coloc_h5ad_input) {
 		credible_sets_from_input = Channel.fromPath(params.coloc_h5ad_input, checkIfExists:true)
-		if (params.coloc_filter_previous_studies) {
+		if (params.coloc_skip_previous_studies) {
 			GET_STUDY_FROM_ANNDATA(credible_sets_from_input)
 			previous_h5ad_studies = GET_STUDY_FROM_ANNDATA.out.previous_study_ids
 				.splitCsv(skip:1, sep:"\t")
@@ -157,13 +158,13 @@ workflow {
 		full_credible_sets = credible_sets_from_finemapping.collect()
 	}
 
-	if (params.coloc_filter_studies_table) {
-		excluded_studies_from_input = Channel.fromPath(params.coloc_filter_studies_table, checkIfExists:true)
+	if (params.coloc_exclude_studies_table) {
+		excluded_studies_from_input = Channel.fromPath(params.coloc_exclude_studies_table, checkIfExists:true)
 			.splitCsv(skip:1, sep:"\t")
 	}
 
 	studies_to_exclude = previous_h5ad_studies.mix(excluded_studies_from_input).unique()
-		.map(it.join('\t'))
+		.map{ it.join('\t') }
 		.collectFile(
 			newLine: true, 
 			name: "excluded_studies.tsv", storeDir: "${params.outdir}/results/coloc",
