@@ -25,7 +25,7 @@ workflow RUN_COLOCALIZATION {
     }
 
     coloc_pairs_by_batches = coloc_guide_table
-        .splitText(by: 2000, keepHeader: true, file: true)
+        .splitText(by: params.coloc_batch_size, keepHeader: true, file: true)
 
     coloc_input_ch = credible_sets_h5ads.combine(coloc_pairs_by_batches)
 
@@ -38,8 +38,6 @@ workflow RUN_COLOCALIZATION {
         name: "${params.coloc_id}_colocalization.table.all.tsv",
         storeDir: "${params.outdir}/results/coloc",
         keepHeader: true, skip: 1)
-      // .combine(credible_sets)
-    
 
     // Split the coloc_results_all channel into two branches based on the pph4 and pph3 thresholds
     // The resulting subsets are also saved to tables
