@@ -42,6 +42,7 @@ message(nrow(coloc_input), " coloc tests generated")
 # Read the exclusion table using read_delim and convert to data.table
 exclude_dt <- readr::read_delim(opt$exclude, delim = "\t", col_names = TRUE)
 exclude_dt <- as.data.table(exclude_dt)
+exclude_dt <- exclude_dt[study_id != "EMPTY"]
 
 # If there are studies to exclude, remove them
 if (nrow(exclude_dt) > 0) {

@@ -23,11 +23,9 @@
         "coloc_h5ad_input": {
           "type": "string",
           "description": "Input h5ad file(s) containing results from previous finemapping runs to be loaded",
-          "format": "file-path",
-          "mimetype": "text/tsv",
-          "fa_icon": "fas fa-file-csv"
+          "format": "file-path"
         },
-        "coloc_filter_studies_table": {
+        "coloc_exclude_studies_table": {
           "type": "string",
           "description": "A tab-separated file with header study_id, phenotype_id containing a list of traits to exclude from colocalisation analysis",
           "format": "file-path",
@@ -103,7 +101,7 @@
           "default": true,
           "description": "Set to true to run colocalization after finemapping"
         },
-        "coloc_filter_previous_studies": {
+        "coloc_skip_previous_studies": {
           "type": "boolean",
           "default": true,
           "description": "In case a previous h5ad input is given, do not evaluate colocalizations that involves only previous loci"
