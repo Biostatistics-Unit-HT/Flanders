@@ -15,10 +15,14 @@ workflow RUN_COLOCALIZATION {
     CONCAT_ANNDATA(credible_sets_h5ads)
     merged_h5ad = CONCAT_ANNDATA.out.full_anndata
 
-    // Make a guide table, eventually filtering out previous studies
-    MAKE_COLOC_GUIDE_TABLE(merged_h5ad, studies_to_exclude)
-    coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
-
+    if (params.coloc_guide_table) {
+      // If guide table is provided read this and ignore guide table from anndata
+      coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
+    } else {
+      // Make a guide table, eventually filtering out previous studies
+      MAKE_COLOC_GUIDE_TABLE(merged_h5ad, studies_to_exclude)
+      coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
+    }
     // Run COLOC process on coloc_pairs_by_batches channel
     COLOC(coloc_pairs_by_batches)
 
