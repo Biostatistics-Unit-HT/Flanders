@@ -1,28 +1,23 @@
 include { FIND_CS_OVERLAP_BY_CHR  } from "../../modules/local/find_cs_overlap_by_chr"
 include { COLOC                   } from "../../modules/local/coloc"
+include { CONCAT_ANNDATA          } from "../../modules/local/concat_anndata"
+include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_table"
+
 // include { IDENTIFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
 
 workflow RUN_COLOCALIZATION {
   take:
-    credible_sets // input channel for credible sets
-  
+    credible_sets_h5ads // input channel for credible sets
+		studies_to_exclude // a table containing study_id, phenotype_id to exclude from colocalization analysis
+
   main:
-    // Ensure the folder to store not finemapped loci exists
-    file("${params.outdir}/results/coloc").mkdirs()
+    // Concat all h5ad
+    CONCAT_ANNDATA(credible_sets_h5ads)
+    merged_h5ad = CONCAT_ANNDATA.out.full_anndata
 
-    // Run FIND_CS_OVERLAP process on all_cond_datasets_cs channel
-    FIND_CS_OVERLAP_BY_CHR(credible_sets)
-
-    // Define input channel for performing pair-wise colocalisation analysis (in batches)
-    coloc_pairs_by_batches = FIND_CS_OVERLAP_BY_CHR.out.coloc_pairwise_guide_table
-      .splitText(by:params.coloc_batch_size, keepHeader:true, file:true)
-      .map { meta_chr_cs, split_file ->
-            tuple( 
-              meta_chr_cs,
-              split_file,
-              split_file.splitCsv(header:true, sep:"\t").collect { row -> [file(row.t1_path_rds), file(row.t2_path_rds)] }.flatten().unique()
-            )
-        }
+    // Make a guide table, eventually filtering out previous studies
+    MAKE_COLOC_GUIDE_TABLE(merged_h5ad, previous_h5ad_studies, params.coloc_filter_previous_studies)
+    coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
 
     // Run COLOC process on coloc_pairs_by_batches channel
     COLOC(coloc_pairs_by_batches)
