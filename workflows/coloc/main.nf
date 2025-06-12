@@ -23,11 +23,17 @@ workflow RUN_COLOCALIZATION {
       MAKE_COLOC_GUIDE_TABLE(merged_h5ad, studies_to_exclude)
       coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
     }
+
+    coloc_pairs_by_batches = coloc_guide_table
+        .splitText(by: 2000, keepHeader: true, file: true)
+
+    coloc_input_ch = credible_sets_h5ads.combine(coloc_pairs_by_batches)
+
     // Run COLOC process on coloc_pairs_by_batches channel
-    COLOC(coloc_pairs_by_batches)
+    COLOC(coloc_input_ch)
 
     // Collect all tables (coloc performed in batches of n pairwise tests)
-    coloc_results_all = COLOC.out.colocalization_table_all_by_chunk
+    coloc_results_all = COLOC.out.colocalization_chunk
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.all.tsv",
         storeDir: "${params.outdir}/results/coloc",
