@@ -3,6 +3,7 @@ include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
 include { PROCESS_BFILE } from "./modules/local/process_bfile"
+include { GET_STUDY_FROM_ANNDATA } from "./modules/local/get_study_from_anndata"
 include { completionSummary } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
@@ -21,7 +22,11 @@ workflow {
 	// Initialize empty channels for finemapping results
 	credible_sets_from_finemapping = Channel.empty()
 	credible_sets_from_input = Channel.empty()
+	
+	// A placeholder when we don't have previous studies imported
+	previous_h5ad_studies = Channel.empty()
 
+	// --- COLOCALIZATION ---
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
@@ -133,46 +138,40 @@ workflow {
 			RUN_MUNGING.out.munged_stats, 
 			outdir_abspath
 			)
-		credible_sets_from_finemapping = RUN_FINEMAPPING.out.coloc_master.collectFile(
-			newLine: false, 
-			name: "all_credible_sets_from_finemapping.tsv", 
-			storeDir: "${params.outdir}/results/finemap",
-			keepHeader: true,
-			skip: 1
-		)
+		credible_sets_from_finemapping = RUN_FINEMAPPING.out.finemap_anndata
 	}
 
-	if (params.coloc_input) {
-		credible_sets_from_input = Channel.fromPath(params.coloc_input, checkIfExists:true)
 
-		// Use nf-schema to read and validate the sample sheet
-		samplesheetToList(params.coloc_input, 'assets/coloc_input_schema.json')
-	}
-
-	if (params.run_colocalization || params.coloc_input) {
-		file("${params.outdir}/results/coloc_info_tables").mkdirs()
-		
+	// --- COLOCALIZATION ---
+	if (params.coloc_h5ad_input) {
+		credible_sets_from_input = Channel.fromPath(params.coloc_h5ad_input, checkIfExists:true)
+		if (params.coloc_filter_previous_studies) {
+			GET_STUDY_FROM_ANNDATA(credible_sets_from_input)
+			previous_h5ad_studies = GET_STUDY_FROM_ANNDATA.out.previous_study_ids
+				.splitCsv(skip:1, sep:"\t")
+		}	
 		full_credible_sets = credible_sets_from_input
 			.mix(credible_sets_from_finemapping)
-			.collectFile(
-				newLine: false, 
-				name: "ALL_COMBINED_coloc_info_master_table.tsv", 
-				storeDir: "${params.outdir}/results/coloc_info_tables",
-				keepHeader: true,
-				skip: 1
-			)
-		
-		colocalization_input = full_credible_sets
-			.splitCsv(header:true, sep:"\t")
-			.map{ row ->
-				[
-				"chr_cs": row.chr
-				]
-			}
-			.unique()
-			.combine(full_credible_sets)
+			.collect()
+	} else {
+		full_credible_sets = credible_sets_from_finemapping.collect()
+	}
 
-		RUN_COLOCALIZATION( colocalization_input )
+	if (params.coloc_filter_studies_table) {
+		excluded_studies_from_input = Channel.fromPath(params.coloc_filter_studies_table, checkIfExists:true)
+			.splitCsv(skip:1, sep:"\t")
+	}
+
+	studies_to_exclude = previous_h5ad_studies.mix(excluded_studies_from_input).unique()
+		.map(it.join('\t'))
+		.collectFile(
+			newLine: true, 
+			name: "excluded_studies.tsv", storeDir: "${params.outdir}/results/coloc",
+			seed: "study_id\tphenotype_id"
+		)
+
+	if (params.run_colocalization || params.coloc_h5ad_input) {		
+		RUN_COLOCALIZATION( full_credible_sets, studies_to_exclude )
 	}
 
 	// At the end store params in yml and input files
@@ -185,8 +184,12 @@ workflow {
 		if (params.summarystats_input) {
 			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
 		}
-		if (params.coloc_input) {
-			file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv")
+		if (params.coloc_h5ad_input) {
+			file(params.coloc_h5ad_input).collectFile(
+				newLine: false,
+				name: "input_h5ad_inputs.txt",
+				storeDir: "${params.outdir}/pipeline_inputs"
+			)
 		}
 
 	workflow.onComplete {
