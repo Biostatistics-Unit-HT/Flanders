@@ -149,30 +149,21 @@ workflow {
 		if (params.coloc_skip_previous_studies) {
 			GET_STUDY_FROM_ANNDATA(credible_sets_from_input)
 			previous_h5ad_studies = GET_STUDY_FROM_ANNDATA.out.previous_study_ids
-				.splitCsv(skip:1, sep:"\t")
 		}	
 		full_credible_sets = credible_sets_from_input
 			.mix(credible_sets_from_finemapping)
 			.collect()
 	} else {
 		full_credible_sets = credible_sets_from_finemapping.collect()
+		previous_h5ad_studies = Channel.value(file('NO_FILE'))
 	}
 
-	if (params.coloc_exclude_studies_table) {
-		excluded_studies_from_input = Channel.fromPath(params.coloc_exclude_studies_table, checkIfExists:true)
-			.splitCsv(skip:1, sep:"\t")
-	}
-
-	studies_to_exclude = previous_h5ad_studies.mix(excluded_studies_from_input).unique()
-		.map{ it.join('\t') }
-		.collectFile(
-			newLine: true, 
-			name: "excluded_studies.tsv", storeDir: "${params.outdir}/results/coloc",
-			seed: "study_id\tphenotype_id"
-		)
+	exclude_studies_file = params.coloc_exclude_studies_table ? 
+        Channel.fromPath(params.coloc_exclude_studies_table, checkIfExists: true) : 
+        Channel.value(file('NO_FILE'))
 
 	if (params.run_colocalization || params.coloc_h5ad_input) {		
-		RUN_COLOCALIZATION( full_credible_sets, studies_to_exclude )
+		RUN_COLOCALIZATION( full_credible_sets, previous_h5ad_studies, exclude_studies_file )
 	}
 
 	// At the end store params in yml and input files

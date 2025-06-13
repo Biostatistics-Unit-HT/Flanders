@@ -48,16 +48,14 @@ message(nrow(coloc_input), " coloc tests generated")
 coloc_input[, t1_uniqueid := paste(t1_study_id, t1_phenotype_id, sep = "_")]
 coloc_input[, t2_uniqueid := paste(t2_study_id, t2_phenotype_id, sep = "_")]
 
-# Read the exclusion tables and convert to data.table
-exclude_2sides <- readr::read_delim(opt$exclude_bothsides, delim = "\t", col_names = TRUE)
-exclude_2sides <- as.data.table(exclude_2sides)
-exclude_2sides <- exclude_2sides[study_id != "EMPTY"]
+if (!is.null(opt$exclude_bothsides)) {
+  exclude_2sides <- readr::read_delim(opt$exclude_bothsides, delim = "\t", col_names = TRUE)
+  exclude_2sides <- as.data.table(exclude_2sides)
 
-# Exclude studies where both t1 and t2 are in the exclusion list
-if (nrow(exclude_2sides) > 0) {
   message("Found ", nrow(exclude_2sides), " entries in both side exclusion")
   exclude_2sides[, unique_id := paste(study_id, phenotype_id, sep = "_")]
 
+  # Exclude studies where both t1 and t2 are in the exclusion list
   coloc_input[, t1_excluded := t1_uniqueid %in% exclude_dt$unique_id]
   coloc_input[, t2_excluded := t2_uniqueid %in% exclude_dt$unique_id]
   coloc_input <- coloc_input[!(coloc_input$t1_excluded & coloc_input$t2_excluded)]
@@ -72,11 +70,12 @@ if (!is.null(opt$exclude_oneside)) {
   message("Found ", nrow(exclude_1side), " entries in one side exclusion")
   exclude_1side[, unique_id := paste(study_id, phenotype_id, sep = "_")]
 
+  # Exclude studies where either t1 or t2 are in the exclusion list
   coloc_input[, t1_excluded := t1_uniqueid %in% exclude_1side$unique_id]
   coloc_input[, t2_excluded := t2_uniqueid %in% exclude_1side$unique_id]
   coloc_input <- coloc_input[!(coloc_input$t1_excluded | coloc_input$t2_excluded)]
 
-  message(nrow(coloc_input), " coloc tests remaining after exclusion"s)
+  message(nrow(coloc_input), " coloc tests remaining after exclusion")
 }
 
 # Remove accessory columns
