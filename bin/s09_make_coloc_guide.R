@@ -7,6 +7,7 @@
 #   Rscript anndata_concat.R -i <input> -o <output_file>
 
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(SingleCellExperiment))
 
 # Define command-line options for the script
@@ -42,7 +43,7 @@ message("Reading h5ad file")
 sce <- zellkonverter::readH5AD(opt$input,reader="R")
 
 message("Making coloc guide table")
-coloc_input <- flanders::anndata2coloc_input(sce)
+coloc_input <- as.data.table(landers::anndata2coloc_input(sce))
 message(nrow(coloc_input), " coloc tests generated")
 
 # Make a unique id useful for filtering
