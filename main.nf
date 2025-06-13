@@ -23,6 +23,16 @@ workflow {
 	credible_sets_from_finemapping = Channel.empty()
 	credible_sets_from_input = Channel.empty()
 
+	// Output a WARNING when coloc guide and exclusion filters are both provided
+	// We are going to ignore everything and just apply the colo guide table provided
+	if (params.coloc_guide_table && (params.coloc_exclude_studies_table || params.coloc_skip_previous_studies)) {
+		log.warn """
+		=== ⚠️  WARNING  ⚠️ ===
+		You provided an external coloc guide table (${coloc_guide_table}), but also a coloc_exclude_studies_table or coloc_skip_previous_studies is true.
+		Only the external guide table will be used.
+		"""
+	} 
+
 	// --- COLOCALIZATION ---
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
