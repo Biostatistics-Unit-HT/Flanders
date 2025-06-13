@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import anndata as an
+import pandas as pd
 import argparse
 
 def main():
@@ -15,7 +16,7 @@ def main():
     dfs = []
     for f in input_files:
         print(f"Processing {f}")
-        adata = an.read_h5ad(f
+        adata = an.read_h5ad(f)
         out_df = adata.obs[["study_id", "phenotype_id"]].drop_duplicates()
         print(f"Number of extracted study-phenotype pairs: {len(out_df)}")
         dfs.append(out_df)
