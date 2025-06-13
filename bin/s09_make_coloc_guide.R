@@ -43,7 +43,7 @@ message("Reading h5ad file")
 sce <- zellkonverter::readH5AD(opt$input,reader="R")
 
 message("Making coloc guide table")
-coloc_input <- as.data.table(landers::anndata2coloc_input(sce))
+coloc_input <- as.data.table(flanders::anndata2coloc_input(sce))
 message(nrow(coloc_input), " coloc tests generated")
 
 # Make a unique id useful for filtering

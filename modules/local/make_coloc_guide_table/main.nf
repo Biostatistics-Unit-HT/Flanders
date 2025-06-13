@@ -2,7 +2,7 @@ process MAKE_COLOC_GUIDE_TABLE {
   tag "make_guide_table"
   label "process_medium"
 
-  publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.csv"
+  publishDir "${params.outdir}/results/coloc/", mode: params.publish_dir_mode, pattern:"*.csv"
 
   input:
     path(h5ad_file)

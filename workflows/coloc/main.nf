@@ -7,14 +7,23 @@ include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_t
 
 workflow RUN_COLOCALIZATION {
   take:
-    credible_sets_h5ads // input channel for credible sets
+    credible_sets_h5ads // a list of h5ad files with credible sets
 		previous_studies_from_h5ad // a table containing study_id, phenotype_id from previous h5ad to exclude
     exclude_studies_file // a table containing study_id, phenotype_id to exclude
 
   main:
-    // Concat all h5ad
-    CONCAT_ANNDATA(credible_sets_h5ads)
-    merged_h5ad = CONCAT_ANNDATA.out.full_anndata
+    // Concat all h5ad if we have more than one anndata
+    credible_sets_h5ads
+      .branch { files ->
+          single: files.size() == 1
+              return files[0]  // Return the single file
+          multiple: files.size() > 1
+              return files     // Return the list of files
+      }
+    .set { h5ad_channel }
+
+    CONCAT_ANNDATA(h5ad_channel.multiple)
+    merged_h5ad = h5ad_channel.single.mix(CONCAT_ANNDATA.out.full_anndata)
 
     if (params.coloc_guide_table) {
       // If guide table is provided read this and ignore guide table from anndata
