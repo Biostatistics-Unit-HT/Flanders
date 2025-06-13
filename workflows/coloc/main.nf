@@ -1,40 +1,53 @@
 include { FIND_CS_OVERLAP_BY_CHR  } from "../../modules/local/find_cs_overlap_by_chr"
 include { COLOC                   } from "../../modules/local/coloc"
+include { CONCAT_ANNDATA          } from "../../modules/local/concat_anndata"
+include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_table"
+
 // include { IDENTIFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
 
 workflow RUN_COLOCALIZATION {
   take:
-    credible_sets // input channel for credible sets
-  
+    credible_sets_h5ads // a list of h5ad files with credible sets
+		previous_studies_from_h5ad // a table containing study_id, phenotype_id from previous h5ad to exclude
+    exclude_studies_file // a table containing study_id, phenotype_id to exclude
+
   main:
-    // Ensure the folder to store not finemapped loci exists
-    file("${params.outdir}/results/coloc").mkdirs()
+    // Concat all h5ad if we have more than one anndata
+    credible_sets_h5ads
+      .branch { files ->
+          single: files.size() == 1
+              return files[0]  // Return the single file
+          multiple: files.size() > 1
+              return files     // Return the list of files
+      }
+    .set { h5ad_channel }
 
-    // Run FIND_CS_OVERLAP process on all_cond_datasets_cs channel
-    FIND_CS_OVERLAP_BY_CHR(credible_sets)
+    CONCAT_ANNDATA(h5ad_channel.multiple)
+    merged_h5ad = h5ad_channel.single.mix(CONCAT_ANNDATA.out.full_anndata)
 
-    // Define input channel for performing pair-wise colocalisation analysis (in batches)
-    coloc_pairs_by_batches = FIND_CS_OVERLAP_BY_CHR.out.coloc_pairwise_guide_table
-      .splitText(by:params.coloc_batch_size, keepHeader:true, file:true)
-      .map { meta_chr_cs, split_file ->
-            tuple( 
-              meta_chr_cs,
-              split_file,
-              split_file.splitCsv(header:true, sep:"\t").collect { row -> [file(row.t1_path_rds), file(row.t2_path_rds)] }.flatten().unique()
-            )
-        }
+    if (params.coloc_guide_table) {
+      // If guide table is provided read this and ignore guide table from anndata
+      coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
+    } else {
+      // Make a guide table, eventually filtering out previous studies
+      MAKE_COLOC_GUIDE_TABLE(merged_h5ad, previous_studies_from_h5ad, exclude_studies_file)
+      coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
+    }
+
+    coloc_pairs_by_batches = coloc_guide_table
+        .splitText(by: params.coloc_batch_size, keepHeader: true, file: true)
+
+    coloc_input_ch = credible_sets_h5ads.combine(coloc_pairs_by_batches)
 
     // Run COLOC process on coloc_pairs_by_batches channel
-    COLOC(coloc_pairs_by_batches)
+    COLOC(coloc_input_ch)
 
     // Collect all tables (coloc performed in batches of n pairwise tests)
-    coloc_results_all = COLOC.out.colocalization_table_all_by_chunk
+    coloc_results_all = COLOC.out.colocalization_chunk
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.all.tsv",
         storeDir: "${params.outdir}/results/coloc",
         keepHeader: true, skip: 1)
-      // .combine(credible_sets)
-    
 
     // Split the coloc_results_all channel into two branches based on the pph4 and pph3 thresholds
     // The resulting subsets are also saved to tables

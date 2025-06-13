@@ -2,35 +2,40 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - r-optparse=1.7.4
-  - r-readr=2.1.5
-  - r-r.utils=2.12.3
-  - r-data.table=1.15.2
-  - bioconductor-rtracklayer=1.62.0
-  - bioconductor-genomicranges=1.54.1
-  - bioconductor-iranges=2.36.0
-  - bioconductor-rsamtools=2.18.0
-  - bioconductor-gviz=1.46.1
+  - r-optparse=1.7.5
+  - r-readr
+  - r-r.utils
+  - r-data.table=1.17.0
+  - bioconductor-summarizedexperiment=1.36.0
+  - bioconductor-rtracklayer
+  - bioconductor-genomicranges
+  - bioconductor-iranges
+  - bioconductor-rsamtools
+  - bioconductor-singlecellexperiment=1.28.0
+  - bioconductor-zellkonverter=1.16.0
+  - bioconductor-scrnaseq=2.20.0
+  - bioconductor-rhdf5
+  - bioconductor-hdf5array
   - r-coloc=5.2.3
   - r-susier=0.12.35
-  - r-bigsnpr=1.12.2
-  - r-stringi=1.8.3
-  - r-stringr=1.5.1
-  - r-reshape2=1.4.4
-  - r-igraph=2.0.2
-  - r-purrr=1.0.2
-  - r-tidyr=1.3.1
-  - r-dplyr=1.1.4
-  - r-plyr=1.8.9
-  - r-matrix=1.6_5
-  - r-corrplot=0.92
-  - r-patchwork=1.2.0
-  - r-ggplot2=3.5.0
-  - r-cowplot=1.1.3
-  - r-rfast=2.1.0
+  - r-bigsnpr
+  - r-stringi
+  - r-stringr
+  - r-reshape2
+  - r-igraph
+  - r-purrr
+  - r-tidyr
+  - r-dplyr
+  - r-plyr
+  - r-matrix=1.7_3
+  - r-corrplot
+  - r-patchwork
+  - r-ggplot2
+  - r-cowplot
+  - r-rfast
   - r-anndata=0.7.5.6
   - tabix=1.11
-  - bioconductor-rhtslib=2.4.0
+  - bioconductor-rhtslib
   - pandas=2.2.3
   - numpy=2.2.6
   - anndata=0.11.4

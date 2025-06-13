@@ -1,12 +1,12 @@
 #!/usr/bin/env -S Rscript --vanilla
 
-# anndata_concat.R
-# This script concatenates multiple AnnData files into a single object,
+# rds2anndata.R
+# This script concatenates multiple RDS files into a single h5ad object,
 # fixes the variable table (var) by extracting SNP, chromosome, and position,
 # and writes the final AnnData object to an .h5ad file.
 #
 # Usage:
-#   Rscript anndata_concat.R -i <input> -o <output_file>
+#   Rscript rds2anndata.R -i <input> -o <output_file>
 
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(data.table))

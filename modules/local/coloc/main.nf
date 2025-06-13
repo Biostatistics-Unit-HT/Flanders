@@ -3,24 +3,23 @@ process COLOC {
   label "process_medium"
   
   input:
-    tuple val(meta_chr_cs), path(coloc_pairs_by_batches), path(rds_files) // why not path(coloc_pairs_by_batches) ?
+    tuple path(annData), path(coloc_pairs_by_batches)
   
   output:
-    path "${params.coloc_id}_chr${meta_chr_cs.chr_cs}_colocalization.table.all.tsv", emit:colocalization_table_all_by_chunk
+    path "${params.coloc_id}_colocalization.table.all.tsv", emit:colocalization_chunk
 
   script:
   def args = task.ext.args ?: ''
     """
     s06_coloc.R \
-        ${args} \
-        --pipeline_path ${projectDir}/bin/ \
-        --coloc_guide_table ${coloc_pairs_by_batches} \
-        --chr_cs ${meta_chr_cs.chr_cs} \
-        --coloc_id ${params.coloc_id}
+      ${args} \
+      --annData ${annData} \
+      --coloc_guide_table ${coloc_pairs_by_batches} \
+      --coloc_id ${params.coloc_id}
     """
 
   stub:
     """
-    touch ${params.coloc_id}_chr${meta_chr_cs.chr_cs}_colocalization.table.all.tsv
+    touch ${params.coloc_id}_colocalization.table.all.tsv
     """
 }

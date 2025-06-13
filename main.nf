@@ -3,6 +3,7 @@ include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
 include { PROCESS_BFILE } from "./modules/local/process_bfile"
+include { GET_STUDY_FROM_ANNDATA } from "./modules/local/get_study_from_anndata"
 include { completionSummary } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 
@@ -22,6 +23,17 @@ workflow {
 	credible_sets_from_finemapping = Channel.empty()
 	credible_sets_from_input = Channel.empty()
 
+	// Output a WARNING when coloc guide and exclusion filters are both provided
+	// We are going to ignore everything and just apply the colo guide table provided
+	if (params.coloc_guide_table && (params.coloc_exclude_studies_table || params.coloc_skip_previous_studies)) {
+		log.warn """
+		=== ⚠️  WARNING  ⚠️ ===
+		You provided an external coloc guide table (${coloc_guide_table}), but also a coloc_exclude_studies_table or coloc_skip_previous_studies is true.
+		Only the external guide table will be used.
+		"""
+	} 
+
+	// --- COLOCALIZATION ---
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
@@ -133,46 +145,31 @@ workflow {
 			RUN_MUNGING.out.munged_stats, 
 			outdir_abspath
 			)
-		credible_sets_from_finemapping = RUN_FINEMAPPING.out.coloc_master.collectFile(
-			newLine: false, 
-			name: "all_credible_sets_from_finemapping.tsv", 
-			storeDir: "${params.outdir}/results/finemap",
-			keepHeader: true,
-			skip: 1
-		)
+		credible_sets_from_finemapping = RUN_FINEMAPPING.out.finemap_anndata
 	}
 
-	if (params.coloc_input) {
-		credible_sets_from_input = Channel.fromPath(params.coloc_input, checkIfExists:true)
 
-		// Use nf-schema to read and validate the sample sheet
-		samplesheetToList(params.coloc_input, 'assets/coloc_input_schema.json')
-	}
-
-	if (params.run_colocalization || params.coloc_input) {
-		file("${params.outdir}/results/coloc_info_tables").mkdirs()
-		
+	// --- COLOCALIZATION ---
+	if (params.coloc_h5ad_input) {
+		credible_sets_from_input = Channel.fromPath(params.coloc_h5ad_input, checkIfExists:true)
+		if (params.coloc_skip_previous_studies) {
+			GET_STUDY_FROM_ANNDATA(credible_sets_from_input)
+			previous_h5ad_studies = GET_STUDY_FROM_ANNDATA.out.previous_study_ids
+		}	
 		full_credible_sets = credible_sets_from_input
 			.mix(credible_sets_from_finemapping)
-			.collectFile(
-				newLine: false, 
-				name: "ALL_COMBINED_coloc_info_master_table.tsv", 
-				storeDir: "${params.outdir}/results/coloc_info_tables",
-				keepHeader: true,
-				skip: 1
-			)
-		
-		colocalization_input = full_credible_sets
-			.splitCsv(header:true, sep:"\t")
-			.map{ row ->
-				[
-				"chr_cs": row.chr
-				]
-			}
-			.unique()
-			.combine(full_credible_sets)
+			.collect()
+	} else {
+		full_credible_sets = credible_sets_from_finemapping.collect()
+		previous_h5ad_studies = Channel.value(file('NO_PREVIOUS_H5AD_STUDIES'))
+	}
 
-		RUN_COLOCALIZATION( colocalization_input )
+	exclude_studies_file = params.coloc_exclude_studies_table ? 
+        Channel.fromPath(params.coloc_exclude_studies_table, checkIfExists: true) : 
+        Channel.value(file('NO_EXCLUDE_STUDIES'))
+
+	if (params.run_colocalization || params.coloc_h5ad_input) {		
+		RUN_COLOCALIZATION( full_credible_sets, previous_h5ad_studies, exclude_studies_file )
 	}
 
 	// At the end store params in yml and input files
@@ -185,8 +182,12 @@ workflow {
 		if (params.summarystats_input) {
 			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
 		}
-		if (params.coloc_input) {
-			file(params.coloc_input).copyTo("${params.outdir}/pipeline_inputs/coloc_input.tsv")
+		if (params.coloc_h5ad_input) {
+			file(params.coloc_h5ad_input).collectFile(
+				newLine: false,
+				name: "input_h5ad_inputs.txt",
+				storeDir: "${params.outdir}/pipeline_inputs"
+			)
 		}
 
 	workflow.onComplete {
