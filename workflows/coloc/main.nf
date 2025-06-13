@@ -8,7 +8,8 @@ include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_t
 workflow RUN_COLOCALIZATION {
   take:
     credible_sets_h5ads // input channel for credible sets
-		studies_to_exclude // a table containing study_id, phenotype_id to exclude from colocalization analysis
+		previous_studies_from_h5ad // a table containing study_id, phenotype_id from previous h5ad to exclude
+    exclude_studies_file // a table containing study_id, phenotype_id to exclude
 
   main:
     // Concat all h5ad
@@ -20,7 +21,7 @@ workflow RUN_COLOCALIZATION {
       coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
     } else {
       // Make a guide table, eventually filtering out previous studies
-      MAKE_COLOC_GUIDE_TABLE(merged_h5ad, studies_to_exclude)
+      MAKE_COLOC_GUIDE_TABLE(merged_h5ad, previous_studies_from_h5ad, exclude_studies_file)
       coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
     }
 

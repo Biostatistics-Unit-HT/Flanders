@@ -6,21 +6,24 @@ process MAKE_COLOC_GUIDE_TABLE {
 
   input:
     path(h5ad_file)
-    path(studies_to_exclude)
+    path(previous_h5ad_studies)
+    path(exclude_studies_file)
   
   output:
     path "coloc_guide_table.csv", emit: coloc_guide_table
 
   script:
   def args = task.ext.args ?: ''
-  def exclude_oneside_opt = params.coloc_exclude_studies_table ? "--exclude_oneside ${params.coloc_exclude_studies_table}" : ''
+  def exclude_oneside_opt = exclude_studies_file.name != 'NO_FILE' ? "--exclude_oneside ${exclude_studies_file}" : ''
+  def exclude_bothsides_opt = previous_h5ad_studies.name != 'NO_FILE' ? "--exclude_bothsides ${previous_h5ad_studies}" : ''
+  
     """
     export RETICULATE_PYTHON=\$(which python)
     
     s09_make_coloc_guide.R \
         ${args} \
         --input ${h5ad_file} \
-        --exclude_bothsides ${studies_to_exclude} \
+        ${exclude_bothsides_opt} \
         ${exclude_oneside_opt} \
         --output_file coloc_guide_table.csv
     """
