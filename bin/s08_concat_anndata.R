@@ -31,7 +31,7 @@ input_files <- readLines(opt$input)
 list_of_ads <- lapply(input_files,anndata::read_h5ad)
 
 # Concatenate the AnnData objects
-merged_ad <- adata::concat(
+merged_ad <- anndata::concat(
 	list_of_ads,
 	join="outer",
 	merge="first"
