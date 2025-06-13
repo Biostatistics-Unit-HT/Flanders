@@ -14,8 +14,8 @@ process MAKE_COLOC_GUIDE_TABLE {
 
   script:
   def args = task.ext.args ?: ''
-  def exclude_oneside_opt = exclude_studies_file.name != 'NO_FILE' ? "--exclude_oneside ${exclude_studies_file}" : ''
-  def exclude_bothsides_opt = previous_h5ad_studies.name != 'NO_FILE' ? "--exclude_bothsides ${previous_h5ad_studies}" : ''
+  def exclude_oneside_opt = exclude_studies_file.name != 'NO_EXCLUDE_STUDIES' ? "--exclude_oneside ${exclude_studies_file}" : ''
+  def exclude_bothsides_opt = previous_h5ad_studies.name != 'NO_PREVIOUS_H5AD_STUDIES' ? "--exclude_bothsides ${previous_h5ad_studies}" : ''
   
     """
     export RETICULATE_PYTHON=\$(which python)

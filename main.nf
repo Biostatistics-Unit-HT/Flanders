@@ -155,12 +155,12 @@ workflow {
 			.collect()
 	} else {
 		full_credible_sets = credible_sets_from_finemapping.collect()
-		previous_h5ad_studies = Channel.value(file('NO_FILE'))
+		previous_h5ad_studies = Channel.value(file('NO_PREVIOUS_H5AD_STUDIES'))
 	}
 
 	exclude_studies_file = params.coloc_exclude_studies_table ? 
         Channel.fromPath(params.coloc_exclude_studies_table, checkIfExists: true) : 
-        Channel.value(file('NO_FILE'))
+        Channel.value(file('NO_EXCLUDE_STUDIES'))
 
 	if (params.run_colocalization || params.coloc_h5ad_input) {		
 		RUN_COLOCALIZATION( full_credible_sets, previous_h5ad_studies, exclude_studies_file )
