@@ -103,7 +103,7 @@
         },
         "coloc_skip_previous_studies": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "In case a previous h5ad input is given, do not evaluate colocalizations that involves only previous loci"
         },
         "coloc_batch_size": {
