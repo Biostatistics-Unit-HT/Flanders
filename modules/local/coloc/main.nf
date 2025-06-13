@@ -3,7 +3,7 @@ process COLOC {
   label "process_medium"
   
   input:
-    tuple file(annData), val(coloc_pairs_by_batches)
+    tuple path(annData), path(coloc_pairs_by_batches)
   
   output:
     path "${params.coloc_id}_colocalization.table.all.tsv", emit:colocalization_chunk
