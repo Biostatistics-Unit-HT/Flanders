@@ -22,10 +22,6 @@ workflow {
 	// Initialize empty channels for finemapping results
 	credible_sets_from_finemapping = Channel.empty()
 	credible_sets_from_input = Channel.empty()
-	
-	// Initialize empty channel for data from previous studies or coloc exclusions
-	previous_h5ad_studies = Channel.empty()
-	excluded_studies_from_input = Channel.empty()
 
 	// --- COLOCALIZATION ---
 	if (params.summarystats_input) {
