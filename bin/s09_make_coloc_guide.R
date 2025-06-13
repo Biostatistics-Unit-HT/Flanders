@@ -7,6 +7,7 @@
 #   Rscript anndata_concat.R -i <input> -o <output_file>
 
 suppressPackageStartupMessages(library(optparse))
+suppressPackageStartupMessages(library(SingleCellExperiment))
 
 # Define command-line options for the script
 option_list <- list(
