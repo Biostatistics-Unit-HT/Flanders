@@ -15,7 +15,7 @@ option_list <- list(
               default = NULL,
               help = "Input h5ad file",
               metavar = "character"),
-  make_option(c("-x", "--exclude_bothsides"),
+  make_option(c("-b", "--exclude_bothsides"),
               type = "character",
               default = NULL,
               help = "Tab separated file with header study_id, phenotype_id that report traits to exclude when both t1 and t2 are in the list",
