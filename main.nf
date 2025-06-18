@@ -28,7 +28,7 @@ workflow {
 	if (params.coloc_guide_table && (params.coloc_exclude_studies_table || params.coloc_skip_previous_studies)) {
 		log.warn """
 		=== ⚠️  WARNING  ⚠️ ===
-		You provided an external coloc guide table (${coloc_guide_table}), but also a coloc_exclude_studies_table or coloc_skip_previous_studies is true.
+		You provided an external coloc guide table (${params.coloc_guide_table}), but also a coloc_exclude_studies_table or coloc_skip_previous_studies is true.
 		Only the external guide table will be used.
 		"""
 	} 
