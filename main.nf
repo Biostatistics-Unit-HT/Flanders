@@ -150,18 +150,17 @@ workflow {
 
 
 	// --- COLOCALIZATION ---
+	full_credible_sets = credible_sets_from_finemapping.collect()
+	previous_h5ad_studies = Channel.value(file('NO_PREVIOUS_H5AD_STUDIES'))
 	if (params.coloc_h5ad_input) {
 		credible_sets_from_input = Channel.fromPath(params.coloc_h5ad_input, checkIfExists:true)
 		if (params.coloc_skip_previous_studies) {
 			GET_STUDY_FROM_ANNDATA(credible_sets_from_input)
 			previous_h5ad_studies = GET_STUDY_FROM_ANNDATA.out.previous_study_ids
 		}	
-		full_credible_sets = credible_sets_from_input
-			.mix(credible_sets_from_finemapping)
+		full_credible_sets = full_credible_sets
+			.mix(credible_sets_from_input)
 			.collect()
-	} else {
-		full_credible_sets = credible_sets_from_finemapping.collect()
-		previous_h5ad_studies = Channel.value(file('NO_PREVIOUS_H5AD_STUDIES'))
 	}
 
 	exclude_studies_file = params.coloc_exclude_studies_table ? 
@@ -183,8 +182,10 @@ workflow {
 			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
 		}
 		if (params.coloc_h5ad_input) {
-			file(params.coloc_h5ad_input).collectFile(
-				newLine: false,
+			Channel.fromPath(params.coloc_h5ad_input)
+			.map { "$it" }
+			.collectFile(
+				newLine: true,
 				name: "input_h5ad_inputs.txt",
 				storeDir: "${params.outdir}/pipeline_inputs"
 			)
