@@ -38,7 +38,6 @@ workflow RUN_COLOCALIZATION {
         .splitText(by: params.coloc_batch_size, keepHeader: true, file: true)
 
     coloc_input_ch = merged_h5ad.combine(coloc_pairs_by_batches)
-    coloc_input_ch.view()
 
     // Run COLOC process on coloc_pairs_by_batches channel
     COLOC(coloc_input_ch)

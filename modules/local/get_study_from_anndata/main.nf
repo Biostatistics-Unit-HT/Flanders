@@ -20,7 +20,7 @@ process GET_STUDY_FROM_ANNDATA {
     get_study_and_pheno_id.py \
         ${args} \
         --input all_h5ad_input_list.txt \
-        --output_file studies_excluded_previous_h5ad.tsv
+        --output studies_excluded_previous_h5ad.tsv
     """
 
   stub:
