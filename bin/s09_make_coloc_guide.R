@@ -58,8 +58,8 @@ if (!is.null(opt$exclude_bothsides)) {
   exclude_2sides[, unique_id := paste(study_id, phenotype_id, sep = "_")]
 
   # Exclude studies where both t1 and t2 are in the exclusion list
-  coloc_input[, t1_excluded := t1_uniqueid %in% exclude_dt$unique_id]
-  coloc_input[, t2_excluded := t2_uniqueid %in% exclude_dt$unique_id]
+  coloc_input[, t1_excluded := t1_uniqueid %in% exclude_2sides$unique_id]
+  coloc_input[, t2_excluded := t2_uniqueid %in% exclude_2sides$unique_id]
   coloc_input <- coloc_input[!(coloc_input$t1_excluded & coloc_input$t2_excluded)]
 
   message(nrow(coloc_input), " coloc tests remaining after exclusion")

@@ -27,7 +27,7 @@ workflow RUN_COLOCALIZATION {
 
     if (params.coloc_guide_table) {
       // If guide table is provided read this and ignore guide table from anndata
-      coloc_guide_table = MAKE_COLOC_GUIDE_TABLE.out.coloc_guide_table
+      coloc_guide_table = file(params.coloc_guide_table, checkIfExist: true)
     } else {
       // Make a guide table, eventually filtering out previous studies
       MAKE_COLOC_GUIDE_TABLE(merged_h5ad, previous_studies_from_h5ad, exclude_studies_file)
