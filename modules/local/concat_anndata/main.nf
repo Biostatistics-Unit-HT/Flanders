@@ -5,7 +5,7 @@ process CONCAT_ANNDATA {
   publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.h5ad"
 
   input:
-    path(all_h5ad)
+    path(all_h5ad, stageAs: 'input_file???/*') 
   
   output:
     path "coloc_input_anndata.h5ad", emit: full_anndata
@@ -15,7 +15,7 @@ process CONCAT_ANNDATA {
     """
     export RETICULATE_PYTHON=\$(which python)
     
-    ls *.h5ad > all_h5ad_input_list.txt
+    ls input_file*/*.h5ad > all_h5ad_input_list.txt
     
     s08_concat_anndata.R \
         ${args} \
@@ -25,7 +25,7 @@ process CONCAT_ANNDATA {
 
   stub:
     """
-    touch complete_anndata.h5ad
+    touch coloc_input_anndata.h5ad
 
     """
 }

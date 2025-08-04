@@ -10,7 +10,7 @@
       "type": "object",
       "fa_icon": "fas fa-terminal",
       "description": "Define where the pipeline should find input data and save output data.",
-      "required": ["coloc_id", "outdir"],
+      "required": ["outdir"],
       "properties": {
         "summarystats_input": {
           "type": "string",
@@ -39,11 +39,6 @@
           "mimetype": "text/csv",
           "fa_icon": "fas fa-file-csv"
         },
-        "coloc_id": {
-          "type": "string",
-          "description": "An ID for the colocalization results, will be used as prefix in colocalization outputs",
-          "default": "coloc_run"
-        },
         "outdir": {
           "type": "string",
           "format": "directory-path",
@@ -59,6 +54,11 @@
       "description": "",
       "default": "",
       "properties": {
+        "finemap_id": {
+          "type": "string",
+          "description": "An ID for the finemapping results, will be used as prefix in the h5ad finemapping output",
+          "default": "finemap_run"
+        },
         "run_liftover": {
           "type": "boolean",
           "default": true,
@@ -87,7 +87,7 @@
           "description": "Whether to publish the susie finemap .rds intermediate files"
         }
       },
-      "required": ["large_locus_size", "susie_max_iter"],
+      "required": ["finemap_id", "large_locus_size", "susie_max_iter"],
       "fa_icon": "fas fa-bezier-curve"
     },
     "colocalization": {
@@ -100,6 +100,11 @@
           "type": "boolean",
           "default": true,
           "description": "Set to true to run colocalization after finemapping"
+        },
+        "coloc_id": {
+          "type": "string",
+          "description": "An ID for the colocalization results, will be used as prefix in colocalization outputs",
+          "default": "coloc_run"
         },
         "coloc_skip_previous_studies": {
           "type": "boolean",
@@ -123,7 +128,12 @@
           "description": "The PP.H4 ABF threshold value to save results into a separate H4 table"
         }
       },
-      "required": ["coloc_batch_size", "pph3_threshold", "pph4_threshold"],
+      "required": [
+        "coloc_id",
+        "coloc_batch_size",
+        "pph3_threshold",
+        "pph4_threshold"
+      ],
       "fa_icon": "fas fa-map-marker-alt"
     },
     "advanced_parameters": {

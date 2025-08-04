@@ -20,12 +20,12 @@ process RDS_TO_ANNDATA {
     s07_rds2anndata.R \
         ${args} \
         --input all_rds_input_list.txt \
-        --output_file finemap_results.h5ad
+        --output_file ${params.finemap_id}_finemap_results.h5ad
     """
 
   stub:
     """
-    touch finemap_results.h5ad
+    touch ${params.finemap_id}_finemap_results.h5ad
 
     """
 }
