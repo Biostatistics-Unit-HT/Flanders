@@ -408,6 +408,7 @@ run_susie_w_retries <- function(
     min_abs_corr = NULL
 ){
   
+  set.seed(1) # To ensure reproducibility
   fitted_rss <- NULL  # Initialize
   coverage_value_updated <- coverage
   
