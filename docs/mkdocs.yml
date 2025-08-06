@@ -19,6 +19,7 @@ theme:
 nav:
   - Home: index.md
   - Quick start: quick-start.md
+  - Inputs: inputs.md
 
 markdown_extensions:
   - toc:
