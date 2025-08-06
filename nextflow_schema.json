@@ -221,6 +221,13 @@
           "description": "Maximum wall time available for a job in the system",
           "hidden": true,
           "fa_icon": "fas fa-users-cog"
+        },
+        "igenomes_base": {
+          "type": "string",
+          "description": "Base directory for iGenomes reference data.",
+          "format": "directory-path",
+          "hidden": true,
+          "fa_icon": "fas fa-folder-open"
         }
       }
     }
