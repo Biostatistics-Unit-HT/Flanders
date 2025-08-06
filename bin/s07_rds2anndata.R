@@ -262,7 +262,7 @@ finemap2anndata <- function(
     lABF_values <- credible_data$lABF
     beta_values <- credible_data$bC ####
     se_values <- credible_data$bC_se ####
-    p_values <- pchisq((credible_data$bC/credible_data$bC_se)**2,1,lower.tail=TRUE)
+    p_values <- pchisq((credible_data$bC/credible_data$bC_se)**2,1,lower.tail=FALSE)
     
     # if(all(c("bC","pC") %in% colnames(credible_data))) ####
     #   se_values <- abs(
