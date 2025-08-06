@@ -6,8 +6,6 @@
     "properties": {
       "input": { "type": "string" },
       "study_id": { "type": "string" },
-      "is_molQTL": { "type": "boolean" },
-      "key": { "type": "string" },
       "chr_lab": { "type": "string" },
       "pos_lab": { "type": "string" },
       "rsid_lab": { "type": "string" },
@@ -18,6 +16,8 @@
       "effect_lab": { "type": "string" },
       "se_lab": { "type": "string" },
       "pvalue_lab": { "type": "string" },
+      "is_molQTL": { "type": "boolean" },
+      "key": { "type": "string" },
       "type": { "type": "string", "enum": ["quant", "cc"] },
       "sdY": { "oneOf": [{ "type": "number" }, { "const": "NA" }] },
       "s": { "oneOf": [{ "type": "number" }, { "const": "NA" }] },

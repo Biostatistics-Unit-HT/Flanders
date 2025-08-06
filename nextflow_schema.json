@@ -10,7 +10,7 @@
       "type": "object",
       "fa_icon": "fas fa-terminal",
       "description": "Define where the pipeline should find input data and save output data.",
-      "required": ["coloc_id", "outdir"],
+      "required": ["outdir"],
       "properties": {
         "summarystats_input": {
           "type": "string",
@@ -20,18 +20,24 @@
           "schema": "assets/summarystats_input_schema.json",
           "fa_icon": "fas fa-file-csv"
         },
-        "coloc_input": {
+        "coloc_h5ad_input": {
           "type": "string",
-          "description": "Input TSV containing results from previous finemapping runs to be loaded",
+          "description": "Input h5ad file(s) containing results from previous finemapping runs to be loaded",
+          "format": "file-path"
+        },
+        "coloc_exclude_studies_table": {
+          "type": "string",
+          "description": "A tab-separated file with header study_id, phenotype_id containing a list of traits to exclude from colocalisation analysis",
           "format": "file-path",
           "mimetype": "text/tsv",
-          "schema": "assets/coloc_input_schema.json",
           "fa_icon": "fas fa-file-csv"
         },
-        "coloc_id": {
+        "coloc_guide_table": {
           "type": "string",
-          "description": "An ID for the colocalization results, will be used as prefix in colocalization outputs",
-          "default": "coloc_run"
+          "description": "A guide table for colocalisation. When provided will take precedence",
+          "format": "file-path",
+          "mimetype": "text/csv",
+          "fa_icon": "fas fa-file-csv"
         },
         "outdir": {
           "type": "string",
@@ -48,6 +54,11 @@
       "description": "",
       "default": "",
       "properties": {
+        "finemap_id": {
+          "type": "string",
+          "description": "An ID for the finemapping results, will be used as prefix in the h5ad finemapping output",
+          "default": "finemap_run"
+        },
         "run_liftover": {
           "type": "boolean",
           "default": true,
@@ -76,7 +87,7 @@
           "description": "Whether to publish the susie finemap .rds intermediate files"
         }
       },
-      "required": ["large_locus_size", "susie_max_iter"],
+      "required": ["finemap_id", "large_locus_size", "susie_max_iter"],
       "fa_icon": "fas fa-bezier-curve"
     },
     "colocalization": {
@@ -89,6 +100,16 @@
           "type": "boolean",
           "default": true,
           "description": "Set to true to run colocalization after finemapping"
+        },
+        "coloc_id": {
+          "type": "string",
+          "description": "An ID for the colocalization results, will be used as prefix in colocalization outputs",
+          "default": "coloc_run"
+        },
+        "coloc_skip_previous_studies": {
+          "type": "boolean",
+          "default": false,
+          "description": "In case a previous h5ad input is given, do not evaluate colocalizations that involves only previous loci"
         },
         "coloc_batch_size": {
           "type": "integer",
@@ -107,7 +128,12 @@
           "description": "The PP.H4 ABF threshold value to save results into a separate H4 table"
         }
       },
-      "required": ["coloc_batch_size", "pph3_threshold", "pph4_threshold"],
+      "required": [
+        "coloc_id",
+        "coloc_batch_size",
+        "pph3_threshold",
+        "pph4_threshold"
+      ],
       "fa_icon": "fas fa-map-marker-alt"
     },
     "advanced_parameters": {
@@ -131,6 +157,79 @@
       },
       "fa_icon": "fas fa-tools",
       "required": ["publish_dir_mode"]
+    },
+    "institutional_config_options": {
+      "title": "Institutional config options",
+      "type": "object",
+      "fa_icon": "fas fa-university",
+      "description": "Parameters used to describe centralised config profiles. These should not be edited.",
+      "help_text": "These parameters define centralized configuration profiles that appear in the Nextflow log when you run a pipeline. You typically don't need to modify these values.",
+      "properties": {
+        "custom_config_version": {
+          "type": "string",
+          "description": "Git commit id for Institutional configs.",
+          "default": "master",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "custom_config_base": {
+          "type": "string",
+          "description": "Base directory for Institutional configs.",
+          "default": "https://raw.githubusercontent.com/nf-core/configs/master",
+          "hidden": true,
+          "help_text": "When running offline, Nextflow cannot retrieve institutional configuration files from the internet. If needed, download these files from the repository and specify their location with this parameter.",
+          "fa_icon": "fas fa-users-cog"
+        },
+        "config_profile_name": {
+          "type": "string",
+          "description": "Institutional config name.",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "config_profile_description": {
+          "type": "string",
+          "description": "Institutional config description.",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "config_profile_contact": {
+          "type": "string",
+          "description": "Institutional config contact information.",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "config_profile_url": {
+          "type": "string",
+          "description": "Institutional config URL link.",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "max_cpus": {
+          "type": "integer",
+          "description": "Maximum number of CPUs available in the system",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "max_memory": {
+          "type": "string",
+          "description": "Maximum amount of memory available in the system",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "max_time": {
+          "type": "string",
+          "description": "Maximum wall time available for a job in the system",
+          "hidden": true,
+          "fa_icon": "fas fa-users-cog"
+        },
+        "igenomes_base": {
+          "type": "string",
+          "description": "Base directory for iGenomes reference data.",
+          "format": "directory-path",
+          "hidden": true,
+          "fa_icon": "fas fa-folder-open"
+        }
+      }
     }
   },
   "allOf": [
@@ -145,6 +244,9 @@
     },
     {
       "$ref": "#/$defs/advanced_parameters"
+    },
+    {
+      "$ref": "#/$defs/institutional_config_options"
     }
   ]
 }
