@@ -1,133 +1,131 @@
-# Flanders : Finemapping coLocalization AND plEiotRopy Solver BETA
+# Flanders : Finemapping coLocalization AND plEiotRopy Solver
 
-Set of tools and pipeline to efficiently colocalise association signals across large sets of traits.
-Colocalization is mainly composed of two steps, which are generally merged in a single function finemapping of the locus and colocalization itself. Given that the expensive part of the computation is the finemapping, to minimise its cost we have split the process in two parts:    
-</br>
-## Step 1: Munging, significant genomic region identification and Finemapping with Susie
+Flanders is a modular pipeline and toolkit for scalable **fine-mapping** and **colocalization** of genetic association signals across large scale datasets and multiple traits.
+Implemented using **Nextflow** and mostly **R**, it separates computationally intensive fine-mapping from downstream colocalization to optimize reusability and performance.
 
-### 1) Munging and harmonising of summary statistics
-   GWAS summary statistics are lifted over to build 38 and snps IDs are converted to the Flanders internal format: `chromosome:position_bp:Effect_allele:Non_effect_allele`. Alleles are ordered according to alphabetical order so that the effect allele is always the one that comes first in alphabetical order. For example rs1570295954 would be called chr1:146054827:A:G and all effect sizes would be flipped to match the A allele being the coded one.
-   
-   __WARNING: This is different from the commonly used REF/ALT schema.__
-   
-   This choice allows reconstruction of the effect and non-effect alleles directly from the SNP id. 
-   Liftover is strongly suggested, although optional. </br>
-      
-### 2) Identification of associated genomic regions.
-   The next step in the workflow is to identify the genomic regions (ie. chr1:1247282-1256282) which contain significant associated snps. To identify genomic regions, we employ an in-house developed algorithm called Locusbreaker, which identifies each association peak based on the distance between the end of a peak and the start of the next one.
-   Briefly, given a defined p-value threshold higher than the genome-wide significant threshold (default: 1x10<sup>-6</sup>), it first selects all the SNPs below such threshold. This will create groups of SNPs close to each other if they belong to the 
-   same association peak. If two consecutive SNPs are closer to each other than a set threshold (default: 250kb), then they are kept together in the same genomic region, while if two SNPs are further than the threshold, they define the 
-   boundaries between peaks.  Genomic regions with at least a significant SNP are retained and their boundaries are enlarged by 100kb to include the surrounding data, which is useful for finemapping.
+---
 
-### 3) Finemapping of each locus
-For each genomic region finemapping is performed using Susie-rss. This step also requires reference genotypes to compute LD between the SNPs.</br>
-
-__WARNING: In-sample LD should always be preferred when possible.__ 
-
-Out of sample LD is particularly problematic and will lead to a very large number of false positives cs when fine-mapping molecular omic phenotypes where the explained variance can be very large.
-
-### 4) Credible sets are stored in csAnnData 
-99% credible sets from the fine mapping step are QC'd based , and lABFs for each SNP in each credible set are stored in an [csAnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications) object. This is a specific implementation of general AnnData described [here](https://anndata.dynverse.org/index.html). In addition to the lABFs for each snp in the 99% credible set we store the average lABF of all the SNPs which are not in the 99% cs to be used later in the iColoc step.
-Furthermore, for each SNP we store in the additional layers the beta and se extracted directly from the IBSS joint multivariable regression from Susie. 
-
-csAnnData allows to efficiently store the lABF from all credible sets in a single sparse matrix while allowing metadata both for credible sets and snps in the obs and var matrices.
-
-This format has several advantages: 
-- efficient storing the information usefull for colocalization analyses in a very limited space (~1000x less storage compared to the original sumstats). 
-- easy merging with other csAnnData objects containing finemapping results from other studies for cross study colocalization
-- R and pythion compatibility
-</br>
-
-## Step 2: Colocalization analysis
-
-1) To maximise efficiency and reduce as much as possible, the first step is to compute all pairs of credible sets which share at least a SNP. Given the way colocalization is computed it is not possible for two credible sets to colocalize if they don't share at least a SNP.
-2) Colocalization for each identified pair is performed in parallel and results are all stored in a single final table using iCOLOC. iCOLOC imputes all the values of lABF outside the credible set to their average. We have run extensive simulations under many different scenarios and this performs as well as standard coloc for discovery while it reduces false positives due to two causal SNPs being in LD.
-</br>
-</br>
-
-## Requirements
+## ✅ Requirements
 Before running the pipeline, ensure you have the following installed:
 
-Nextflow (>= version 24.04) </br>
-Docker / Singularity / Conda
+- [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) (v24.04+)
+- For environment management, one of:
+  - [Docker](https://www.docker.com/)
+  - [Singularity](https://docs.sylabs.io/guides/3.5/user-guide/introduction.html)
+  - [Conda](https://docs.conda.io/en/latest/)
 </br>
 
-## Installation
-Clone the repository and navigate into the project directory:
+
+## ▶️ Running the pipeline
+### Example: Fine-Mapping + Colocalization
+```bash
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --summarystats_input /path/to/input_table.tsv    --run_colocalization true    --finemap_id my_finemap_run    --coloc_id my_coloc_run    -w ./work    -resume
 ```
-git clone https://github.com/Biostatistics-Unit-HT/Flanders.git
+
+### Example: Run Only Colocalization (with existing `.h5ad`)
+```bash
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --coloc_input /path/to/finemapping_output.h5ad    --run_colocalization true    --coloc_id my_coloc_run    -w ./work    -resume
 ```
-</br>
 
-## Input Data
-### Fine-mapping
-- [GWAS summary statistics (.csv/.csv.gz/.tsv/.tsv.gz)](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#gwas-summary-statistics).
-- [Genotypes for LD reference panel in Plink .bed/.bim/.fam format](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#genotypes-for-ld-reference-panel). __Providing, if possible, in sample LD greatly improves the accuracy of fine-mapping__
-- [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#metadata-and-gwas-specific-parameters-table).
-
-### Colocalisation
-- [csAnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications)
-</br>
-
-## Basic Usage
-Run the pipeline using:
-
-```
-nextflow run Flanders/main.nf \
-   -profile [docker|singularity|conda] \
-   --summarystats_input /path/to/input_table.tsv \
-   --run_liftover T \
-   --run_colocalization T \
-   -w ./work \
-   -resume
-```
-| Parameter                     | Description                                                     |
-|-------------------------------|-----------------------------------------------------------------|
-| `--summarystats_input`        | Path to input table                                             |
-| `--run_liftover`              | Whether to lift input data from hg37 to hg38                    |
-| `--run_colocalization`        | Wheter to follow-up fine-mapping with colocalization            |
-
-
-
-
-## Configuration
-Check nextflow.config for all customizabile parameters
-
-| Parameter                     | Description                                                               |
-|-------------------------------|---------------------------------------------------------------------------|
-| **Input data** |                                       |
-| `--summarystats_input`        | Input table with summary statistics and parameters for mungin and finemap |
-| `--coloc_input `              | Input file for coloc                                                      |
-| `--coloc_id`                  | ID label for the coloc analysis output                                    |
-| **Output settings** |                                       |
-| `--outdir`                    | Directory where output will be generated                        |
-| **Munging and finemapping settings** |                                       |
-
-
-</br>
-
-## Quick run with example dataset
-```
-nextflow run Flanders/main.nf -profile test,conda -w ./work
+### Quick run with example dataset
+```bash
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0 -profile test,singularity -w ./work
 ```
 </br>
 
-## Output
-- Processed (and lifted) LD reference plink bfiles (.bed/.bim/.fam)
-- Munged and index (and lifted) GWAS summary statistics
-- Significant loci table
-- Fine-mapping output per locus in multiple .rds files (lABFs, conditional beta and se, qc metrics and metadata for each cs)
-- Fine-mapping output in a single [csAnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications) file (lABFs, conditional beta and se, qc metrics and metadata for each cs)
-- Tables collecting pairwise colocalisation test results
+## 🧠 Pipeline overview
+Flanders separates the fine-mapping and colocalization process into two distinct steps:
+</br>
+</br>
+### Step 1: Fine-mapping
+
+#### Required Inputs
+ Input | Description |
+|-------|-------------|
+| [GWAS summary statistics](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#gwas-summary-statistics) | `.tsv`/`.csv` (optionally gzipped) |
+| LD reference panel | PLINK-format reference panel (`.bed/.bim/.fam`) — preferably from the same sample population used in the GWAS |
+| [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table) | `.tsv` file listing GWAS summary statistics paths and trait-specific parameters |
 </br>
 
-## Performances
+#### Steps
+
+1. **Munging of GWAS summary statistics**
+  - Format harmonization and imputation of missing information (e.g. missing allele frequency calculated from the LD reference panel)
+  - Optional liftover to GRCh38
+  - Alphabetical ordering of alleles, ensuring the first one in alphabetical order is the effect allele (effect sizes and allele frequencies are flipped/inverted where needed)
+  - Conversion of SNP IDs to Flanders internal coding of `"chr"CHR:POS:EA:NEA` ***where EA is the first allele in alphabetical order***
+    </br>⚠️ This differs from common REF/ALT conventions and allows for robust variants matching between multiple GWAS summary statistics and LD reference panel
 </br>
 
-## Credits
-Developed by Biostatistics and Genome Analysis Units at [Human Technopole](https://humantechnopole.it/en/)<br>
-[Arianna Landini](mailto:arianna.landini@fht.org)<br>
-[Sodbo Sharapov](mailto:sodbo.sharapov@fht.org)<br>
-[Edoardo Giacopuzzi](mailto:edoardo.giacopuzzi@fht.org)<br>
-[Bruno Ariano](mailto:bruno.ariano@fht.org)<br>
-[Nicola Pirastu](mailto:nicola.pirastu@fht.org)<br>
+#### 2. Identification of significantly associated genomic regions
+  - Identifies genomic regions containing significant associated SNPs by employing `Locusbreaker`, an in-house developed algorithm which defines each association peak based on the   distance between the end of a peak and the start of the next one.
+
+<details>
+  
+`Locusbreaker` first selects all SNPs below a given a p-value threshold (suggested value 1x10<sup>-6</sup>, customizable at the column `p_thresh2` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table)), identifying groups of SNPs positionally close to each other.
+</br>If two consecutive SNPs are closer to each other than a set distance threshold (suggested value 250kb, customizable at the column `hole` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table)), they are grouped into the same locus, while if they are further apart than the distance threshold, they are used to define the boundaries between peaks.
+</br>Loci with at least a significant SNPs (suggested value 5x10<sup>-8</sup>, customizable at the column `p_thresh1` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table)) are retained and their boundaries are enlarged by 100kb to fully capture the shape of the association peak.
+</details>
+  
+</br>
+
+
+#### 3. Fine-Mapping with SuSiE-RSS
+  - For each genomic region, finemapping is performed using [SuSiE-RSS](https://stephenslab.github.io/susieR/reference/susie_rss.html) and LD calculated from input PLINK files
+</br>⚠️ Whenever possible, in sample LD is strongly recommended (especially for molecular omic phenotypes where the explained variance can be very large).
+</br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded.
+</br>
+
+#### 4. Saving fine-mapping results to AnnData object
+  - Log approximate Bayes factors (lABFs) and metadata for the 99% credible sets are stored in an [AnnData object](https://anndata.dynverse.org/index.html) (.h5ad).
+</br>
+</br>
+
+### Step 2: Colocalization analysis
+
+#### Inputs
+|Input | File description |
+|------|------------------|
+| [Fine-mapping AnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications)    |	An `.h5ad` file containing lABFs and metadata of credible sets (output from the fine-mapping step)  |
+</br>
+
+#### Steps
+
+#### 1. Generation of colocalization guide table
+- Lists all pairs of credible sets that share at least one SNP  (it is not possible for credible sets to colocalize without sharing at least a SNP).
+
+#### 2. Colocalization with iCOLOC
+  - Performs pair-wise colocalization for pair of credible sets listed in the guide table by employing `iCOLOC`, a framework extending traditional [colocalization analysis using Bayes Factors](https://chr1swallace.github.io/coloc/reference/coloc.abf.html) by imputing lABFs of SNPs outside of credible sets to the minimum lABF value in the locus.
+
+<details>
+  
+iCOLOC approach allows to:
+  1. Significantly reducing storage requirements by saving in the AnnData object only exact lABF values of credible sets SNPs
+  2. Enhancing colocalization accuracy compared to tradional coloc by reducing false positives due to two causal SNPs being in strong LD.
+</details>
+
+</br>
+</br>
+
+
+## 📁 Output
+| Output Type                                     | Description                                                                                                      |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `gwas_and_loci_tables/*_dataset_aligned.tsv.gz` | Harmonized (and optionally lifted) GWAS summary statistics                                                       |
+| `gwas_and_loci_tables/*_loci.tsv`               | Boundaries of identified association regions and GWAS summary statistics for the sentinel SNP                    |
+| `finemapping_exceptions/`                       | [Multiple tables reporting information about loci that were not fine-mapped with the standard procedure or at all](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine%E2%80%90mapping-exceptions) |
+| `finemapping/*_susie_finemap.rds` _(optional)_  | Individual RDS files for each fine-mapped locus                                                                  |
+| `anndata/*.h5ad`                                | AnnData object with lABFs, CS metadata and SNP annotations resulting from fine-mapping                           |
+| `coloc/coloc_guide_table.csv`                   | Colocalization analysis guide table, listing all colocalization tests performed                                  |
+| `coloc/*_colocalization.table.*.tsv`            | Colocalization analysis results (all, filterd by PPH4 threshold and filtered by PPH3 threshold)                  |
+</br>
+</br>
+
+
+## 👩‍🔬 Credits
+Developed by the Biostatistics and Genome Analysis Units at [Human Technopole](https://humantechnopole.it/en/)<br>
+-  [Arianna Landini](mailto:arianna.landini@fht.org)<br>
+-  [Sodbo Sharapov](mailto:sodbo.sharapov@fht.org)<br>
+-  [Edoardo Giacopuzzi](mailto:edoardo.giacopuzzi@fht.org)<br>
+-  [Bruno Ariano](mailto:bruno.ariano@fht.org)<br>
+-  [Nicola Pirastu](mailto:nicola.pirastu@fht.org)<br>
