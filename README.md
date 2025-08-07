@@ -89,7 +89,7 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 #### Inputs
 |Input | File description |
 |------|------------------|
-| Fine-mapping AnnData    |	An .h5ad file containing lABFs and metadata of credible sets (output from the fine-mapping step)  |
+| [Fine-mapping AnnData](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/csAnnData-specifications)    |	An `.h5ad` file containing lABFs and metadata of credible sets (output from the fine-mapping step)  |
 </br>
 
 #### Steps
