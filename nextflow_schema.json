@@ -82,7 +82,7 @@
         },
         "publish_susie": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "hidden": true,
           "description": "Whether to publish the susie finemap .rds intermediate files"
         }
