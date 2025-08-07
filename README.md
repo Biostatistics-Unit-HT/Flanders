@@ -42,9 +42,9 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 #### Required Inputs
  Input | Description |
 |-------|-------------|
-| [GWAS summary statistics](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#gwas-summary-statistics) | `.tsv`/`.csv` (optionally gzipped) |
- LD reference panel | PLINK-format reference panel (`.bed/.bim/.fam`) — preferably from the same sample population used in the GWAS |
-| [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#metadata-and-gwas-specific-parameters-table) | `.tsv` file listing GWAS summary statistics paths and trait-specific parameters |
+| [GWAS summary statistics](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#gwas-summary-statistics) | `.tsv`/`.csv` (optionally gzipped) |
+| LD reference panel | PLINK-format reference panel (`.bed/.bim/.fam`) — preferably from the same sample population used in the GWAS |
+| [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table) | `.tsv` file listing GWAS summary statistics paths and trait-specific parameters |
 </br>
 
 #### Steps
@@ -62,9 +62,9 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 
 <details>
   
-`Locusbreaker` first selects all SNPs below a given a p-value threshold (suggested value 1x10<sup>-6</sup>, customizable at the column `p_thresh2` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#metadata-and-gwas-specific-parameters-table)), identifying groups of SNPs positionally close to each other.
-</br>If two consecutive SNPs are closer to each other than a set distance threshold (suggested value 250kb, customizable at the column `hole` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#metadata-and-gwas-specific-parameters-table)), they are grouped into the same locus, while if they are further apart than the distance threshold, they are used to define the boundaries between peaks.
-</br>Loci with at least a significant SNPs (suggested value 5x10<sup>-8</sup>, customizable at the column `p_thresh1` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Inputs#metadata-and-gwas-specific-parameters-table)) are retained and their boundaries are enlarged by 100kb to fully capture the shape of the association peak.
+`Locusbreaker` first selects all SNPs below a given a p-value threshold (suggested value 1x10<sup>-6</sup>, customizable at the column `p_thresh2` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table)), identifying groups of SNPs positionally close to each other.
+</br>If two consecutive SNPs are closer to each other than a set distance threshold (suggested value 250kb, customizable at the column `hole` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table)), they are grouped into the same locus, while if they are further apart than the distance threshold, they are used to define the boundaries between peaks.
+</br>Loci with at least a significant SNPs (suggested value 5x10<sup>-8</sup>, customizable at the column `p_thresh1` of the [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table)) are retained and their boundaries are enlarged by 100kb to fully capture the shape of the association peak.
 </details>
   
 </br>
@@ -72,7 +72,8 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 
 #### 3. Fine-Mapping with SuSiE-RSS
   - For each genomic region, finemapping is performed using [SuSiE-RSS](https://stephenslab.github.io/susieR/reference/susie_rss.html) and LD calculated from input PLINK files
-</br>⚠️ Whenever possible, in sample LD is stringly recommended (especially for molecular omic phenotypes where the explained variance can be very large).
+</br>⚠️ Whenever possible, in sample LD is strongly recommended (especially for molecular omic phenotypes where the explained variance can be very large).
+</br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded.
 </br>
 
 #### 4. Saving fine-mapping results to AnnData object
