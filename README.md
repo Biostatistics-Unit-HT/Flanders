@@ -9,8 +9,9 @@ Implemented using **Nextflow** and mostly **R**, it separates computationally in
 Before running the pipeline, ensure you have the following installed:
 
 - [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) (v24.04+)
-- For environment management, either:
+- For environment management, one of:
   - [Docker](https://www.docker.com/)
+  - [Singularity](https://docs.sylabs.io/guides/3.5/user-guide/introduction.html)
   - [Conda](https://docs.conda.io/en/latest/)
 </br>
 
