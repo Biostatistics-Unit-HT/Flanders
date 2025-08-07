@@ -113,7 +113,7 @@ iCOLOC approach allows to:
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `gwas_and_loci_tables/*_dataset_aligned.tsv.gz` | Harmonized (and optionally lifted) GWAS summary statistics                                                       |
 | `gwas_and_loci_tables/*_loci.tsv`               | Boundaries of identified association regions and GWAS summary statistics for the sentinel SNP                    |
-| `finemapping_exceptions/`                       | Multiple tables reporting information about loci that were not fine-mapped with the standard procedure or at all |
+| `finemapping_exceptions/`                       | [Multiple tables reporting information about loci that were not fine-mapped with the standard procedure or at all](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine%E2%80%90mapping-exceptions) |
 | `finemapping/*_susie_finemap.rds` _(optional)_  | Individual RDS files for each fine-mapped locus                                                                  |
 | `anndata/*.h5ad`                                | AnnData object with lABFs, CS metadata and SNP annotations resulting from fine-mapping                           |
 | `coloc/coloc_guide_table.csv`                   | Colocalization analysis guide table, listing all colocalization tests performed                                  |
