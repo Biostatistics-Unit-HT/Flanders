@@ -15,32 +15,21 @@ Before running the pipeline, ensure you have the following installed:
   - [Conda](https://docs.conda.io/en/latest/)
 </br>
 
-## 📦 Installation
-#### 1. Clone the Repository:
-```
-git clone https://github.com/Biostatistics-Unit-HT/Flanders.git
-```
-#### 2. If using Conda, Set up the environment
-```bash
-conda env create -f pipeline_environment.yml
-conda activate flanders_env
-```
-</br>
 
 ## ▶️ Running the pipeline
 ### Example: Fine-Mapping + Colocalization
 ```bash
-nextflow run Flanders/main.nf    -profile [docker|singularity|conda]    --summarystats_input /path/to/input_table.tsv    --run_colocalization true    -w ./work    -resume
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --summarystats_input /path/to/input_table.tsv    --run_colocalization true    -w ./work    -resume
 ```
 
 ### Example: Run Only Colocalization (with existing `.h5ad`)
 ```bash
-nextflow run Flanders/main.nf    -profile [docker|singularity|conda]    --coloc_input /path/to/finemapping_output.h5ad    --run_colocalization true    --coloc_id my_coloc_run    -w ./work    -resume
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --coloc_input /path/to/finemapping_output.h5ad    --run_colocalization true    --coloc_id my_coloc_run    -w ./work    -resume
 ```
 
 ### Quick run with example dataset
 ```bash
-nextflow run Flanders/main.nf -profile test,conda -w ./work
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0 -profile test,singularity -w ./work
 ```
 </br>
 
