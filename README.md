@@ -19,7 +19,7 @@ Before running the pipeline, ensure you have the following installed:
 ## ▶️ Running the pipeline
 ### Example: Fine-Mapping + Colocalization
 ```bash
-nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --summarystats_input /path/to/input_table.tsv    --run_colocalization true    -w ./work    -resume
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --summarystats_input /path/to/input_table.tsv    --run_colocalization true    --finemap_id my_finemap_run    --coloc_id my_coloc_run    -w ./work    -resume
 ```
 
 ### Example: Run Only Colocalization (with existing `.h5ad`)
