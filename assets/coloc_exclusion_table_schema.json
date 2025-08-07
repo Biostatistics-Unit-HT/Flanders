@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "study_id": { "type": "string" },
+      "phenotype_id": { "type": "string" },
+      "credible_set": { "type": "string" },
+      "top_pvalue": { "type": "number" },
+      "path_rds": { "type": "string" },
+      "path_ind_snps": { "type": "string" },
+      "chr": { "type": "number" }
+    },
+    "required": [
+      "study_id",
+      "phenotype_id",
+      "credible_set",
+      "top_pvalue",
+      "path_rds",
+      "path_ind_snps",
+      "chr"
+    ]
+  }
+}

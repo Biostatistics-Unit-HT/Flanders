@@ -1,6 +1,10 @@
 FROM cgr.dev/chainguard/wolfi-base:latest
-WORKDIR /app
-COPY . /app
+
+LABEL version="3.0"
+LABEL description="Dockerfile for pipeline environment using Miniconda on Wolfi base image for Flanders"
+LABEL maintainer="bruno.ariano@fht.org"
+
+ARG py_v=3.12
 
 RUN apk update && \
     apk add --no-cache \
@@ -9,6 +13,9 @@ RUN apk update && \
         bzip2 \
         ca-certificates \
         openssl \
+        posix-libc-utils \
+        glibc \
+        glibc-dev \
         libgcc \
         libstdc++ \
         git \
@@ -16,30 +23,28 @@ RUN apk update && \
         zlib-dev \
         libxml2-dev \
         openssl-dev \
-        coreutils
+        coreutils \
+        python-${py_v} \
+        py${py_v}-pip
 
+# install conda-lock
+ENV PIP_ROOT_USER_ACTION=ignore
+RUN pip install conda-lock
 
-
-        # Install Miniconda
+# Install Miniconda
 ENV CONDA_DIR=/opt/conda
-RUN curl -L https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh && \
-    bash miniconda.sh -b -p $CONDA_DIR && \
-    rm miniconda.sh
-
-# Add Conda to PATH
+RUN curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh" && \
+    bash Miniforge3-$(uname)-$(uname -m).sh -b -p $CONDA_DIR && \
+    rm Miniforge3-$(uname)-$(uname -m).sh
 ENV PATH="$CONDA_DIR/bin:$PATH"
 
-# Copy your environment.yml file
-COPY pipeline_environment.yml /tmp/environment.yml
+# Create the environment with conda-lock
+COPY conda-lock.yml /tmp/conda-lock.yml
+RUN conda-lock install -n pipeline_environment /tmp/conda-lock.yml
 
-# Create the Conda environment
-#RUN conda env create -f /tmp/environment.yml
-
-# Set the default command to activate the environment
-RUN conda env update -n pipeline_environment -f /tmp/environment.yml
 # Set the environment name
 ENV CONDA_ENV=pipeline_environment
-ENV PATH=/opt/conda/envs/$CONDA_ENV/bin:$PATH
+ENV PATH="/opt/conda/envs/$CONDA_ENV/bin:$PATH"
 
-# Optional: add auto-activation when shell is started
+# Auto-activation when shell is started
 ENTRYPOINT ["conda", "run", "-n", "pipeline_environment"]

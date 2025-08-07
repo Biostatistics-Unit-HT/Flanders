@@ -1,12 +1,12 @@
 #!/usr/bin/env -S Rscript --vanilla
 
-# anndata_concat.R
-# This script concatenates multiple AnnData files into a single object,
+# rds2anndata.R
+# This script concatenates multiple RDS files into a single h5ad object,
 # fixes the variable table (var) by extracting SNP, chromosome, and position,
 # and writes the final AnnData object to an .h5ad file.
 #
 # Usage:
-#   Rscript anndata_concat.R -i <input> -o <output_file>
+#   Rscript rds2anndata.R -i <input> -o <output_file>
 
 suppressPackageStartupMessages(library(optparse))
 suppressPackageStartupMessages(library(data.table))
@@ -16,7 +16,7 @@ suppressPackageStartupMessages(library(dplyr))
 
 
 
-# Define command-line options
+# Define command-line options for the script
 option_list <- list(
   make_option(c("-i", "--input"),
               type = "character",
@@ -101,6 +101,15 @@ finemap2anndata <- function(
   
   if(!preloaded_list)
     names(finemap_files) <- finemap_files
+
+  # If there are duplicated names in finemap_files, append suffix "L{index}" to each duplicate
+  if(any(duplicated(names(finemap_files)))) {
+    dup_names <- names(finemap_files)[duplicated(names(finemap_files)) | duplicated(names(finemap_files), fromLast = TRUE)]
+    for(name in unique(dup_names)) {
+      idx <- which(names(finemap_files) == name)
+      names(finemap_files)[idx] <- paste0(name, "::L", seq_along(idx))
+    }
+  }
   
   for (finemap_file in names(finemap_files)) {
     
@@ -128,11 +137,11 @@ finemap2anndata <- function(
         finemap <- finemap$finemapping_lABFs
       }
       finemap <- data.table(finemap)
-      if("pC" %in% colnames(finemap) & !("p" %in% colnames(finemap)))
-        finemap <- finemap %>% rename(p=pC)
+#      if("pC" %in% colnames(finemap) & !("p" %in% colnames(finemap)))
+#        finemap <- finemap %>% rename(p=pC)
       
-      if("bC" %in% colnames(finemap) & !("b" %in% colnames(finemap)))
-        finemap <- finemap %>% rename(b=bC)
+#      if("bC" %in% colnames(finemap) & !("b" %in% colnames(finemap)))
+#        finemap <- finemap %>% rename(b=bC)
       
       success_count <- success_count + 1
       
@@ -141,7 +150,7 @@ finemap2anndata <- function(
       
       new_rows <- data.table(
         snp = finemap$snp,
-        chr = paste0("chr", unique(chr_start_end_positions$chr)),
+        chr = chr_start_end_positions$chr[which(names(finemap_files)==finemap_file)],
         pos = finemap$pos
       )
       
@@ -176,7 +185,7 @@ finemap2anndata <- function(
       #message(paste("Error in reading file:", basename(finemap_file), "- Skipping"))
       NULL  # return NULL on error
     })
-    n = which(names(finemap_files) == finemap_file)
+    n = length(names(finemap_files) == finemap_file)
     if(n %% 100 == 0){
       cat("\rFinished", n, "of", length(finemap_files))
     }
@@ -253,7 +262,7 @@ finemap2anndata <- function(
     lABF_values <- credible_data$lABF
     beta_values <- credible_data$bC ####
     se_values <- credible_data$bC_se ####
-    p_values <- pchisq((credible_data$bC/credible_data$bC_se)**2,1,lower.tail=TRUE)
+    p_values <- pchisq((credible_data$bC/credible_data$bC_se)**2,1,lower.tail=FALSE)
     
     # if(all(c("bC","pC") %in% colnames(credible_data))) ####
     #   se_values <- abs(
@@ -360,6 +369,8 @@ study_phenotype_ids <- rbindlist(lapply(finemap_files, function(x) x$metadata)) 
 
 # Collect chr, start and end for each credible set
 chr_start_ends <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(chr,start,end)
+
+chr_start_ends$chr <- paste0("chr", chr_start_ends$chr) # add "chr" prefix to chromosome names
 
 # SNP panel
 snp_panel <- unique(unlist(lapply(finemap_files, function(x) x$finemapping_lABFs$snp)))

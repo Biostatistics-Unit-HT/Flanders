@@ -79,6 +79,24 @@ susie_ld <- prep_susie_ld(
   skip_dentist=opt$skip_dentist
 )
 
+# Check if susie_ld is NULL
+if (is.null(susie_ld)) {
+
+  susie_error_message <- "prep_susie_ld returned NULL. No SNPs found in the locus or LD matrix could not be computed."
+  
+  no_variants_in_ld_ref <- data.frame(
+    study_id = opt$study_id,
+    phenotype_id = opt$phenotype_id,
+    chr = opt$chr,
+    start = opt$start,
+    end = opt$end,
+    not_finemapped_reason = susie_error_message
+  )
+
+  fwrite(no_variants_in_ld_ref, paste0(random.number, "_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv"), sep="\t", na=NA, quote=F)
+  quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
+}
+
 # Filter full GWAS sum stat for locus region
 D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
 
@@ -112,8 +130,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     D_sub$p,
     cs_lbf_thr = 2, # TODO: this should be a pipeline argument
     signal_pval_threshold = 1, # TODO: this should be a pipeline argument
-    purity_mean_r2_threshold = 0.5, # TODO: this should be a pipeline argument
-    purity_min_r2_threshold = 0.5, # TODO: this should be a pipeline argument
+    purity_mean_r2_threshold = 0, # TODO: this should be a pipeline argument
+    purity_min_r2_threshold = 0, # TODO: this should be a pipeline argument
     verbose = TRUE
   )
     
@@ -176,7 +194,10 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         )
       
       qc_metrics <- fitted_rss_cleaned$sets$purity[paste0("L",x),] |>
-        dplyr::mutate(coverage = fitted_rss_cleaned$sets$coverage[x], L = length(fitted_rss_cleaned$KL)) # Add also requested coverage and L
+        dplyr::mutate(
+          coverage = fitted_rss_cleaned$sets$requested_coverage,
+          L = length(fitted_rss_cleaned$KL)
+      ) # Add also requested coverage and L
       
       metadata_df <- data.frame(
         study_id=opt$study_id,
@@ -191,7 +212,8 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
           finemapping_lABFs = susie_reformat,
           effect = effect,
           qc_metrics = qc_metrics,
-          metadata = metadata_df
+          metadata = metadata_df,
+          index = index
           )
         )
     })
@@ -202,8 +224,16 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       opt$study_id,
       opt$phenotype_id,
       sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
+      sapply(finemap.res, function(x) x$index),
       sep="::"
     )
+
+    # Remove index part of finemap.res - already saved in cs name
+    finemap.res <- lapply(finemap.res, function(x) {
+      x$index <- NULL
+      x
+    })
+    
     
     #########################################
     # Organise list of what needs to be saved
@@ -218,13 +248,6 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     ## Save info about each cs
     tmp <- rbindlist(lapply(finemap.res, function(x){              
       data.frame(
-        credible_set_name = paste(
-          paste0("chr", opt$chr),
-          opt$study_id,
-          opt$phenotype_id,
-          x$finemapping_lABF$snp[1],
-          sep="::"
-        ),
         credible_set_snps = paste0(x$finemapping_lABFs |> dplyr::filter(is_cs==TRUE) |> dplyr::pull(snp), collapse=","),
         study_id = opt$study_id,
         phenotype_id = opt$phenotype_id,
@@ -241,6 +264,11 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       ) |>
         dplyr::rename(bC=beta, bC_se=se)
     }))
+    tmp$credible_set_name = names(finemap.res)
+
+# Move 'credible_set_name' as first column
+    tmp <- tmp |> dplyr:: select(credible_set_name, everything())
+
     fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
     
     

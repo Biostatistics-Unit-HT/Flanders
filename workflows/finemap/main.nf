@@ -27,13 +27,19 @@ workflow RUN_FINEMAPPING {
     SUSIE_FINEMAPPING.out.finemapped_L1_IBSS_algorithm_did_not_converge
     .collectFile(
       keepHeader: true,
-      name: "FINEMAPPED_L1_IBSS_algorithm_did_not_converge",
+      name: "FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
 
     SUSIE_FINEMAPPING.out.not_finemapped_no_credible_sets_found
     .collectFile(
       keepHeader: true,
       name: "NOT_FINEMAPPED_no_credible_sets_found.tsv",
+      storeDir: "${params.outdir}/results/finemapping_exceptions")
+
+    SUSIE_FINEMAPPING.out.not_finemapped_no_variants_from_locus_in_LD_ref
+    .collectFile(
+      keepHeader: true,
+      name: "NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
     
     // Append all to coloc_info_master_table
