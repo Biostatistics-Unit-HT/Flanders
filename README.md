@@ -73,7 +73,8 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 #### 3. Fine-Mapping with SuSiE-RSS
   - For each genomic region, finemapping is performed using [SuSiE-RSS](https://stephenslab.github.io/susieR/reference/susie_rss.html) and LD calculated from input PLINK files
 </br>⚠️ Whenever possible, in sample LD is strongly recommended (especially for molecular omic phenotypes where the explained variance can be very large).
-</br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded.
+</br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded (loci for which no SNP overlap is found between the GWAS summary statistics and the LD reference panel are reported in [NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine%E2%80%90mapping-exceptions#not_finemapped_no_variants_from_locus_in_ld_reftsv)).
+</br>⚠️ Be aware that **loci fully or partially overlapping the HLA region (GRCh38: chr6:28,510,120-33,480,577) are excluded from fine-mapping**. The HLA region is characterized by extremely high variant density, long-range linkage disequilibrium and complex haplotype patterns, which can bias statistical fine-mapping methods and reduce confidence in inferred causal variants.
 </br>
 
 #### 4. Saving fine-mapping results to AnnData object
