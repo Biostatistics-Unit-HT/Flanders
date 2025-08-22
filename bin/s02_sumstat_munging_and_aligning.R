@@ -55,6 +55,7 @@ IRanges <- IRanges::IRanges
 dataset.munge_hor=function(sumstats.file
                            ,snp.lab="SNP"
                            ,chr.lab="CHR"
+                           ,accepted.chr="1-22"
                            ,pos.lab="BP"
                            ,a1.lab="A1"
                            ,a0.lab="A2"
@@ -67,7 +68,22 @@ dataset.munge_hor=function(sumstats.file
                            ,sdY=NULL
                            ,s=NULL
                            ){
-  
+
+  # Convert the accepted.chr string like 1-22 or 1-5,6-9,12 in a vector of numbers
+  accepted.chr.vec = unlist(lapply(strsplit(accepted.chr, ","), function(x) {
+    as.numeric(unlist(lapply(strsplit(x, "-"), function(y) {
+      if(length(y) == 2) {
+        return(seq(as.numeric(y[1]), as.numeric(y[2])))
+      } else {
+        return(as.numeric(y))
+      }
+    })))
+  }))
+  # Check there are no NA in accepted.chr.vec which mean we failed to convert properly
+  if(any(is.na(accepted.chr.vec))) {
+    stop("Failed to convert accepted.chr to numeric values. The string was: ", accepted.chr)
+  }
+
   # Load sumstat
   dataset = gwas
   if(is.character(sumstats.file)){
@@ -100,8 +116,16 @@ dataset.munge_hor=function(sumstats.file
   
   if(!is.null(chr.lab) & chr.lab %in% names(dataset)){
     names(dataset)[names(dataset)==chr.lab]="CHR"
-    dataset[ , CHR := as.numeric(dataset$CHR)] ### set as numeric, can't merge columns of different classes
-    dataset <- dataset[CHR %in% c(1:22)]
+    # Convert to string to be sure we can process
+    dataset[ , CHR := as.character(CHR)]
+    # First, remove chr prefix if present at the beginning of CHR column (case insensitive)
+    dataset[ , CHR := gsub("^[Cc][Hh][Rr]", "", CHR)]
+    # Second, convert X to 23 and Y to 24
+    dataset[ , CHR := gsub("X", "23", CHR)]
+    dataset[ , CHR := gsub("Y", "24", CHR)]
+    # Finally, make CHR values numeric to be compatible with plink encoding
+    dataset[ , CHR := as.numeric(CHR)] ### set as numeric, can't merge columns of different classes
+    dataset <- dataset[CHR %in% accepted.chr.vec]
   }else{
     stop("chr.lab has not been defined or the column is missing") ### Can be as well retrieved from LD reference bfiles??
   }
@@ -486,6 +510,7 @@ option_list <- list(
   make_option("--is_molQTL", default=NULL, type="logical", help="Whether the summary statistics provided are for eQTLs, ATAC, ChipSeq etc. data"),
   make_option("--key", default=NULL, help="If GWAS is from a molQTL, name of column reporting the trait/phenoptype"),
   make_option("--chr_lab", default="CHROM", help="Name of chromosome column in GWAS summary statistics"),
+  make_option("--accepted_chr", default="1-22", help="Accepted chromosome ranges in GWAS summary statistics"),
   make_option("--pos_lab", default="GENPOS", help="Name of genetic position column in GWAS summary statistics"),
   make_option("--rsid_lab", default="ID", help="Name of rsid column"),  
   make_option("--a1_lab", default="ALLELE1", help="Name of effect allele column"),  
@@ -562,6 +587,7 @@ dataset_munged <- dataset.munge_hor(
   gwas
   ,snp.lab = opt$rsid_lab
   ,chr.lab = opt$chr_lab
+  ,accepted.chr = opt$accepted_chr
   ,pos.lab = opt$pos_lab
   ,a1.lab = opt$a1_lab
   ,a0.lab = opt$a0_lab

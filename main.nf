@@ -111,6 +111,7 @@ workflow {
 				"run_liftover": params.run_liftover ? "T" : "F",
 				"key": row.key,
 				"chr_lab": row.chr_lab,
+				"accepted_chr": params.chromosomes,
 				"pos_lab": row.pos_lab,
 				"rsid_lab": row.rsid_lab,
 				"a1_lab": row.a1_lab,
