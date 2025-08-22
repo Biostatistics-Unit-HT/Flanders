@@ -42,8 +42,8 @@ def main():
                 print("Error: multiple GRCh build detected in grch column but run_liftover is false.", file=sys.stderr)
                 return sys.exit(1)
     
-            
-           
+    # TODO: Add sdY validation... If you're providing sdY through a file check 1) that the file exists, 2) that it has a \"sdY\" and \"phenotype_id\" column and 3) that a sdY is provided for ALL traits in the GWAS sum stat")
+
     for index, record in table_files.iterrows():
         gwas_path = fill_path(record["input"], args.launchdir)
         bfile_path = fill_path(record["bfile"], args.launchdir)

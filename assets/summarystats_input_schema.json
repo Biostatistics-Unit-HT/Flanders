@@ -19,7 +19,9 @@
       "is_molQTL": { "type": "boolean" },
       "key": { "type": "string" },
       "type": { "type": "string", "enum": ["quant", "cc"] },
-      "sdY": { "oneOf": [{ "type": "number" }, { "const": "NA" }] },
+      "sdY": {
+        "oneOf": [{ "type": "number" }, { "type": "string" }, { "const": "NA" }]
+      },
       "s": { "oneOf": [{ "type": "number" }, { "const": "NA" }] },
       "grch": { "type": "number", "enum": [37, 38] },
       "bfile": { "type": "string" },
