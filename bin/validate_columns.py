@@ -60,7 +60,7 @@ def main():
             return sys.exit(1)
 
         # When sdY is a file, read the header and check we have phenotype_id and sdY columns
-        sdY_file = fill_path(record["sdY"], args.launchdir)
+        sdY_file = fill_path(str(record["sdY"]), args.launchdir)
         if os.path.exists(sdY_file):
             sdY_df = pd.read_csv(sdY_file, sep="\t")
             if not all(col in sdY_df.columns for col in ["sdY", "phenotype_id"]):
