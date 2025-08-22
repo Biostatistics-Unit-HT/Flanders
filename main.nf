@@ -6,11 +6,16 @@ include { PROCESS_BFILE } from "./modules/local/process_bfile"
 include { GET_STUDY_FROM_ANNDATA } from "./modules/local/get_study_from_anndata"
 include { completionSummary } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
+include { parseIntervals } from './lib/utils'
 
 workflow {
 	// validate and log pipeline parameters
 	validateParameters()
 	log.info paramsSummaryLog(workflow)
+
+	// additional validation for chromosome intervals
+	def parsed_intervals = parseIntervals(params.chromosomes)
+	log.info "Parsed chromosome intervals: ${parsed_intervals}"
 
 	// Define asset files
   	chain_file = file("${projectDir}/assets/hg19ToHg38.over.chain")
