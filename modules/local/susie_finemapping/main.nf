@@ -32,6 +32,11 @@ process SUSIE_FINEMAPPING {
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
         --susie_max_iter ${params.susie_max_iter}\
+        --susie_qc_cs_lbf_thr ${params.susie_qc_cs_lbf_thr}\
+        --susie_qc_cs_bf_thr ${params.susie_qc_cs_bf_thr}\
+        --susie_qc_pval_thr ${params.susie_qc_pval_thr}\
+        --susie_qc_mean_r2_thr ${params.susie_qc_mean_r2_thr}\
+        --susie_qc_min_r2_thr ${params.susie_qc_min_r2_thr}\
         --publish_susie ${params.publish_susie}\
         --results_path ${outdir} \
         --study_id ${meta_study_id.study_id}

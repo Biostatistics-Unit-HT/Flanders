@@ -15,6 +15,11 @@ option_list <- list(
   make_option("--skip_dentist", default=TRUE, help="Whether to skip the match of SNPs LD between GWAS sum stat and LD reference (performed by DENTIST), and consequent removal of mismatched SNPs"),
   make_option("--cs_thresh", default=0.99, help="Percentage of credible set"),
   make_option("--susie_max_iter", default=400, help="Maximum number of susie iterations"),
+  make_option("--susie_qc_cs_lbf_thr", default=0, help="Credible set logBF threshold for credible sets QC"),
+  make_option("--susie_qc_cs_bf_thr", default=2, help="Credible set BF threshold for credible sets QC"),
+  make_option("--susie_qc_pval_thr", default=1, help="Top SNP p-value threshold for credible sets QC"),
+  make_option("--susie_qc_mean_r2_thr", default=0, help="Credible set purity mean r2 threshold for credible sets QC"),
+  make_option("--susie_qc_min_r2_thr", default=0, help="Credible set for purity minimum r2 threshold for credible sets QC"),
   make_option("--publish_susie", default=FALSE, help=" Whether to publish the susie finemap .rds intermediate files"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study")
@@ -124,17 +129,19 @@ fitted_rss <- run_susie_w_retries(
 # If successful, perform QC
 if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
-#### Sodbo's function QCing Susie output --> check with him all the parameters required
+### Post susie QC od credible sets
   fitted_rss_cleaned <- susie.cs.ht(
     fitted_rss,
     D_sub$p,
-    cs_lbf_thr = 2, # TODO: this should be a pipeline argument
-    signal_pval_threshold = 1, # TODO: this should be a pipeline argument
-    purity_mean_r2_threshold = 0, # TODO: this should be a pipeline argument
-    purity_min_r2_threshold = 0, # TODO: this should be a pipeline argument
+    cs_lbf_thr = opt$susie_qc_cs_lbf_thr,
+    cs_bf_thr = opt$susie_qc_cs_bf_thr,
+    signal_pval_threshold = opt$susie_qc_pval_thr,
+    purity_mean_r2_threshold = opt$susie_qc_mean_r2_thr,
+    purity_min_r2_threshold = opt$susie_qc_min_r2_thr,
     verbose = TRUE
   )
     
+
 ### Proceed only if fitted_rss_cleaned is not null    
   if(!is.null(fitted_rss_cleaned)){
     
