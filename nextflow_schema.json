@@ -80,6 +80,26 @@
           "default": 400,
           "description": "Maximum number of IBSS iterations to perform when running SUSIE, see https://stephenslab.github.io/susieR/reference/susie.html"
         },
+        "susie_qc_cs_bf_thr": {
+          "type": "number",
+          "default": 3,
+          "description": "Credible set BF threshold for credible sets QC"
+        },
+        "susie_qc_pval_thr": {
+          "type": "number",
+          "default": 1,
+          "description": "Minimum SNP p-value threshold for credible sets QC"
+        },
+        "susie_qc_mean_r2_thr": {
+          "type": "number",
+          "default": 0,
+          "description": "Credible set purity mean r2 threshold for credible sets QC"
+        },
+        "susie_qc_min_r2_thr": {
+          "type": "number",
+          "default": 0,
+          "description": "Credible set for purity minimum r2 threshold for credible sets QC"
+        },
         "publish_susie": {
           "type": "boolean",
           "default": false,
