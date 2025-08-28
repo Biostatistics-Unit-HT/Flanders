@@ -94,6 +94,7 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 
 #### 1. Generation of colocalization guide table
 - Lists all pairs of credible sets that share at least one SNP  (it is not possible for credible sets to colocalize without sharing at least a SNP).
+  </br>⚠️ If no credible sets share at least one SNP, no colocalization is performed and an empty guide table is produced.
 
 #### 2. Colocalization with iCOLOC
   - Performs pair-wise colocalization for pair of credible sets listed in the guide table by employing `iCOLOC`, a framework extending traditional [colocalization analysis using Bayes Factors](https://chr1swallace.github.io/coloc/reference/coloc.abf.html) by imputing lABFs of SNPs outside of credible sets to the minimum lABF value in the locus.
