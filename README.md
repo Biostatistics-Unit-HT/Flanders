@@ -52,9 +52,11 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 1. **Munging of GWAS summary statistics**
   - Format harmonization and imputation of missing information (e.g. missing allele frequency calculated from the LD reference panel)
   - Optional liftover to GRCh38
+  - Optional restriction of analysis to enlisted chromosomes
+    </br>⚠️ In addition to autosomes, chromosomes **X** and **Y** are also accepted.
   - Alphabetical ordering of alleles, ensuring the first one in alphabetical order is the effect allele (effect sizes and allele frequencies are flipped/inverted where needed)
   - Conversion of SNP IDs to Flanders internal coding of `"chr"CHR:POS:EA:NEA` ***where EA is the first allele in alphabetical order***
-    </br>⚠️ This differs from common REF/ALT conventions and allows for robust variants matching between multiple GWAS summary statistics and LD reference panel
+    </br>⚠️ This differs from common REF/ALT conventions and allows for robust variants matching between multiple GWAS summary statistics and LD reference panel.
 </br>
 
 #### 2. Identification of significantly associated genomic regions
