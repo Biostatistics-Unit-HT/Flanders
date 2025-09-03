@@ -25,9 +25,10 @@ process LOCUS_BREAKER_TILEDB {
       --out_lb ${params.path_tiledb_lb_out} \
       --maf ${params.tiledb_lb_maf} \
       --type-sumstat ${params.tiledb_lb_typesumstat} \
-      --pvalue_sig ${params.tiledb_lb_pvalue_sig} \
-      --pvalue_limit ${params.tiledb_lb_pvalue_limit} \
+      --pvalue-sig ${params.tiledb_lb_pvalue_sig} \
+      --pvalue-limit ${params.tiledb_lb_pvalue_limit} \
       --hole ${params.tiledb_lb_hole} \
+      --locus-max-size ${params.tiledb_large_locus_size} \
       --locusbreaker
     
     touch dummy_index

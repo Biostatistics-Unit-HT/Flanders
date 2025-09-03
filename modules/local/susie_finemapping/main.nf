@@ -43,10 +43,9 @@ process SUSIE_FINEMAPPING {
       gwas_segment = gwas_final
     }
 
-    // Fallback checks / meaningful error if segment not found
+    // Error if segment not found
     if (params.tiledb && !gwas_segment) {
       // print helpful context and fail fast rather than passing "null" into R
-      // Nextflow will capture this message in the work dir .command.log
       throw new IllegalStateException("SUSIE_FINEMAPPING: couldn't find GWAS 'segment' file. gwas_final=${gwas_final}, gwas_final_index=${gwas_final_index}")
     }
 
