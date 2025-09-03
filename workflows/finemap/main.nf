@@ -5,8 +5,8 @@ include { RDS_TO_ANNDATA          }  from "../../modules/local/rds_to_anndata"
 workflow RUN_FINEMAPPING {
   take:
     finemap_configuration // configuration for each study finemap
-    finemapped_loci // finemapped loci channel from MUNG_AND_LOCUS_BREAKER
-    munged_stats // output channel of MUNG_AND_LOCUS_BREAKER
+    finemapped_loci // finemapped loci channel from MUNG_AND_LOCUS_BREAKER or LOCUS_BREAKER_TILEDB
+    munged_stats // output channel of MUNG_AND_LOCUS_BREAKER or LOCUS_BREAKER_TILEDB
     outdir_abspath // value with absolute path to output directory
 
   main:

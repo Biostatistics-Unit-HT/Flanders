@@ -17,7 +17,8 @@ option_list <- list(
   make_option("--susie_max_iter", default=400, help="Maximum number of susie iterations"),
   make_option("--publish_susie", default=FALSE, help=" Whether to publish the susie finemap .rds intermediate files"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
-  make_option("--study_id", default=NULL, help="Id of the study")
+  make_option("--study_id", default=NULL, help="Id of the study"),
+  make_option("--batch", default=NULL, help="File with multiple loci (chr, start, end, phenotype_id)")
 );
 
 opt_parser = OptionParser(option_list=option_list);
@@ -27,90 +28,156 @@ opt = parse_args(opt_parser);
 source(paste0(opt$pipeline_path, "funs_locus_breaker_cojo_finemap_all_at_once.R"))
 
 
-locus_name <- paste0(opt$chr, "_", opt$start, "_", opt$end)
-opt$chr <- as.numeric(opt$chr)
-opt$start <- as.numeric(opt$start)
-opt$end <- as.numeric(opt$end)
 
 # GWAS input
-dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phenotype_id))
-colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
+if (is.null(opt$batch)) { 
+  opt$chr <- as.numeric(opt$chr)
+  opt$start <- as.numeric(opt$start)
+  opt$end <- as.numeric(opt$end)
+  dataset_aligned <- fread(cmd=paste0("tabix ", opt$dataset_aligned, " ", opt$phenotype_id))
+  colnames(dataset_aligned) <- c("phenotype_id", "snp_original","SNP","CHR","BP","A1","A2","freq","b","se","p","N", "type","temp")
 
-# Set up phenotypic variance correctly
-if(unique(dataset_aligned$type=="quant")){
-  D_var_y = unique(dataset_aligned$temp)^2
-} else if(unique(dataset_aligned$type=="cc")){
-  D_var_y = unique(dataset_aligned$temp) * (1-unique(dataset_aligned$temp))
+  # Set up phenotypic variance correctly
+  if(unique(dataset_aligned$type=="quant")){
+    D_var_y = unique(dataset_aligned$temp)^2
+  } else if(unique(dataset_aligned$type=="cc")){
+    D_var_y = unique(dataset_aligned$temp) * (1-unique(dataset_aligned$temp))
+  }
+  dataset_aligned <- dataset_aligned |> dplyr::select(-temp)
+  dataset_aligned[,"study_id"] = opt$study_id
+  loci_df <- data.frame(
+    chr = opt$chr,
+    start = opt$start,
+    end = opt$end,
+    phenotype_id = opt$phenotype_id,
+    study_id =  opt$study_id
+    )
+  } else {
+
+  loci_df <- fread(opt$batch, header = TRUE)
+  dataset_aligned <- fread(opt$dataset_aligned, header = TRUE)
+  dataset_aligned <- dataset_aligned %>%
+    rename(
+      "p" = "P",
+      "freq" = "EAF",
+      "b" = "BETA",
+      "se" = "SE",
+      "SNP"="SNPID",
+      "BP" = "POS"
+    )
+
+  loci_df <- loci_df %>%
+      rename(
+        "chr" = "CHR",
+        "start" = "START",
+        "end" = "END"
+      )
+  if(loci_df[1,'TYPE'] == "gwas"){
+      dataset_aligned <- dataset_aligned %>%
+      rename(
+        "study_id" = "TRAIT"
+      )
+      loci_df <- loci_df %>%
+      rename(
+        "study_id" = "TRAIT"
+        )
+      dataset_aligned = dataset_aligned %>% mutate("phenotype_id" = "full")
+      loci_df = loci_df %>% mutate("phenotype_id" = "full")
+      #loci_df["phenotype_id"]= "full"
+      
+    } else{
+      loci_df <- loci_df %>%
+        rename(
+          "study_id" = "CELL",
+          "phenotype_id" = "GENE"
+        )
+      dataset_aligned <- dataset_aligned %>%
+      rename(
+        "study_id" = "CELL",
+        "phenotype_id" = "GENE"
+      )
+  }
+  #This need to change to adapt in case of quantitative or CC
+  D_var_y = 1
 }
-dataset_aligned <- dataset_aligned |> dplyr::select(-temp)
 
-################################
-# Conditional analysis with SUSIE
-################################
+for (i in 1:nrow(loci_df)) {
+  chr <- loci_df$chr[i]
+  start <- loci_df$start[i]
+  end <- loci_df$end[i]
+  phenotype_name <- loci_df$phenotype_id[i]
+  study_name <- loci_df$study_id[i] 
+  
+  
+  locus_name <- paste0(chr, "_", start, "_", end)
+  chr <- as.numeric(chr)
+  start <- as.numeric(start)
+  end <- as.numeric(end)
+  dataset_aligned_sub <- dataset_aligned %>%
+                filter((phenotype_id == phenotype_name) & (study_id == study_name))
 
-random.number <- stri_rand_strings(n=1, length=20, pattern="[A-Za-z0-9]")
+  random.number <- stri_rand_strings(n=1, length=20, pattern="[A-Za-z0-9]")
 
 ### If required, run DENTIST to identify mismatches between GWAS sum stats and LD panel
-if (opt$skip_dentist){
-  cat(paste0("I assume you provided in-sample LD reference? Otherwise consider using DENTIST!"))
-} else {
+  if (opt$skip_dentist){
+    cat(paste0("I assume you provided in-sample LD reference? Otherwise consider using DENTIST!"))
+  } else {
   run_dentist(
-    D=dataset_aligned,
-    locus_chr=opt$chr,
-    locus_start=opt$start,
-    locus_end=opt$end,
+    D=dataset_aligned_sub,
+    locus_chr=chr,
+    locus_start=start,
+    locus_end=end,
     bfile=opt$bfile,
     maf.thresh=opt$maf,
     random.number=random.number,
     dentist.bin="DENTIST"
   )
-}
+  }
 
-
-# Compute LD matrix
-susie_ld <- prep_susie_ld(
-  D=dataset_aligned,
-  locus_chr=opt$chr,
-  locus_start=opt$start,
-  locus_end=opt$end,
+  # Compute LD matrix
+  susie_ld <- prep_susie_ld(
+  D=dataset_aligned_sub,
+  locus_chr=chr,
+  locus_start=start,
+  locus_end=end,
   bfile=opt$bfile,
   maf.thresh=opt$maf,
   random.number=random.number,
   skip_dentist=opt$skip_dentist
-)
+  )
 
 # Check if susie_ld is NULL
-if (is.null(susie_ld)) {
+  if (is.null(susie_ld)) {
 
   susie_error_message <- "prep_susie_ld returned NULL. No SNPs found in the locus or LD matrix could not be computed."
   
   no_variants_in_ld_ref <- data.frame(
-    study_id = opt$study_id,
-    phenotype_id = opt$phenotype_id,
-    chr = opt$chr,
-    start = opt$start,
-    end = opt$end,
+    study_id = study_name,
+    phenotype_id = phenotype_name,
+    chr = chr,
+    start = start,
+    end = end,
     not_finemapped_reason = susie_error_message
   )
 
   fwrite(no_variants_in_ld_ref, paste0(random.number, "_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv"), sep="\t", na=NA, quote=F)
   quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
-}
+  }
 
-# Filter full GWAS sum stat for locus region
-D_sub <- dataset_aligned[match(rownames(susie_ld),dataset_aligned$SNP),]
+  # Filter full GWAS sum stat for locus region
+  D_sub <- dataset_aligned_sub[match(rownames(susie_ld),dataset_aligned_sub$SNP),]
 
 
-### Run SUSIE
+  ### Run SUSIE
 
-# 1) Check if susie output was produced
-# 2) If susie output was produced, check that cs are not empty. If not, lower coverage until at least a cs is found or bottom threshold for coverage is reached
-# 3) If cs are not empty, apply QC and then check that QCed cs object is not empty
+  # 1) Check if susie output was produced
+  # 2) If susie output was produced, check that cs are not empty. If not, lower coverage until at least a cs is found or bottom threshold for coverage is reached
+  # 3) If cs are not empty, apply QC and then check that QCed cs object is not empty
 
-min_coverage <- 0.7
-L <- 10
+  min_coverage <- 0.7
+  L <- 10
 
-fitted_rss <- run_susie_w_retries(
+  fitted_rss <- run_susie_w_retries(
   D_sub,
   D_var_y,
   susie_ld,
@@ -119,12 +186,12 @@ fitted_rss <- run_susie_w_retries(
   min_coverage = min_coverage,
   max_iter = opt$susie_max_iter,
   min_abs_corr = NULL
-)
+  )
 
-# If successful, perform QC
-if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
+  # If successful, perform QC
+  if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
-#### Sodbo's function QCing Susie output --> check with him all the parameters required
+  ### Sodbo's function QCing Susie output --> check with him all the parameters required
   fitted_rss_cleaned <- susie.cs.ht(
     fitted_rss,
     D_sub$p,
@@ -135,7 +202,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     verbose = TRUE
   )
     
-### Proceed only if fitted_rss_cleaned is not null    
+  ### Proceed only if fitted_rss_cleaned is not null    
   if(!is.null(fitted_rss_cleaned)){
     
     # vector of AF with SNP names
@@ -200,11 +267,11 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       ) # Add also requested coverage and L
       
       metadata_df <- data.frame(
-        study_id=opt$study_id,
-        phenotype_id=opt$phenotype_id,
-        chr=opt$chr,
-        start=opt$start,
-        end=opt$end
+        study_id=study_name,
+        phenotype_id=phenotype_name,
+        chr=chr,
+        start=start,
+        end=end
       )
       
       return(
@@ -220,9 +287,9 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
     # Name each credible set
     names(finemap.res) <- paste(
-      paste0("chr", opt$chr),
-      opt$study_id,
-      opt$phenotype_id,
+      paste0("chr", chr),
+      study_name,
+      phenotype_name,
       sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
       sapply(finemap.res, function(x) x$index),
       sep="::"
@@ -239,7 +306,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     # Organise list of what needs to be saved
     #########################################
 
-    core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
+    core_file_name <- paste0(study_name, "_", phenotype_name)
 #    if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
 
     ## Save .rds object
@@ -249,11 +316,11 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     tmp <- rbindlist(lapply(finemap.res, function(x){              
       data.frame(
         credible_set_snps = paste0(x$finemapping_lABFs |> dplyr::filter(is_cs==TRUE) |> dplyr::pull(snp), collapse=","),
-        study_id = opt$study_id,
-        phenotype_id = opt$phenotype_id,
-        chr = opt$chr,
-        start = opt$start,
-        end = opt$end,
+        study_id = study_name,
+        phenotype_id = phenotype_name,
+        chr = chr,
+        start = start,
+        end = end,
         top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=FALSE), na.rm=T),
           #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
         path_rds = ifelse(
@@ -275,11 +342,11 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     ## List of loci which were still fine-mapped but with L=1 (and why)
     if(!is.na(fitted_rss_cleaned$comment_section)){
       L1_finemap <- data.frame(
-        study_id = opt$study_id,
-        phenotype_id = opt$phenotype_id,
-        chr = opt$chr,
-        start = opt$start,
-        end = opt$end,
+        study_id = study_name,
+        phenotype_id = phenotype_name,
+        chr = chr,
+        start = start,
+        end = end,
         finemapped_L1_reason = fitted_rss_cleaned$comment_section
       )
       
@@ -299,12 +366,13 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 } else { ### if region was not fine-mapped at all!
   
   failed_finemap <- data.frame(
-    study_id = opt$study_id,
-    phenotype_id = opt$phenotype_id,
-    chr = opt$chr,
-    start = opt$start,
-    end = opt$end
+    study_id = study_name,
+    phenotype_id = phenotype_name,
+    chr = chr,
+    start = start,
+    end = end
   )
   fwrite(failed_finemap, paste0(random.number, "_NOT_FINEMAPPED_no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
   
+}
 }

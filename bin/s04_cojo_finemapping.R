@@ -19,6 +19,7 @@ option_list <- list(
   make_option("--cs_thresh", default=0.99, help="Percentage of credible set"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study")
+  make_option("--use_tiledb", default=NULL, help="Id of the study")
 );
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
