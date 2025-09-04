@@ -13,6 +13,7 @@ process SUSIE_FINEMAPPING {
     tuple val(meta_study_id), path ("*_cs_info_table.tsv"), optional:true, emit:susie_info_coloc_table
     path "*_FINEMAPPED_L1_prior_variance_too_large.tsv", optional:true, emit: finemapped_L1_prior_variance_too_large
     path "*_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv", optional:true, emit: finemapped_L1_IBSS_algorithm_did_not_converge
+    path "*_FINEMAPPED_L1_recover_after_susie_QC.tsv", optional:true, emit: finemapped_L1_recover_after_susie_QC
     path "*_NOT_FINEMAPPED_no_credible_sets_found.tsv", optional:true, emit: not_finemapped_no_credible_sets_found
     path "*_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv", optional:true, emit: not_finemapped_no_variants_from_locus_in_LD_ref
 
