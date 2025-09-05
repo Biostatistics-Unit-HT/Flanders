@@ -83,7 +83,7 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   
   bim_to_clean <- hg19ToHg38_liftover(bim)
   
-} else if(as.numeric(opt$grch)==38){
+} else {
 
   bim_to_clean <- bim
 
