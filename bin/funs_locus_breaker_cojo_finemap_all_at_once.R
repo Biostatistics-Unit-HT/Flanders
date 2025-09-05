@@ -510,3 +510,139 @@ run_susie_w_retries <- function(
     
   return(fitted_rss)
 }
+
+
+#' Extract and Annotate Fine-Mapping Results from SuSiE RSS Output
+#'
+#' This function processes the output of a \code{susie_rss} fine-mapping run and 
+#' returns detailed annotations for each credible set (CS). For each CS, the function 
+#' extracts log approximate Bayes factors (lABFs), estimated effect sizes and standard errors,
+#' QC metrics, and study metadata. The results are named according to chromosome, study ID, 
+#' phenotype ID, top SNP, and CS index.
+#'
+#' @param fitted A \code{susie} or \code{susie_rss} object, typically the output of 
+#'   \code{susieR::susie_rss()}.
+#' @param D_sub A data.frame containing SNP-level information, with at least the columns:
+#'   \code{SNP}, \code{BP} (base-pair position), \code{freq} (allele frequency), and \code{N} (sample size).
+#' @param cs_indices A list of credible set indices (e.g. as returned by \code{expand_cs()}), 
+#'   where each element is a named vector of SNP indices corresponding to a CS.
+#' @param study_id Character. Identifier for the study.
+#' @param phenotype_id Character. Identifier for the phenotype.
+#' @param chr Integer or character. Chromosome number or label.
+#' @param start Integer. Start position of the fine-mapped region.
+#' @param end Integer. End position of the fine-mapped region.
+#'
+#' @return A named list of results, one element per credible set. Each element is itself a list with:
+#' \describe{
+#'   \item{finemapping_lABFs}{Data frame of SNP-level results, including SNP ID, position, lABF, 
+#'         estimated effect size (beta), standard error (bC_se), and whether the SNP belongs to the CS.}
+#'   \item{effect}{Data frame describing the top SNP by lABF (alleles, frequency, N, beta, se).}
+#'   \item{qc_metrics}{Data frame of purity and coverage metrics for the CS.}
+#'   \item{metadata}{Data frame with study and region-level metadata.}
+#' }
+#'
+#' The names of the list elements are constructed as:
+#' \code{chr<chr>::<study_id>::<phenotype_id>::<top_snp>::<CS_label>}.
+#'
+#' @examples
+#' \dontrun{
+#' fitted <- susieR::susie_rss(z, R, n = N)
+#' expanded_cs <- expand_cs(fitted)
+#' results <- extract_susie_results(
+#'   fitted = fitted,
+#'   D_sub = D_sub,
+#'   cs_indices = expanded_cs,
+#'   study_id = "StudyX",
+#'   phenotype_id = "TraitY",
+#'   chr = 1,
+#'   start = 1e6,
+#'   end = 2e6
+#' )
+#' }
+#'
+#' @seealso \code{\link{expand_cs}}, \code{\link[susieR]{susie_rss}}
+#' @export
+extract_susie_results <- function(
+    fitted,
+    D_sub,
+    cs_indices,
+    study_id,
+    phenotype_id,
+    chr,
+    start,
+    end) {
+  
+  freq <- setNames(D_sub$freq, D_sub$SNP)
+  N    <- setNames(D_sub$N, D_sub$SNP)
+  coverage <- fitted$sets$requested_coverage
+  
+  results <- lapply(fitted$sets$cs_index, function(cs_index) {
+    index <- paste0("L", cs_index)
+    x <- cs_indices[[index]]  # unified set
+    
+    beta_se_list <- get_beta_se_susie(fitted, cs_index)
+    
+    lABF_df <- data.frame(
+      SNP   = colnames(fitted$lbf_variable),
+      lABF  = fitted$lbf_variable[cs_index, ],
+      bC    = beta_se_list$beta,
+      bC_se = beta_se_list$se
+    )
+    
+    susie_reformat <- D_sub |>
+      dplyr::mutate(is_cs = SNP %in% names(x)) |>
+      dplyr::inner_join(lABF_df, by = "SNP") |>
+      dplyr::select(SNP, BP, lABF, bC, bC_se, is_cs) |>
+      dplyr::rename(snp = SNP, position = BP) |>
+      dplyr::arrange(desc(lABF))
+    
+    # Top SNP
+    top <- susie_reformat[1, ]
+    snp_top <- top$snp
+    chr_pos_a1_a0 <- strsplit(snp_top, ":")[[1]]
+    
+    effect <- data.frame(
+      snp  = snp_top,
+      a1   = chr_pos_a1_a0[3],
+      a0   = chr_pos_a1_a0[4],
+      freq = freq[snp_top],
+      N    = N[snp_top],
+      beta = top$bC,
+      se   = top$bC_se
+    )
+    
+    qc_metrics <- fitted$sets$purity[index, ] |>
+      dplyr::mutate(
+        coverage = coverage,
+        L = length(fitted$KL)
+      )
+    
+    metadata_df <- data.frame(
+      study_id     = study_id,
+      phenotype_id = phenotype_id,
+      chr          = chr,
+      start        = start,
+      end          = end
+    )
+    
+    list(
+      finemapping_lABFs = susie_reformat,
+      effect            = effect,
+      qc_metrics        = qc_metrics,
+      metadata          = metadata_df
+    )
+  })
+# ---- Naming each credible set ----
+  names(results) <- paste(
+    paste0("chr", chr),
+    study_id,
+    phenotype_id,
+    sapply(results, function(x) x$finemapping_lABFs$snp[1]), # top SNP
+    names(cs_indices),  # CS label (L1, L2, etc.)
+    sep = "::"
+  )
+  return(results)
+}
+
+
+
