@@ -107,7 +107,7 @@
           "description": "Whether to publish the susie finemap .rds intermediate files"
         }
       },
-      "required": ["finemap_id", "large_locus_size", "susie_max_iter"],
+      "required": ["finemap_id"],
       "fa_icon": "fas fa-bezier-curve"
     },
     "colocalization": {
