@@ -129,7 +129,7 @@ fitted_rss <- run_susie_w_retries(
 if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
   # Perform QC only for loci fine-mapped with L=10
-  if (length(fitted_rss$KL)==10) {
+  if (length(fitted_rss$KL)==L) {
 
   ### Post susie QC od credible sets
   #  fitted_rss_cleaned <- flanders::susie.cs.ht( ### THIS IS TEMPORARY UNTIL UPDATE OF THE GITHUB FLANDERS R REPO
