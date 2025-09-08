@@ -42,8 +42,6 @@ def main():
                 print("Error: multiple GRCh build detected in grch column but run_liftover is false.", file=sys.stderr)
                 return sys.exit(1)
     
-            
-           
     for index, record in table_files.iterrows():
         gwas_path = fill_path(record["input"], args.launchdir)
         bfile_path = fill_path(record["bfile"], args.launchdir)
@@ -60,6 +58,19 @@ def main():
         if pd.isna(record['freq_lab']) and pd.isna(record['n_lab']):
             print(f"Error: freq_lab and n_lab are both missing/NA in the input table for {gwas_path}. At least one is needed", file=sys.stderr)
             return sys.exit(1)
+
+        # When sdY is a file, read the header and check we have phenotype_id and sdY columns
+        sdY_file = fill_path(str(record["sdY"]), args.launchdir)
+        if os.path.exists(sdY_file):
+            sdY_df = pd.read_csv(sdY_file, sep="\t", nrows=1)
+            if not all(col in sdY_df.columns for col in ["sdY", "phenotype_id"]):
+                print(f"Error: sdY file {sdY_file} must contain 'sdY' and 'phenotype_id' columns.", file=sys.stderr)
+                return sys.exit(1)
+        else:
+            # If sdY is not a file check that it is either NA, "NA" or can be casted to a number
+            if not pd.isna(record["sdY"]) and str(record["sdY"]) not in ["NA", "na"] and pd.isna(pd.to_numeric(record["sdY"], errors='coerce')):
+                print(f"Error: sdY value {record['sdY']} is not valid. It must be either NA, an existing file path or a number", file=sys.stderr)
+                return sys.exit(1)
 
         # Check that the desired columns are found in sumstats file
         gwas_sub = read_gwas_file(gwas_path)

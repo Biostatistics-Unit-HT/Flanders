@@ -59,6 +59,11 @@
           "description": "An ID for the finemapping results, will be used as prefix in the h5ad finemapping output",
           "default": "finemap_run"
         },
+        "chromosomes": {
+          "type": "string",
+          "description": "A string setting chromosomes to include in munging and finemapping. Intervals string can be like 1-22 or 1,6,3 or 1-6,7-10",
+          "default": "1-22"
+        },
         "run_liftover": {
           "type": "boolean",
           "default": true,
