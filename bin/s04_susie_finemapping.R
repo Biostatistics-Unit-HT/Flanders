@@ -128,7 +128,7 @@ fitted_rss <- run_susie_w_retries(
 # If successfull, pass to QC
 if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
-  # Perform QC only for loci fine-mapped with L=10
+  # Perform QC only for loci fine-mapped with L=10 (or whatever number was set)
   if (length(fitted_rss$KL)==L) {
 
   ### Post susie QC od credible sets
@@ -154,7 +154,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         max_iter = opt$susie_max_iter,
         min_abs_corr = 0
       )
-      fitted_rss_cleaned$comment_section <- "Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=10 passed post susie QC"
+      fitted_rss_cleaned$comment_section <- paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L, " passed post susie QC"
     }
 
   # Skip QC for loci fine-mapped with L=1
@@ -317,9 +317,9 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
     }
 
-    L1_finemap_missing_loci_at_L10 <- L1_finemap |> dplyr::filter(grepl("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=10 passed post susie QC", finemapped_L1_reason))
-    if(nrow(L1_finemap_missing_loci_at_L10) > 0){
-      fwrite(L1_finemap_missing_loci_at_L10, paste0(random.number, "_FINEMAPPED_L1_recover_after_susie_QC.tsv"), sep="\t", na=NA, quote=F)
+    L1_finemap_missing_loci_post_susie_QC <- L1_finemap |> dplyr::filter(grepl(paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L," passed post susie QC"), finemapped_L1_reason))
+    if(nrow(L1_finemap_missing_loci_post_susie_QC) > 0){
+      fwrite(L1_finemap_missing_loci_post_susie_QC, paste0(random.number, "_FINEMAPPED_L1_recover_after_susie_QC.tsv"), sep="\t", na=NA, quote=F)
     }
   
   }
