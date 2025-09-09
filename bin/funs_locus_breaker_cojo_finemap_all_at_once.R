@@ -512,6 +512,117 @@ run_susie_w_retries <- function(
 }
 
 
+#' Expand SuSiE Credible Sets by Thresholding
+#'
+#' Expands each credible set (CS) from a fitted \code{susie} or \code{susie_rss} 
+#' object by applying a thresholding rule to log Bayes factors (\code{lbf_variable}). 
+#' The expanded set is defined as the union of the original CS and 
+#' SNPs identified via \code{\link{find_threshold}}.
+#'
+#' @param fitted A \code{susie} or \code{susie_rss} object, typically the 
+#'   output of \code{susieR::susie_rss()}.
+#'
+#' @return A named list of integer vectors, one per credible set.  
+#'   Each vector contains SNP indices for the union of the original and 
+#'   expanded credible sets, with SNP IDs as names.
+#'
+#' @details 
+#' The function retrieves original CSs, then applies \code{find_threshold()}
+#' to the corresponding lBF values. The expanded CS is the union of both sets.
+#'
+#' @seealso \code{\link{find_threshold}}
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' fitted <- susieR::susie_rss(z, R, n = N)
+#' expanded <- expand_cs(fitted)
+#' names(expanded)
+#' }
+expand_cs <- function(fitted) {
+    cs_list  <- fitted$sets$cs
+    snp_names <- colnames(fitted$lbf_variable)
+    
+    expanded <- lapply(names(cs_list), function(i) {
+        idx_original <- cs_list[[i]]
+        names(idx_original) <- snp_names[idx_original]  # name with SNP IDs
+        i_num <- as.integer(gsub("L", "", i))
+
+        lbf_vec <- fitted$lbf_variable[i_num, ]
+        idx_expanded <- find_threshold(lbf_vec, original_idx = idx_original)
+    
+        # Union of both
+        idx_union <- union(idx_original, idx_expanded)
+        names(idx_union) <- snp_names[idx_union]
+        
+        idx_union
+    })
+    names(expanded) <- names(cs_list)
+    return(expanded)
+}
+
+
+
+#' Identify Expanded Credible Set SNPs via Thresholding
+#'
+#' Given a vector of SNP scores (e.g. lABFs), this function determines an 
+#' optimal threshold that best separates the values into two groups. 
+#' SNPs above the threshold are considered part of the expanded credible set.
+#'
+#' @param vector Numeric vector of SNP-level scores.
+#' @param original_idx Optional integer vector of SNP indices corresponding 
+#'   to the original credible set. If no expansion is possible 
+#'   (e.g. variance of \code{vector} is zero), these indices are returned instead.
+#'
+#' @return An integer vector of SNP indices corresponding to the expanded credible set.  
+#'   If no expansion is possible, the original indices are returned.
+#'
+#' @seealso \code{\link{expand_cs}}
+#' @export
+#'
+#' @examples
+#' lbf_vec <- rnorm(100)
+#' cs_idx <- which(lbf_vec > 2)
+#' find_threshold(lbf_vec, original_idx = cs_idx)
+find_threshold <- function(vector, original_idx = NULL) {
+  if (var(vector) != 0) {
+    thres <- optim(
+      fn = function(th) thresholder(th, vector),
+      p = 0,
+      method = "Brent",
+      lower = min(vector),
+      upper = max(vector)
+    )
+    idx <- which(vector > thres$par)
+    return(idx)
+  } else {
+    # Return original indices if no expansion is possible
+    return(original_idx)
+  }
+}
+
+
+#' Objective Function for Threshold Optimization
+#'
+#' Internal helper used by \code{\link{find_threshold}}. 
+#' Given a numeric threshold and a vector of SNP scores, it splits the vector 
+#' into two groups and returns the variance of residuals from a simple linear model.
+#'
+#' @param threshold Numeric. Threshold value used to split the vector into groups.
+#' @param vector Numeric vector of SNP scores (e.g. lABFs).
+#'
+#' @return A single numeric value: the variance of residuals from the fitted model.
+#'
+#' @note This function is not exported. It is used internally by \code{find_threshold()}.
+#'
+#' @keywords internal
+thresholder <- function(threshold, vector) {
+  var(residuals(lm(vector ~ ifelse(vector > threshold, "A", "B"))))
+}
+
+
+
+
 #' Extract and Annotate Fine-Mapping Results from SuSiE RSS Output
 #'
 #' This function processes the output of a \code{susie_rss} fine-mapping run and 
