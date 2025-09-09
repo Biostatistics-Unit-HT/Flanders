@@ -154,7 +154,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
         max_iter = opt$susie_max_iter,
         min_abs_corr = 0
       )
-      fitted_rss_cleaned$comment_section <- paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L, " passed post susie QC"
+      fitted_rss_cleaned$comment_section <- paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L, " passed post susie QC")
     }
 
   # Skip QC for loci fine-mapped with L=1
