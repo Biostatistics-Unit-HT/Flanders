@@ -1,0 +1,6 @@
+CHR,TRAIT
+1,bmi
+1,heel_bone_mineral_density
+1,stroke
+1,height
+1,balding_pattern_1
