@@ -52,9 +52,11 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 1. **Munging of GWAS summary statistics**
   - Format harmonization and imputation of missing information (e.g. missing allele frequency calculated from the LD reference panel)
   - Optional liftover to GRCh38
+  - Optional restriction of analysis to enlisted chromosomes
+    </br>⚠️ In addition to autosomes, chromosomes **X** and **Y** are also accepted.
   - Alphabetical ordering of alleles, ensuring the first one in alphabetical order is the effect allele (effect sizes and allele frequencies are flipped/inverted where needed)
   - Conversion of SNP IDs to Flanders internal coding of `"chr"CHR:POS:EA:NEA` ***where EA is the first allele in alphabetical order***
-    </br>⚠️ This differs from common REF/ALT conventions and allows for robust variants matching between multiple GWAS summary statistics and LD reference panel
+    </br>⚠️ This differs from common REF/ALT conventions and allows for robust variants matching between multiple GWAS summary statistics and LD reference panel.
 </br>
 
 #### 2. Identification of significantly associated genomic regions
@@ -73,7 +75,8 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 #### 3. Fine-Mapping with SuSiE-RSS
   - For each genomic region, finemapping is performed using [SuSiE-RSS](https://stephenslab.github.io/susieR/reference/susie_rss.html) and LD calculated from input PLINK files
 </br>⚠️ Whenever possible, in sample LD is strongly recommended (especially for molecular omic phenotypes where the explained variance can be very large).
-</br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded.
+</br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded (loci for which no SNP overlap is found between the GWAS summary statistics and the LD reference panel are reported in [NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine%E2%80%90mapping-exceptions#not_finemapped_no_variants_from_locus_in_ld_reftsv)).
+</br>⚠️ Be aware that **loci fully or partially overlapping the HLA region (GRCh38: chr6:28,510,120-33,480,577) are excluded from fine-mapping**. The HLA region is characterized by extremely high variant density, long-range linkage disequilibrium and complex haplotype patterns, which can bias statistical fine-mapping methods and reduce confidence in inferred causal variants.
 </br>
 
 #### 4. Saving fine-mapping results to AnnData object
@@ -93,6 +96,7 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 
 #### 1. Generation of colocalization guide table
 - Lists all pairs of credible sets that share at least one SNP  (it is not possible for credible sets to colocalize without sharing at least a SNP).
+  </br>⚠️ If no credible sets share at least one SNP, no colocalization is performed and an empty guide table is produced.
 
 #### 2. Colocalization with iCOLOC
   - Performs pair-wise colocalization for pair of credible sets listed in the guide table by employing `iCOLOC`, a framework extending traditional [colocalization analysis using Bayes Factors](https://chr1swallace.github.io/coloc/reference/coloc.abf.html) by imputing lABFs of SNPs outside of credible sets to the minimum lABF value in the locus.

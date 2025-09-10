@@ -15,6 +15,10 @@ option_list <- list(
   make_option("--skip_dentist", default=TRUE, help="Whether to skip the match of SNPs LD between GWAS sum stat and LD reference (performed by DENTIST), and consequent removal of mismatched SNPs"),
   make_option("--cs_thresh", default=0.99, help="Percentage of credible set"),
   make_option("--susie_max_iter", default=400, help="Maximum number of susie iterations"),
+  make_option("--susie_qc_cs_bf_thr", default=3, help="Credible set BF threshold for credible sets QC"),
+  make_option("--susie_qc_pval_thr", default=1, help="Top SNP p-value threshold for credible sets QC"),
+  make_option("--susie_qc_mean_r2_thr", default=0, help="Credible set purity mean r2 threshold for credible sets QC"),
+  make_option("--susie_qc_min_r2_thr", default=0, help="Credible set for purity minimum r2 threshold for credible sets QC"),
   make_option("--publish_susie", default=FALSE, help=" Whether to publish the susie finemap .rds intermediate files"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study"),
@@ -188,83 +192,103 @@ for (i in 1:nrow(loci_df)) {
   min_abs_corr = NULL
   )
 
-  # If successful, perform QC
-  if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
+# If successfull, pass to QC
+if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
 
-  ### Sodbo's function QCing Susie output --> check with him all the parameters required
-  fitted_rss_cleaned <- susie.cs.ht(
-    fitted_rss,
-    D_sub$p,
-    cs_lbf_thr = 2, # TODO: this should be a pipeline argument
-    signal_pval_threshold = 1, # TODO: this should be a pipeline argument
-    purity_mean_r2_threshold = 0, # TODO: this should be a pipeline argument
-    purity_min_r2_threshold = 0, # TODO: this should be a pipeline argument
-    verbose = TRUE
-  )
-    
-  ### Proceed only if fitted_rss_cleaned is not null    
-  if(!is.null(fitted_rss_cleaned)){
-    
-    # vector of AF with SNP names
-    freq <- D_sub$freq
-    names(freq) <- D_sub$SNP
-    
-    # vector of sample size with SNP names
-    N <- D_sub$N
-    names(N) <- D_sub$SNP
-    
-    finemap.res <- lapply(fitted_rss_cleaned$sets$cs_index, function(x){
-      
-      beta_se_list <- get_beta_se_susie(fitted_rss_cleaned, x)
-        
-      # Extract lABF values  
-      lABF_df <- data.frame(
-        SNP = colnames(fitted_rss_cleaned$lbf_variable),
-        lABF = fitted_rss_cleaned$lbf_variable[x,],
-        bC = beta_se_list$beta,
-        bC_se = beta_se_list$se
+  # Perform QC only for loci fine-mapped with L=10 (or whatever number was set)
+  if (length(fitted_rss$KL)==L) {
+
+  ### Post susie QC od credible sets
+  #  fitted_rss_cleaned <- flanders::susie.cs.ht( ### THIS IS TEMPORARY UNTIL UPDATE OF THE GITHUB FLANDERS R REPO
+    fitted_rss_cleaned <- susie.cs.ht(
+      fitted_rss,
+      D_sub$p,
+      cs_bf_thr = opt$susie_qc_cs_bf_thr,
+      signal_pval_threshold = opt$susie_qc_pval_thr,
+      purity_mean_r2_threshold = opt$susie_qc_mean_r2_thr,
+      purity_min_r2_threshold = opt$susie_qc_min_r2_thr,
+      verbose = TRUE
+    )
+
+  ### Re-finemap with L=1 if all cs gets removed by QC
+    if(is.null(fitted_rss_cleaned)){
+      fitted_rss_cleaned <- run_susie_w_tryCatch( ### Make sure this works as intended
+        D_sub,
+        D_var_y,
+        susie_ld,
+        L = 1,
+        coverage = opt$cs_thresh,
+        max_iter = opt$susie_max_iter,
+        min_abs_corr = 0
       )
+      fitted_rss_cleaned$comment_section <- paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L, " passed post susie QC")
+    }
+
+  # Skip QC for loci fine-mapped with L=1
+  } else if (length(fitted_rss$KL)==1){
+    fitted_rss_cleaned <- fitted_rss
+  }
+
+
+  # vector of AF with SNP names
+  freq <- D_sub$freq
+  names(freq) <- D_sub$SNP
+    
+  # vector of sample size with SNP names
+  N <- D_sub$N
+  names(N) <- D_sub$SNP
+    
+  finemap.res <- lapply(fitted_rss_cleaned$sets$cs_index, function(x){
       
-      # Extract index of cs SNPs
-      index <- paste0("L", x)
-      cs_snps <- susie_get_cs(fitted_rss_cleaned, coverage=fitted_rss_cleaned$sets$requested_coverage)$cs[[index]] ### INCLUDING COVERAGE IS CRUCIAL, OTHERWISE YOU GET DIFFERENT RESULTS!!!
+    beta_se_list <- get_beta_se_susie(fitted_rss_cleaned, x)
+        
+    # Extract lABF values  
+    lABF_df <- data.frame(
+      SNP = colnames(fitted_rss_cleaned$lbf_variable),
+      lABF = fitted_rss_cleaned$lbf_variable[x,],
+      bC = beta_se_list$beta,
+      bC_se = beta_se_list$se
+    )
       
-      # Extract SNPs info, plus whether they're in the cs or not    
-      susie_reformat <- D_sub
-      susie_reformat$is_cs <- susie_reformat$SNP %in% colnames(fitted_rss_cleaned$lbf_variable)[cs_snps]
+    # Extract index of cs SNPs
+    index <- paste0("L", x)
+    cs_snps <- susie_get_cs(fitted_rss_cleaned, coverage=fitted_rss_cleaned$sets$requested_coverage)$cs[[index]] ### INCLUDING COVERAGE IS CRUCIAL, OTHERWISE YOU GET DIFFERENT RESULTS!!!
       
-      susie_reformat <- susie_reformat |>
-        dplyr::inner_join(lABF_df, by="SNP") |>
-        dplyr::select(SNP,BP,lABF,bC,bC_se,is_cs) |>
-        dplyr::rename(snp=SNP, position=BP) |>
-        dplyr::arrange(desc(lABF))
+    # Extract SNPs info, plus whether they're in the cs or not    
+    susie_reformat <- D_sub
+    susie_reformat$is_cs <- susie_reformat$SNP %in% colnames(fitted_rss_cleaned$lbf_variable)[cs_snps]
       
-      effect <- susie_reformat[1,] # select the first row which represents the
-      # top SNP by lABF. 
-      snp_top <- effect$snp
-      chr_pos_a1_a0_top <- strsplit(effect$snp, ":")[[1]]
-      a1_top <- chr_pos_a1_a0_top[3]
-      a0_top <- chr_pos_a1_a0_top[4]
-      freq_top <- freq[snp_top]
-      N_top <- N[snp_top]
-      beta_top <- effect$bC
-      se_top <- effect$bC_se
+    susie_reformat <- susie_reformat |>
+      dplyr::inner_join(lABF_df, by="SNP") |>
+      dplyr::select(SNP,BP,lABF,bC,bC_se,is_cs) |>
+      dplyr::rename(snp=SNP, position=BP) |>
+      dplyr::arrange(desc(lABF))
       
-      effect <- data.frame(
-        snp = snp_top,
-        a1 = a1_top,
-        a0 = a0_top,
-        freq = freq_top,
-        N = N_top,
-        beta = beta_top,
-        se = se_top
-        )
+    effect <- susie_reformat[1,] # select the first row which represents the top SNP by lABF 
+    snp_top <- effect$snp
+    chr_pos_a1_a0_top <- strsplit(effect$snp, ":")[[1]]
+    a1_top <- chr_pos_a1_a0_top[3]
+    a0_top <- chr_pos_a1_a0_top[4]
+    freq_top <- freq[snp_top]
+    N_top <- N[snp_top]
+    beta_top <- effect$bC
+    se_top <- effect$bC_se
       
-      qc_metrics <- fitted_rss_cleaned$sets$purity[paste0("L",x),] |>
-        dplyr::mutate(
-          coverage = fitted_rss_cleaned$sets$requested_coverage,
-          L = length(fitted_rss_cleaned$KL)
-      ) # Add also requested coverage and L
+    effect <- data.frame(
+      snp = snp_top,
+      a1 = a1_top,
+      a0 = a0_top,
+      freq = freq_top,
+      N = N_top,
+      beta = beta_top,
+      se = se_top
+    )
+      
+    qc_metrics <- fitted_rss_cleaned$sets$purity[paste0("L",x),] |>
+      dplyr::mutate(
+        coverage = fitted_rss_cleaned$sets$requested_coverage,
+        L = length(fitted_rss_cleaned$KL)
+    ) # Add also requested coverage and L
       
       metadata_df <- data.frame(
         study_id=study_name,
@@ -293,15 +317,17 @@ for (i in 1:nrow(loci_df)) {
       sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
       sapply(finemap.res, function(x) x$index),
       sep="::"
-    )
 
-    # Remove index part of finemap.res - already saved in cs name
-    finemap.res <- lapply(finemap.res, function(x) {
-      x$index <- NULL
-      x
-    })
+    )
+  })
+
+  # Remove index part of finemap.res - already saved in cs name
+  finemap.res <- lapply(finemap.res, function(x) {
+    x$index <- NULL
+    x
+  })
     
-    
+     
     #########################################
     # Organise list of what needs to be saved
     #########################################
@@ -334,10 +360,9 @@ for (i in 1:nrow(loci_df)) {
     tmp$credible_set_name = names(finemap.res)
 
 # Move 'credible_set_name' as first column
-    tmp <- tmp |> dplyr:: select(credible_set_name, everything())
+  tmp <- tmp |> dplyr:: select(credible_set_name, everything())
 
-    fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
-    
+  fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
     
     ## List of loci which were still fine-mapped but with L=1 (and why)
     if(!is.na(fitted_rss_cleaned$comment_section)){
@@ -350,19 +375,23 @@ for (i in 1:nrow(loci_df)) {
         finemapped_L1_reason = fitted_rss_cleaned$comment_section
       )
       
-      L1_finemap_variance_too_large <- L1_finemap |> dplyr::filter(grepl("The estimated prior variance is unreasonably large", finemapped_L1_reason))
-      if(nrow(L1_finemap_variance_too_large) > 0){
-        fwrite(L1_finemap_variance_too_large, paste0(random.number, "_FINEMAPPED_L1_prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
-      }
-      
-      L1_finemap_did_not_converge <- L1_finemap |> dplyr::filter(grepl("IBSS algorithm did not converge", finemapped_L1_reason))
-      if(nrow(L1_finemap_did_not_converge) > 0){
-        fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
-      }      
-  
+    L1_finemap_variance_too_large <- L1_finemap |> dplyr::filter(grepl("The estimated prior variance is unreasonably large", finemapped_L1_reason))
+    if(nrow(L1_finemap_variance_too_large) > 0){
+      fwrite(L1_finemap_variance_too_large, paste0(random.number, "_FINEMAPPED_L1_prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
     }
-    
+      
+    L1_finemap_did_not_converge <- L1_finemap |> dplyr::filter(grepl("IBSS algorithm did not converge", finemapped_L1_reason))
+    if(nrow(L1_finemap_did_not_converge) > 0){
+      fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
+    }
+
+    L1_finemap_missing_loci_post_susie_QC <- L1_finemap |> dplyr::filter(grepl(paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L," passed post susie QC"), finemapped_L1_reason))
+    if(nrow(L1_finemap_missing_loci_post_susie_QC) > 0){
+      fwrite(L1_finemap_missing_loci_post_susie_QC, paste0(random.number, "_FINEMAPPED_L1_recover_after_susie_QC.tsv"), sep="\t", na=NA, quote=F)
+    }
+  
   }
+
 } else { ### if region was not fine-mapped at all!
   
   failed_finemap <- data.frame(
@@ -373,6 +402,4 @@ for (i in 1:nrow(loci_df)) {
     end = end
   )
   fwrite(failed_finemap, paste0(random.number, "_NOT_FINEMAPPED_no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
-  
-}
 }

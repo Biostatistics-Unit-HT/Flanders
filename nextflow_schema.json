@@ -59,6 +59,11 @@
           "description": "An ID for the finemapping results, will be used as prefix in the h5ad finemapping output",
           "default": "finemap_run"
         },
+        "chromosomes": {
+          "type": "string",
+          "description": "A string setting chromosomes to include in munging and finemapping. Intervals string can be like 1-22 or 1,6,3 or 1-6,7-10",
+          "default": "1-22"
+        },
         "run_liftover": {
           "type": "boolean",
           "default": true,
@@ -80,6 +85,26 @@
           "default": 400,
           "description": "Maximum number of IBSS iterations to perform when running SUSIE, see https://stephenslab.github.io/susieR/reference/susie.html"
         },
+        "susie_qc_cs_bf_thr": {
+          "type": "number",
+          "default": 3,
+          "description": "Credible set BF threshold for credible sets QC"
+        },
+        "susie_qc_pval_thr": {
+          "type": "number",
+          "default": 1,
+          "description": "Minimum SNP p-value threshold for credible sets QC"
+        },
+        "susie_qc_mean_r2_thr": {
+          "type": "number",
+          "default": 0,
+          "description": "Credible set purity mean r2 threshold for credible sets QC"
+        },
+        "susie_qc_min_r2_thr": {
+          "type": "number",
+          "default": 0,
+          "description": "Credible set for purity minimum r2 threshold for credible sets QC"
+        },
         "publish_susie": {
           "type": "boolean",
           "default": false,
@@ -87,7 +112,15 @@
           "description": "Whether to publish the susie finemap .rds intermediate files"
         }
       },
-      "required": ["finemap_id", "large_locus_size", "susie_max_iter"],
+      "required": [
+        "finemap_id",
+        "large_locus_size",
+        "susie_max_iter",
+        "susie_qc_cs_bf_thr",
+        "susie_qc_pval_thr",
+        "susie_qc_mean_r2_thr",
+        "susie_qc_min_r2_thr"
+      ], 
       "fa_icon": "fas fa-bezier-curve"
     },
     "colocalization": {

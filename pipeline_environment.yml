@@ -34,7 +34,7 @@ dependencies:
   - r-cowplot
   - r-rfast
   - r-anndata=0.7.5.6
-  - r-flanders=1.0.0
+  - r-flanders=1.0.1
   - tabix=1.11
   - bioconductor-rhtslib
   - pandas=2.2.3

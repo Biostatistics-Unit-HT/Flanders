@@ -29,6 +29,7 @@ process MUNG_AND_LOCUS_BREAKER {
         --key ${meta_parameters.key} \
         --rsid_lab ${meta_parameters.rsid_lab} \
         --chr_lab ${meta_parameters.chr_lab} \
+        --accepted_chr ${meta_parameters.accepted_chr} \
         --pos_lab ${meta_parameters.pos_lab} \
         --a1_lab ${meta_parameters.a1_lab} \
         --a0_lab ${meta_parameters.a0_lab} \
