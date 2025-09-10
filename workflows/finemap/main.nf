@@ -30,6 +30,12 @@ workflow RUN_FINEMAPPING {
       name: "FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
 
+    SUSIE_FINEMAPPING.out.finemapped_L1_recover_after_susie_QC
+    .collectFile(
+      keepHeader: true,
+      name: "FINEMAPPED_L1_recover_after_susie_QC.tsv",
+      storeDir: "${params.outdir}/results/finemapping_exceptions")
+
     SUSIE_FINEMAPPING.out.not_finemapped_no_credible_sets_found
     .collectFile(
       keepHeader: true,
