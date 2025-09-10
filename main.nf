@@ -42,7 +42,6 @@ workflow {
 	// --- MUNGING AND FINEMAPPING ---
 // --- tiledb branch (fixed: produce path values, key-aligned tuples) ---
 	if (params.tiledb){
-		tile_lb_input = Channel.fromPath(params.tiledb_lb_file, checkIfExists:true)
 		tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
 		bfiles = Channel.fromPath("${projectDir}/${params.tiledb_bfile}.{bed,bim,fam}").collect()
     	
