@@ -12,7 +12,7 @@ process LOCUS_BREAKER_TILEDB {
 
 // Define output
   output:
-    tuple path("*_interval.csv"), emit:locus_breaker_tdb_intervals
+    path("*_interval.csv"), emit:locus_breaker_tdb_intervals
     tuple path("dummy_index"), path("*_segment.csv"), emit:locus_breaker_tdb_segments
 
 // Define the shell script to execute
