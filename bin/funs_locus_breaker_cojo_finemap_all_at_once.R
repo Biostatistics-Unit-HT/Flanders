@@ -628,8 +628,8 @@ thresholder <- function(threshold, vector) {
 #' This function processes the output of a \code{susie_rss} fine-mapping run and 
 #' returns detailed annotations for each credible set (CS). For each CS, the function 
 #' extracts log approximate Bayes factors (lABFs), estimated effect sizes and standard errors,
-#' QC metrics, and study metadata. The results are named according to chromosome, study ID, 
-#' phenotype ID, top SNP, and CS index.
+#' QC metrics (including a log-sum of lABFs), and study metadata. The results are named
+#' according to chromosome, study ID, phenotype ID, top SNP, and CS index.
 #'
 #' @param fitted A \code{susie} or \code{susie_rss} object, typically the output of 
 #'   \code{susieR::susie_rss()}.
@@ -648,7 +648,8 @@ thresholder <- function(threshold, vector) {
 #'   \item{finemapping_lABFs}{Data frame of SNP-level results, including SNP ID, position, lABF, 
 #'         estimated effect size (beta), standard error (bC_se), and whether the SNP belongs to the CS.}
 #'   \item{effect}{Data frame describing the top SNP by lABF (alleles, frequency, N, beta, se).}
-#'   \item{qc_metrics}{Data frame of purity and coverage metrics for the CS.}
+#'   \item{qc_metrics}{Data frame of purity and coverage metrics for the CS, 
+#'         including \code{logsum_lABF}, the log of the summed Bayes factors across SNPs in the set.}
 #'   \item{metadata}{Data frame with study and region-level metadata.}
 #' }
 #'
@@ -722,10 +723,12 @@ extract_susie_results <- function(
       se   = top$bC_se
     )
     
+    # QC metrics with log-sum of lABF
     qc_metrics <- fitted$sets$purity[index, ] |>
       dplyr::mutate(
         coverage = coverage,
-        L = length(fitted$KL)
+        L = length(fitted$KL),
+        logsum_lABF = coloc:::logsum(susie_reformat$lABF)
       )
     
     metadata_df <- data.frame(
