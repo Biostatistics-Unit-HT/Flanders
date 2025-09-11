@@ -180,33 +180,33 @@ for (i in 1:nrow(loci_df)) {
   L <- 10
 
   fitted_rss <- run_susie_w_retries(
-  D_sub,
-  D_var_y,
-  susie_ld,
-  L = L,
-  coverage = opt$cs_thresh,
-  min_coverage = min_coverage,
-  max_iter = opt$susie_max_iter,
-  min_abs_corr = NULL
+    D_sub,
+    D_var_y,
+    susie_ld,
+    L = L,
+    coverage = opt$cs_thresh,
+    min_coverage = min_coverage,
+    max_iter = opt$susie_max_iter,
+    min_abs_corr = NULL
   )
 
-  # If successfull, pass to QC
-  if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
+# If successfull, pass to QC
+if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
+  
+  # Perform QC only for loci fine-mapped with L=10 (or whatever number was set)
+  if (length(fitted_rss$KL)==L) {
 
-    # Perform QC only for loci fine-mapped with L=10 (or whatever number was set)
-    if (length(fitted_rss$KL)==L) {
-
-    ### Post susie QC od credible sets
-    #  fitted_rss_cleaned <- flanders::susie.cs.ht( ### THIS IS TEMPORARY UNTIL UPDATE OF THE GITHUB FLANDERS R REPO
-      fitted_rss_cleaned <- susie.cs.ht(
-        fitted_rss,
-        D_sub$p,
-        cs_bf_thr = opt$susie_qc_cs_bf_thr,
-        signal_pval_threshold = opt$susie_qc_pval_thr,
-        purity_mean_r2_threshold = opt$susie_qc_mean_r2_thr,
-        purity_min_r2_threshold = opt$susie_qc_min_r2_thr,
-        verbose = TRUE
-      )
+  ### Post susie QC od credible sets
+  #  fitted_rss_cleaned <- flanders::susie.cs.ht( ### THIS IS TEMPORARY UNTIL UPDATE OF THE GITHUB FLANDERS R REPO
+    fitted_rss_cleaned <- susie.cs.ht(
+      fitted_rss,
+      D_sub$p,
+      cs_bf_thr = opt$susie_qc_cs_bf_thr,
+      signal_pval_threshold = opt$susie_qc_pval_thr,
+      purity_mean_r2_threshold = opt$susie_qc_mean_r2_thr,
+      purity_min_r2_threshold = opt$susie_qc_min_r2_thr,
+      verbose = TRUE
+    )
 
     ### Re-finemap with L=1 if all cs gets removed by QC
       if(is.null(fitted_rss_cleaned)){
@@ -240,14 +240,14 @@ for (i in 1:nrow(loci_df)) {
       chr = chr,
       start = start,
       end = end
-    ) 
+    )
 
   #########################################
   # Organise list of what needs to be saved
   #########################################
 
-     core_file_name <- paste0(study_name, "_", phenotype_name)
-  #  if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
+    core_file_name <- paste0(study_name, "_", phenotype_name)
+  # if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
 
     ## Save .rds object
     saveRDS(finemap.res, file = paste0(core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"))
