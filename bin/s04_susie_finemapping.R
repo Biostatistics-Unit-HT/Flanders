@@ -56,7 +56,7 @@ random.number <- stri_rand_strings(n=1, length=20, pattern="[A-Za-z0-9]")
 
 ### If required, run DENTIST to identify mismatches between GWAS sum stats and LD panel
 if (opt$skip_dentist){
-  cat(paste0("I assume you provided in-sample LD reference? Otherwise consider using DENTIST!"))
+  message("I assume you provided in-sample LD reference? Otherwise consider using DENTIST!\n")
 } else {
   run_dentist(
     D=dataset_aligned,
@@ -127,7 +127,7 @@ fitted_rss <- run_susie_w_retries(
 
 # If successfull, pass to QC
 if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
-
+  
   # Perform QC only for loci fine-mapped with L=10 (or whatever number was set)
   if (length(fitted_rss$KL)==L) {
 
@@ -162,109 +162,27 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
     fitted_rss_cleaned <- fitted_rss
   }
 
+  # Expand credible sets
+  expanded_cs <- expand_cs(fitted_rss_cleaned)
 
-  # vector of AF with SNP names
-  freq <- D_sub$freq
-  names(freq) <- D_sub$SNP
-    
-  # vector of sample size with SNP names
-  N <- D_sub$N
-  names(N) <- D_sub$SNP
-    
-  finemap.res <- lapply(fitted_rss_cleaned$sets$cs_index, function(x){
-      
-    beta_se_list <- get_beta_se_susie(fitted_rss_cleaned, x)
-        
-    # Extract lABF values  
-    lABF_df <- data.frame(
-      SNP = colnames(fitted_rss_cleaned$lbf_variable),
-      lABF = fitted_rss_cleaned$lbf_variable[x,],
-      bC = beta_se_list$beta,
-      bC_se = beta_se_list$se
-    )
-      
-    # Extract index of cs SNPs
-    index <- paste0("L", x)
-    cs_snps <- susie_get_cs(fitted_rss_cleaned, coverage=fitted_rss_cleaned$sets$requested_coverage)$cs[[index]] ### INCLUDING COVERAGE IS CRUCIAL, OTHERWISE YOU GET DIFFERENT RESULTS!!!
-      
-    # Extract SNPs info, plus whether they're in the cs or not    
-    susie_reformat <- D_sub
-    susie_reformat$is_cs <- susie_reformat$SNP %in% colnames(fitted_rss_cleaned$lbf_variable)[cs_snps]
-      
-    susie_reformat <- susie_reformat |>
-      dplyr::inner_join(lABF_df, by="SNP") |>
-      dplyr::select(SNP,BP,lABF,bC,bC_se,is_cs) |>
-      dplyr::rename(snp=SNP, position=BP) |>
-      dplyr::arrange(desc(lABF))
-      
-    effect <- susie_reformat[1,] # select the first row which represents the top SNP by lABF 
-    snp_top <- effect$snp
-    chr_pos_a1_a0_top <- strsplit(effect$snp, ":")[[1]]
-    a1_top <- chr_pos_a1_a0_top[3]
-    a0_top <- chr_pos_a1_a0_top[4]
-    freq_top <- freq[snp_top]
-    N_top <- N[snp_top]
-    beta_top <- effect$bC
-    se_top <- effect$bC_se
-      
-    effect <- data.frame(
-      snp = snp_top,
-      a1 = a1_top,
-      a0 = a0_top,
-      freq = freq_top,
-      N = N_top,
-      beta = beta_top,
-      se = se_top
-    )
-      
-    qc_metrics <- fitted_rss_cleaned$sets$purity[paste0("L",x),] |>
-      dplyr::mutate(
-        coverage = fitted_rss_cleaned$sets$requested_coverage,
-        L = length(fitted_rss_cleaned$KL)
-    ) # Add also requested coverage and L
-      
-    metadata_df <- data.frame(
-      study_id=opt$study_id,
-      phenotype_id=opt$phenotype_id,
-      chr=opt$chr,
-      start=opt$start,
-      end=opt$end
-    )
-      
-    return(
-      list(
-        finemapping_lABFs = susie_reformat,
-        effect = effect,
-        qc_metrics = qc_metrics,
-        metadata = metadata_df,
-        index = index
-      )
-    )
-  })
+  # Extract results using expanded indices
+  finemap.res <- extract_susie_results(
+    fitted = fitted_rss_cleaned,
+    D_sub = D_sub,
+    cs_indices = expanded_cs,
+    study_id = opt$study_id,
+    phenotype_id = opt$phenotype_id,
+    chr = opt$chr,
+    start = opt$start,
+    end = opt$end
+  ) 
 
-  # Name each credible set
-  names(finemap.res) <- paste(
-    paste0("chr", opt$chr),
-    opt$study_id,
-    opt$phenotype_id,
-    sapply(finemap.res, function(x) x$finemapping_lABF$snp[1]),
-    sapply(finemap.res, function(x) x$index),
-    sep="::"
-  )
-
-  # Remove index part of finemap.res - already saved in cs name
-  finemap.res <- lapply(finemap.res, function(x) {
-    x$index <- NULL
-    x
-  })
-    
-    
   #########################################
   # Organise list of what needs to be saved
   #########################################
 
   core_file_name <- paste0(opt$study_id, "_", opt$phenotype_id)
-#   if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
+#  if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
 
   ## Save .rds object
   saveRDS(finemap.res, file = paste0(core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"))
@@ -279,7 +197,6 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       start = opt$start,
       end = opt$end,
       top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=FALSE), na.rm=T),
-      #### Nextflow working directory "work" hard coded - KEEP in mind!! #### 
       path_rds = ifelse(
         opt$publish_susie,
         paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
