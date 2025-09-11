@@ -1,4 +1,5 @@
 include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
+include { LOCUS_BREAKER_TILEDB } from "./modules/local/locus_breaker_tiledb"
 include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
@@ -38,7 +39,83 @@ workflow {
 		"""
 	} 
 
-	// --- COLOCALIZATION ---
+	// --- MUNGING AND FINEMAPPING ---
+// --- tiledb branch (fixed: produce path values, key-aligned tuples) ---
+	if (params.tiledb){
+		tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+		bfiles = Channel.fromPath("${projectDir}/${params.tiledb_bfile}.{bed,bim,fam}").collect()
+    	
+
+		// inspect values at runtime
+		LOCUS_BREAKER_TILEDB(tiledb_metadata)
+
+		// Use a single meta-study map so combine(by:0) can match
+
+
+		restructured_segments = LOCUS_BREAKER_TILEDB.out.locus_breaker_tdb_segments
+    		.flatMap { dummy_index, file_list ->
+        	file_list.findAll { file -> 
+            file.name.startsWith("out_batch_") && file.name.endsWith(".csv")
+        	}.collect { file ->
+            	def filename = file.name
+            	def batch_match = filename =~ /out_batch_(\d+)_segment\.csv/
+            	def batch_num = [
+                study_id: batch_match.matches() ? batch_match[0][1] : "unknown"
+            	]
+            	// Use the dummy_index to get the correct work directory path
+            	def work_dir = dummy_index.parent
+            	def correct_file_path = work_dir.resolve(filename)
+            
+            	[batch_num, correct_file_path, dummy_index]
+       		}
+    		}
+		work_dirs = restructured_segments.map { batch_num, file_path, dummy_index -> 
+    	[batch_num.study_id, dummy_index.parent] 
+		}.unique()
+
+		// Then create intervals channel using the same work directories
+		restructured_intervals = work_dirs
+    		.map { study_id, work_dir ->
+        		def interval_filename = "out_batch_${study_id}_interval.csv"
+        		def interval_file = work_dir.resolve(interval_filename)
+        		def batch_num = [study_id: study_id]
+        		def meta_loci = [
+            		chr: "1",
+            		start: "0", 
+            		end: "0",
+            		phenotype_id: "batch"
+        			]
+        
+        			[batch_num, meta_loci, interval_file]
+    			}
+        
+				
+	    // Build finemapping_config by mapping over the tiledb_bfile channel so
+	    // the bfile becomes a concrete path value inside the tuple.
+	    finemap_params = [
+	        "skip_dentist": params.skip_dentist,
+	        "maf": params.tiledb_lb_maf,
+	        "hole": params.tiledb_lb_hole,
+	        "cs_thresh": params.tiledb_cs_thresh,
+	        "type_locusbreaker": params.tiledb
+	    ]
+		available_batches = restructured_segments.map { batch_num, file, dummy_index -> batch_num }.unique()
+		finemapping_config = available_batches
+    		.combine(bfiles.collect())
+    		.map { args ->
+        	def batch_num = args[0]
+        	def bfile_list = args[1..-1]  // Take all remaining arguments as the file list
+        	[batch_num, finemap_params, bfile_list]
+    	}
+
+	    RUN_FINEMAPPING(
+	        finemapping_config,
+	        restructured_intervals,
+	        restructured_segments,
+	        outdir_abspath
+	    )
+		credible_sets_from_finemapping = RUN_FINEMAPPING.out.finemap_anndata
+	}
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
