@@ -193,8 +193,8 @@ for (i in 1:nrow(loci_df)) {
 # If successfull, pass to QC
 if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
   
-  # Perform QC only for loci fine-mapped with L=10 (or whatever number was set)
-  if (length(fitted_rss$KL)==L) {
+  # Perform QC only for loci fine-mapped with L=10 (or whatever number was set) or, if N SNPs < L, with L=N SNPs in the locus
+  if (length(fitted_rss$KL) == L | length(fitted_rss$KL) == nrow(D_sub)){
 
   ### Post susie QC od credible sets
   #  fitted_rss_cleaned <- flanders::susie.cs.ht( ### THIS IS TEMPORARY UNTIL UPDATE OF THE GITHUB FLANDERS R REPO
