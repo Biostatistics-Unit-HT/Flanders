@@ -667,16 +667,21 @@ if(nrow(loci_list) > 0){
   ### Add study ID to the loci table. Save
   loci_list[, study_id := opt$study_id]
   
-  ### Check if locus spans the HLA locus chr6:28,510,120-33,480,577
+  ### Check if locus spans the HLA locus chr6:28,510,120-33,480,577 (GRCh38) / chr6:28,477,797-33,448,354 (GRCh37)
   ### https://www.ncbi.nlm.nih.gov/grc/human/regions/MHC?asm=GRCh38
+  ### https://www.ncbi.nlm.nih.gov/grc/human/regions/MHC?asm=GRCh37
   # This code checks for four conditions to determine if a locus partially or completely spans the HLA region:
   # 1) Locus starts before (or at the exact beginning of) HLA and ends after (or at the exact end of) HLA.
   # 2) Locus starts and ends within the HLA region.
   # 3) Locus starts before the end of HLA and ends after the end of HLA.
   # 4) Locus starts before the beginning of HLA and ends after the beginning of HLA.
-  hla_start=28510120
-  hla_end=33480577
-  hla_coord <- seq(hla_start,hla_end)
+  if(as.numeric(opt$grch)==37 && isFALSE(opt$run_liftover)){
+    hla_start=28477797
+    hla_end=33448354
+  } else {
+    hla_start=28510120
+    hla_end=33480577
+  }
   
   loci_list[, is_in_hla := chr == 6 & 
               ((start <= hla_end & end >= hla_start) | 
