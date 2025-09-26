@@ -163,7 +163,7 @@ for (i in 1:nrow(loci_df)) {
     )
 
     fwrite(no_variants_in_ld_ref, paste0(random.number, "_NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv"), sep="\t", na=NA, quote=F)
-    quit(save = "no", status = 0, runLast = FALSE)  # Exit the script gracefully
+    next # skip this iteration and continue with the next one
   }
 
   # Filter full GWAS sum stat for locus region
