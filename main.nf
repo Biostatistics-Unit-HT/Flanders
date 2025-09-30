@@ -44,12 +44,11 @@ workflow {
 	if (params.tiledb){
 		//tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
 		Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
-            .splitText(by: 20, keepHeader: true, file: true)
+            .splitText(by: params.tiledb_batch_size, keepHeader: true, file: true)
             .map { batch_file -> 
             def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
             tuple(batch_index, batch_file)
             }.set { tiledb_metadata_batches }
-		tiledb_metadata_batches.view()
 
 		// inspect values at runtime
 		LOCUS_BREAKER_TILEDB(tiledb_metadata_batches)
@@ -74,12 +73,10 @@ workflow {
             	[batch_num, correct_file_path, dummy_index]
        		}
     		}
-		restructured_segments.view()
 
 		work_dirs = restructured_segments.map { batch_num, file_path, dummy_index -> 
     	[batch_num.study_id, dummy_index.parent] 
 		}.unique()
-		work_dirs.view()
 
 		// Then create intervals channel using the same work directories
 		restructured_intervals = work_dirs
@@ -96,7 +93,6 @@ workflow {
         
         			[batch_num, meta_loci, interval_file]
     			}
-        restructured_intervals.view()
 				
 	    // Build finemapping_config by mapping over the tiledb_bfile channel so
 	    // the bfile becomes a concrete path value inside the tuple.
