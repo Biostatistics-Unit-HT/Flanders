@@ -1,6 +1,6 @@
-CHR,TRAIT
-1,bmi
-1,heel_bone_mineral_density
-1,stroke
-1,height
-1,balding_pattern_1
+CHR,TRAIT,SIG,LIM
+1,bmi,1.28948741510329e-06,1e-05
+1,heel_bone_mineral_density,1.28948741510329e-06,1e-05
+1,stroke,1.28948741510329e-06,1e-05
+1,height,1.28948741510329e-06,1e-05
+1,balding_pattern_1,1.28948741510329e-06,1e-05
