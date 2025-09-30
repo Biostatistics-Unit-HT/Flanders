@@ -42,20 +42,25 @@ workflow {
 	// --- MUNGING AND FINEMAPPING ---
 // --- tiledb branch (fixed: produce path values, key-aligned tuples) ---
 	if (params.tiledb){
-		tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
-		bfiles = Channel.fromPath("${projectDir}/${params.tiledb_bfile}.{bed,bim,fam}").collect()
-    	
+		//tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+		Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+            .splitText(by: 20, keepHeader: true, file: true)
+            .map { batch_file -> 
+            def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
+            tuple(batch_index, batch_file)
+            }.set { tiledb_metadata_batches }
+		tiledb_metadata_batches.view()
 
 		// inspect values at runtime
-		LOCUS_BREAKER_TILEDB(tiledb_metadata)
-
+		LOCUS_BREAKER_TILEDB(tiledb_metadata_batches)
+		
+		bfiles = Channel.fromPath("${params.tiledb_bfile}.{pgen,pvar,psam}").collect()
+    	
 		// Use a single meta-study map so combine(by:0) can match
-
-
 		restructured_segments = LOCUS_BREAKER_TILEDB.out.locus_breaker_tdb_segments
     		.flatMap { dummy_index, file_list ->
         	file_list.findAll { file -> 
-            file.name.startsWith("out_batch_") && file.name.endsWith(".csv")
+            	file.name.startsWith("out_batch_") && file.name.endsWith(".csv")
         	}.collect { file ->
             	def filename = file.name
             	def batch_match = filename =~ /out_batch_(\d+)_segment\.csv/
@@ -69,9 +74,12 @@ workflow {
             	[batch_num, correct_file_path, dummy_index]
        		}
     		}
+		restructured_segments.view()
+
 		work_dirs = restructured_segments.map { batch_num, file_path, dummy_index -> 
     	[batch_num.study_id, dummy_index.parent] 
 		}.unique()
+		work_dirs.view()
 
 		// Then create intervals channel using the same work directories
 		restructured_intervals = work_dirs
@@ -88,7 +96,7 @@ workflow {
         
         			[batch_num, meta_loci, interval_file]
     			}
-        
+        restructured_intervals.view()
 				
 	    // Build finemapping_config by mapping over the tiledb_bfile channel so
 	    // the bfile becomes a concrete path value inside the tuple.
@@ -100,6 +108,8 @@ workflow {
 	        "type_locusbreaker": params.tiledb
 	    ]
 		available_batches = restructured_segments.map { batch_num, file, dummy_index -> batch_num }.unique()
+		available_batches.view()
+
 		finemapping_config = available_batches
     		.combine(bfiles.collect())
     		.map { args ->
@@ -107,6 +117,7 @@ workflow {
         	def bfile_list = args[1..-1]  // Take all remaining arguments as the file list
         	[batch_num, finemap_params, bfile_list]
     	}
+		finemapping_config.view()
 
 	    RUN_FINEMAPPING(
 	        finemapping_config,
