@@ -42,15 +42,23 @@ workflow {
 	// --- MUNGING AND FINEMAPPING ---
 // --- tiledb branch (fixed: produce path values, key-aligned tuples) ---
 	if (params.tiledb){
-		tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
-		bfiles = Channel.fromPath("${projectDir}/${params.tiledb_bfile}.{bed,bim,fam}").collect()
+
+		// Split input file in a set of loci to run in parallel
+		Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+    		.splitText(by: ${params.tiledb_batch_size}, keepHeader: true, file: true)
+    		.map { batch_file -> 
+        	def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
+        	tuple(batch_index, batch_file)
+   			}.set { tiledb_metadata_batches }
+		
     	
 
 		// inspect values at runtime
 		LOCUS_BREAKER_TILEDB(tiledb_metadata)
 
+		bfiles = Channel.fromPath("${projectDir}/${params.tiledb_bfile}.{bed,bim,fam}").collect()
+		
 		// Use a single meta-study map so combine(by:0) can match
-
 
 		restructured_segments = LOCUS_BREAKER_TILEDB.out.locus_breaker_tdb_segments
     		.flatMap { dummy_index, file_list ->
