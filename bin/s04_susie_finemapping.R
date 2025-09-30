@@ -295,5 +295,5 @@ ad <- from_susie_to_anndata(
 message("AnnData created!")
 
 ## Save anndata
-anndata::write_h5ad(ad, paste0("batch_", opt$batch_index, "_anndata.h5ad"))
+anndata::write_h5ad(ad, paste0("batch_", opt$batch, "_anndata.h5ad"))
 
