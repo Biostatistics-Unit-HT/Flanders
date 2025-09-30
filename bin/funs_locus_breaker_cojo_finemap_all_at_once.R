@@ -712,14 +712,14 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
 
     min_res_labf <- sapply(lABFs, function(x) unique(min(x$lABF)))
     top_pvalue <- sapply(lABFs, function(x) min(2 * pnorm(abs(x$bC) / x$bC_se, lower.tail = FALSE)))
-    logsum_lABF <- sapply(lABFs, function(x) coloc:::logsum(x$lABF))
+    logsum.logABF <- sapply(lABFs, function(x) coloc:::logsum(x$lABF))
 
     # Store results
 #    names(lABFs) <- credible_set_names
     lABFs_list <- c(lABFs_list, lABFs)
     min_res_labf_vec <- c(min_res_labf_vec, min_res_labf)
     top_pvalue_vec <- c(top_pvalue_vec, top_pvalue)
-    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum_lABF=logsum_lABF)) 
+    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF)) 
     comment_section <- c(comment_section, rep(finemap$comment_section, length(finemap$sets$cs_index)))
     comment_section[is.na(comment_section)] <- "NaN"
     metadata_df <- rbind(metadata_df, finemap$metadata) 
