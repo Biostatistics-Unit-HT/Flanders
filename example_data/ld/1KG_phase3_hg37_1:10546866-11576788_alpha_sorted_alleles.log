@@ -1,0 +1,30 @@
+PLINK v2.00a5.10LM 64-bit Intel (5 Jan 2024)
+Options in effect:
+  --bfile example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles
+  --make-pgen
+  --out example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles
+
+Hostname: node-14-20
+Working directory: /lustre/scratch124/humgen/projects_v2/cardinal_analysis/analysis/ba13/another_Flanders/Flanders
+Start time: Tue Sep 30 16:18:07 2025
+
+Random number seed: 1759245487
+2051578 MiB RAM detected, ~1510456 available; reserving 1025789 MiB for main
+workspace.
+Using up to 12 threads (change this with --threads).
+503 samples (263 females, 240 males; 503 founders) loaded from
+example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles.fam.
+32335 variants loaded from
+example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles.bim.
+Note: No phenotype data present.
+Writing
+example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles.psam
+... done.
+Writing
+example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles.pvar
+... done.
+Writing
+example_data/ld/1KG_phase3_hg37_1:10546866-11576788_alpha_sorted_alleles.pgen
+... done.
+
+End time: Tue Sep 30 16:18:07 2025

@@ -42,16 +42,23 @@ workflow {
 	// --- MUNGING AND FINEMAPPING ---
 // --- tiledb branch (fixed: produce path values, key-aligned tuples) ---
 	if (params.tiledb){
-		tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
-		bfiles = Channel.fromPath("${projectDir}/${params.tiledb_bfile}.{bed,bim,fam}").collect()
-    	
-
+		//tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+		Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+    		.splitText(by: 20, keepHeader: true, file: true)
+    		.map { batch_file -> 
+        	def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
+        	tuple(batch_index, batch_file)
+   			}.set { tiledb_metadata_batches }
 		// inspect values at runtime
-		LOCUS_BREAKER_TILEDB(tiledb_metadata)
+		LOCUS_BREAKER_TILEDB(tiledb_metadata_batches)
 
+		bfiles = Channel.fromPath("${params.tiledb_bfile}.{pgen,pvar,psam}", checkIfExists: true)
+    		.view { "Found bfile: ${it}" }  // See individual files
+    		.collect()
+    		.view { "Collected bfiles: ${it}" }  // See the collected result
 		// Use a single meta-study map so combine(by:0) can match
 
-
+		bfiles.view()
 		restructured_segments = LOCUS_BREAKER_TILEDB.out.locus_breaker_tdb_segments
     		.flatMap { dummy_index, file_list ->
         	file_list.findAll { file -> 
@@ -107,7 +114,6 @@ workflow {
         	def bfile_list = args[1..-1]  // Take all remaining arguments as the file list
         	[batch_num, finemap_params, bfile_list]
     	}
-
 	    RUN_FINEMAPPING(
 	        finemapping_config,
 	        restructured_intervals,
@@ -116,6 +122,8 @@ workflow {
 	    )
 		credible_sets_from_finemapping = RUN_FINEMAPPING.out.finemap_anndata
 	}
+
+
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
@@ -272,10 +280,12 @@ workflow {
 				name: "input_h5ad_inputs.txt",
 				storeDir: "${params.outdir}/pipeline_inputs"
 			)
+			
 		}
 
 	workflow.onComplete {
 		// At the end store log status
 		completionSummary()
 	}
+	
 }
