@@ -63,12 +63,12 @@ if (is.null(opt$batch)) {
   dataset_aligned <- fread(opt$dataset_aligned, header = TRUE)
   dataset_aligned <- dataset_aligned %>%
     rename(
-      "p" = "P",
+      "p" = "SNP_PVAL",
       "freq" = "EAF",
       "b" = "BETA",
       "se" = "SE",
       "SNP"="SNPID",
-      "BP" = "POS"
+      "BP" = "SNP_POS"
     )
 
   loci_df <- loci_df %>%
