@@ -49,6 +49,13 @@ workflow RUN_FINEMAPPING {
       name: "NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
 
+// Append all to coloc_info_master_table
+    append_input_coloc = SUSIE_FINEMAPPING.out.susie_info_coloc_table
+      .groupTuple()
+      .map{ tuple( it[0], it[1].flatten())}
+
+    APPEND_TO_MASTER_COLOC(append_input_coloc)
+
     // Concatenate all batches annDatas
     all_h5ad = SUSIE_FINEMAPPING.out.susie_results_h5ad
       .collect()
@@ -57,4 +64,5 @@ workflow RUN_FINEMAPPING {
 
   emit:
     finemap_anndata = CONCAT_ANNDATA.out.anndata
+    coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
 }
