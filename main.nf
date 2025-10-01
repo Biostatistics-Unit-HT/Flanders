@@ -104,7 +104,6 @@ workflow {
 	        "type_locusbreaker": params.tiledb
 	    ]
 		available_batches = restructured_segments.map { batch_num, file, dummy_index -> batch_num }.unique()
-		available_batches.view()
 
 		finemapping_config = available_batches
     		.combine(bfiles.collect())
@@ -113,7 +112,6 @@ workflow {
         	def bfile_list = args[1..-1]  // Take all remaining arguments as the file list
         	[batch_num, finemap_params, bfile_list]
     	}
-		finemapping_config.view()
 
 	    RUN_FINEMAPPING(
 	        finemapping_config,
