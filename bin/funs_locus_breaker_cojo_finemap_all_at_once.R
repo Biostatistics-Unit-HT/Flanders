@@ -707,8 +707,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
         L_index = list(names(finemap$sets$cs)),
         trait = ifelse(unique(TYPE=="gwas"), study_id, paste0(study_id, ":", phenotype_id))
       ) |>
-      tidyr::unnest_longer(c(snp, L_index)) %>%
-      dplyr::select(-study_id, -phenotype_id)
+      tidyr::unnest_longer(c(snp, L_index))
 
     min_res_labf <- sapply(lABFs, function(x) unique(min(x$lABF)))
     top_pvalue <- sapply(lABFs, function(x) min(2 * pnorm(abs(x$bC) / x$bC_se, lower.tail = FALSE)))
@@ -722,7 +721,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
     purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF)) 
     comment_section <- c(comment_section, rep(finemap$comment_section, length(finemap$sets$cs_index)))
     comment_section[is.na(comment_section)] <- "NaN"
-    metadata_df <- rbind(metadata_df, finemap$metadata) 
+    metadata_df <- rbind(metadata_df, finemap$metadata)
   }
 
 #### Create names for cs ####
@@ -736,6 +735,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
 
 # Prepare `obs_df` metadata
   obs_df <- metadata_df |> dplyr::select(-L_index) |> dplyr::rename(type=TYPE)
+  obs_df$chr <- paste0("chr", obs_df$chr)
   obs_df$top_pvalue <- top_pvalue_vec
   obs_df$min_res_labf <- min_res_labf_vec
 #  obs_df$panel <- NaN
