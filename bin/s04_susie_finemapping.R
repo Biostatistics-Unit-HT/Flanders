@@ -22,6 +22,7 @@ option_list <- list(
   make_option("--publish_susie", default=FALSE, help=" Whether to publish the susie finemap .rds intermediate files"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study"),
+  make_option("--analysis_id", default=NULL, help="Id of the whole fine-mapping analysis"),
   make_option("--batch", default=NULL, help="File with multiple loci (chr, start, end, phenotype_id)")
 );
 
@@ -288,7 +289,8 @@ beta_se_list <- lapply(all_fitted_rss_cleaned, function(locus){
 ad <- from_susie_to_anndata(
   finemap_list = all_fitted_rss_cleaned, 
   cs_indices = expanded_cs,
-  beta_se_cond = beta_se_list
+  beta_se_cond = beta_se_list,
+  analysis_id = opt$analysis_id
 )
 
 message("AnnData created!")

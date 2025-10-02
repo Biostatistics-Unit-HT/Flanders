@@ -639,6 +639,7 @@ thresholder <- function(threshold, vector) {
 #' @param beta_se_cond A named list parallel to `finemap_list`, where each element
 #'   contains conditional effect sizes and their standard errors. Each entry should
 #'   be a list of lists with elements `beta` and `se`.
+#' @param analysis_id A label identifying te whole fine-mapping analysis
 #'
 #' @details
 #' The function performs the following steps for each fine-mapping result:
@@ -663,7 +664,7 @@ thresholder <- function(threshold, vector) {
 #' ad <- from_susie_to_anndata(finemap_list, cs_indices, beta_se_cond)
 #' }
 #'
-from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_cond=NULL) {
+from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_cond=NULL, analysis_id=NULL) {
 
   lABFs_list <- list()
   min_res_labf_vec <- c()
@@ -703,6 +704,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
     # Add info to metadata, collapse study and pheno ID in a single TRAITID
     finemap$metadata <- finemap$metadata |>
       dplyr::mutate(
+        analysis_id = opt$analysis_id,
         snp = list(sapply(lABFs, function(x) x$SNP[which.max(x$lABF)])),
         L_index = list(names(finemap$sets$cs)),
         trait = ifelse(unique(TYPE=="gwas"), study_id, paste0(study_id, ":", phenotype_id))
@@ -727,6 +729,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
 #### Create names for cs ####
   cs_names_vec <- paste(
     paste0("chr", metadata_df$chr),
+    metadata_df$analysis_id,
     metadata_df$trait,
     metadata_df$snp,
     metadata_df$L_index,

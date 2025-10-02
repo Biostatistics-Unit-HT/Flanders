@@ -102,6 +102,7 @@ process SUSIE_FINEMAPPING {
         --publish_susie ${params.publish_susie}\
         --results_path ${outdir} \
         --study_id ${meta_study_id.study_id} \
+        --analysis_id ${params.finemap_id} \
         ${batch_arg}
     """
   stub:
