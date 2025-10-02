@@ -102,8 +102,7 @@ if (is.null(opt$batch)) {
         "phenotype_id" = "GENE"
       )
   }
-  #This need to change to adapt in case of quantitative or CC
-  D_var_y = 1
+  D_var_y = loci_df$PHENO_VAR
 }
 
 for (i in 1:nrow(loci_df)) {
@@ -182,7 +181,7 @@ for (i in 1:nrow(loci_df)) {
 
   fitted_rss <- run_susie_w_retries(
     D_sub,
-    D_var_y,
+    D_var_y[i],
     susie_ld,
     L = L,
     coverage = opt$cs_thresh,
@@ -214,7 +213,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       if(is.null(fitted_rss_cleaned)){
         fitted_rss_cleaned <- run_susie_w_tryCatch( ### Make sure this works as intended
           D_sub,
-          D_var_y,
+          D_var_y[i],
           susie_ld,
           L = 1,
           coverage = opt$cs_thresh,
