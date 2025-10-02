@@ -1,9 +1,10 @@
 #!/usr/bin/env nextflow
 
 process LOCUS_BREAKER_TILEDB {
-  label "process_medium"
+  label "process_multi"
   conda '/ssu/gassu/conda_envs/scqtl'
   //conda '/software/cardinal_analysis/ht/conda_envs/scqtl'
+
   publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode
 
 

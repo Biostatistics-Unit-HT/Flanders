@@ -42,13 +42,14 @@ workflow {
 	// --- MUNGING AND FINEMAPPING ---
 // --- tiledb branch (fixed: produce path values, key-aligned tuples) ---
 	if (params.tiledb){
-		//tiledb_metadata = Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+
+		// Split input file in a set of loci to run in parallel
 		Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
-            .splitText(by: params.tiledb_batch_size, keepHeader: true, file: true)
-            .map { batch_file -> 
-            def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
-            tuple(batch_index, batch_file)
-            }.set { tiledb_metadata_batches }
+      .splitText(by: params.tiledb_batch_size, keepHeader: true, file: true)
+      .map { batch_file -> 
+        def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
+        tuple(batch_index, batch_file)
+       }.set { tiledb_metadata_batches }
 
 		// inspect values at runtime
 		LOCUS_BREAKER_TILEDB(tiledb_metadata_batches)
