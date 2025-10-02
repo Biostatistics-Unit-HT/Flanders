@@ -2,7 +2,7 @@ process SUSIE_FINEMAPPING {
   tag "${meta_study_id.study_id}"
   label "process_high"
   
-  publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds", enabled: params.publish_susie
+  publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_anndata.h5ad"
 
   input:
     // make GWAS/index inputs optional so the process can be invoked with placeholders
@@ -10,8 +10,8 @@ process SUSIE_FINEMAPPING {
     val outdir
 
   output:
-    path "*_susie_finemap.rds", optional:true, emit: susie_results_rds
     tuple val(meta_study_id), path ("*_cs_info_table.tsv"), optional:true, emit:susie_info_coloc_table
+    path "*_anndata.h5ad", optional:true, emit: susie_results_h5ad
     path "*_FINEMAPPED_L1_prior_variance_too_large.tsv", optional:true, emit: finemapped_L1_prior_variance_too_large
     path "*_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv", optional:true, emit: finemapped_L1_IBSS_algorithm_did_not_converge
     path "*_FINEMAPPED_L1_recover_after_susie_QC.tsv", optional:true, emit: finemapped_L1_recover_after_susie_QC
@@ -80,6 +80,8 @@ process SUSIE_FINEMAPPING {
       touch dummy_index
     fi
 
+    export RETICULATE_PYTHON=\$(which python)
+
     s04_susie_finemapping.R \
         ${args} \
         --pipeline_path ${projectDir}/bin/ \
@@ -104,7 +106,7 @@ process SUSIE_FINEMAPPING {
     """
   stub:
     """
-    touch ${meta_study_id.study_id}_${meta_loci.phenotype_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_susie_finemap.rds
     touch ${meta_study_id.study_id}_${meta_loci.phenotype_id}_locus_chr${meta_loci.chr}_${meta_loci.start}_${meta_loci.end}_cs_info_table.tsv
+    touch batch${gwas_interval}_anndata.h5ad
     """
 }

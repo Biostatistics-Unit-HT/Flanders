@@ -1,6 +1,7 @@
 include { SUSIE_FINEMAPPING       }  from "../../modules/local/susie_finemapping"
 include { APPEND_TO_MASTER_COLOC  }  from "../../modules/local/append_to_master_coloc"
-include { RDS_TO_ANNDATA          }  from "../../modules/local/rds_to_anndata"
+//include { RDS_TO_ANNDATA          }  from "../../modules/local/rds_to_anndata"
+include { CONCAT_ANNDATA          }  from "../../modules/local/concat_anndata"
 
 workflow RUN_FINEMAPPING {
   take:
@@ -47,22 +48,21 @@ workflow RUN_FINEMAPPING {
       keepHeader: true,
       name: "NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv",
       storeDir: "${params.outdir}/results/finemapping_exceptions")
-    
-    // Append all to coloc_info_master_table
+
+// Append all to coloc_info_master_table
     append_input_coloc = SUSIE_FINEMAPPING.out.susie_info_coloc_table
       .groupTuple()
       .map{ tuple( it[0], it[1].flatten())}
 
     APPEND_TO_MASTER_COLOC(append_input_coloc)
-    
-    // Collect all fine-map .rds files in AnnData
-    all_rds = SUSIE_FINEMAPPING.out.susie_results_rds
+
+    // Concatenate all batches annDatas
+    all_h5ad = SUSIE_FINEMAPPING.out.susie_results_h5ad
       .collect()
-      
-    RDS_TO_ANNDATA(all_rds)
+
+    CONCAT_ANNDATA(all_h5ad, "${params.finemap_id}_anndata.h5ad") 
 
   emit:
-    finemap_anndata = RDS_TO_ANNDATA.out.finemap_anndata
-    susie_results_rds = SUSIE_FINEMAPPING.out.susie_results_rds
+    finemap_anndata = CONCAT_ANNDATA.out.anndata
     coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
 }

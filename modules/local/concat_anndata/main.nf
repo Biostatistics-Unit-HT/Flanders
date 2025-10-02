@@ -1,17 +1,19 @@
 process CONCAT_ANNDATA {
-  tag "concat_anndata"
-  label "process_medium"
+    tag "concat_anndata"
+    label "process_medium"
 
-  publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.h5ad"
+    publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.h5ad"
 
-  input:
-    path(all_h5ad, stageAs: 'input_file???/*') 
-  
-  output:
-    path "coloc_input_anndata.h5ad", emit: full_anndata
+    input:
+    path(all_h5ad, stageAs: 'input_file???/*')
+    val(output_name)
+    
+    output:
+    path "${output_name}", emit: anndata
 
-  script:
-  def args = task.ext.args ?: ''
+    script:
+    def args = task.ext.args ?: ''
+
     """
     export RETICULATE_PYTHON=\$(which python)
     
@@ -20,12 +22,11 @@ process CONCAT_ANNDATA {
     s08_concat_anndata.R \
         ${args} \
         --input all_h5ad_input_list.txt \
-        --output_file coloc_input_anndata.h5ad
+        --output_file ${output_name}
     """
 
-  stub:
+    stub:
     """
-    touch coloc_input_anndata.h5ad
-
+    touch ${output_name}
     """
 }
