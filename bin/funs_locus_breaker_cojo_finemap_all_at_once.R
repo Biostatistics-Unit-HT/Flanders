@@ -636,9 +636,6 @@ thresholder <- function(threshold, vector) {
 #'   - `comment_section`: optional notes from the fine-mapping run.
 #' @param cs_indices A named list parallel to `finemap_list`, containing indices
 #'   of expanded credible set SNPs to be used instead of the original indices.
-#' @param beta_se_cond A named list parallel to `finemap_list`, where each element
-#'   contains conditional effect sizes and their standard errors. Each entry should
-#'   be a list of lists with elements `beta` and `se`.
 #' @param analysis_id A label identifying te whole fine-mapping analysis
 #'
 #' @details
@@ -661,10 +658,10 @@ thresholder <- function(threshold, vector) {
 #' @importFrom anndata AnnData
 #' @examples
 #' \dontrun{
-#' ad <- from_susie_to_anndata(finemap_list, cs_indices, beta_se_cond)
+#' ad <- from_susie_to_anndata(finemap_list=finemap_list, cs_indices=cs_indices, analysis_id=analysis_id)
 #' }
 #'
-from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_cond=NULL, analysis_id=NULL) {
+from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_id=NULL) {
 
   lABFs_list <- list()
   min_res_labf_vec <- c()
@@ -676,16 +673,15 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, beta_se_co
   for (finemap_name in names(finemap_list)) {
     finemap <- finemap_list[[finemap_name]]
     cs_index <- cs_indices[[finemap_name]]
-    beta_se <- beta_se_cond[[finemap_name]]
 
-    # Compute lABFs
+    # Compute lABFs and conditional beta and se
     lABFs <- lapply(finemap$sets$cs_index, function(cs) {
       data.frame(
         SNP = colnames(finemap$lbf_variable),
         lABF = finemap$lbf_variable[cs, ],
         is_cs = FALSE,
-        bC = beta_se[[cs]]$beta, # Add conditional beta and se
-        bC_se = beta_se[[cs]]$se
+        bC = get_beta_se_susie(finemap, cs)$beta,
+        bC_se = get_beta_se_susie(finemap, cs)$se
       )
     })
 
