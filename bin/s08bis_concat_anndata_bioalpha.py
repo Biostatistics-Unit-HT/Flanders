@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
 
     # Read list of files
-    with open(args.input_txt, "r") as f:
+    with open(args.input, "r") as f:
         h5ad_files = [line.strip() for line in f if line.strip()]
 
     if not h5ad_files:
@@ -32,7 +32,7 @@ def main():
     adata = bsc.sc.concat(adata_list, join='outer', fill_value=0)
 
     print(f"Writing output to: {args.output_h5ad}")
-    adata.write_h5ad(args.output_h5ad)
+    adata.write_h5ad(args.output_file)
 
     print("✅ Merge complete!")
 
