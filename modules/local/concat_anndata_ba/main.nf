@@ -1,6 +1,6 @@
 process CONCAT_ANNDATA_BA {
     tag "concat_anndata"
-    label "process_medium"
+    label "process_gpu"
 //  conda '/software/cardinal_analysis/ht/conda_envs/ht_scrna_scalpha'
 
     publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.h5ad"
