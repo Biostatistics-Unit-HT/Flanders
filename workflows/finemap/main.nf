@@ -60,9 +60,19 @@ workflow RUN_FINEMAPPING {
     all_h5ad = SUSIE_FINEMAPPING.out.susie_results_h5ad
       .collect()
 
-    CONCAT_ANNDATA(all_h5ad, "${params.finemap_id}_anndata.h5ad") 
+    // Branch all_h5ad based on length (how many annDatas to concatenate) - only one branch will have data
+    all_h5ad_branched = all_h5ad.branch { items ->
+        small: items.size() < 100
+            return items
+        large: items.size() >= 100
+            return items
+    }
+    
+    // Run annData concatenation - use R for fewer files, bioalpha for more
+    all_h5ad_small = CONCAT_ANNDATA(all_h5ad_branched.small, "${params.finemap_id}_anndata.h5ad")
+    all_h5ad_large = CONCAT_ANNDATA_BA(all_h5ad_branched.large, "${params.finemap_id}_anndata.h5ad")
 
   emit:
-    finemap_anndata = CONCAT_ANNDATA.out.anndata
+    finemap_anndata = all_h5ad_small.mix(all_h5ad_large) // Mix the concatenated anndata - only one channel will actually contain data
     coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
 }
