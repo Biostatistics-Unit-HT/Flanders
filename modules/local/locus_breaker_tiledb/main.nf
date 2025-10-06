@@ -24,7 +24,7 @@ process LOCUS_BREAKER_TILEDB {
       export \
       --table ${traits_list_table} \
       --uri-path ${params.tiledb_uri} \
-      --out_lb ${params.path_tiledb_lb_out} \
+      --out_lb "out" \
       --maf ${params.tiledb_lb_maf} \
       --type-sumstat ${params.tiledb_lb_typesumstat} \
       --hole ${params.tiledb_lb_hole} \
