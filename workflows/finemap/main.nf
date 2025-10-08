@@ -2,6 +2,7 @@ include { SUSIE_FINEMAPPING       }  from "../../modules/local/susie_finemapping
 include { APPEND_TO_MASTER_COLOC  }  from "../../modules/local/append_to_master_coloc"
 //include { RDS_TO_ANNDATA          }  from "../../modules/local/rds_to_anndata"
 include { CONCAT_ANNDATA          }  from "../../modules/local/concat_anndata"
+include { CONCAT_ANNDATA_BA          }  from "../../modules/local/concat_anndata_ba"
 
 workflow RUN_FINEMAPPING {
   take:
