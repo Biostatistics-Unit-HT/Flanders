@@ -731,18 +731,6 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_i
     metadata_df$L_index,
     sep = "::"
   )
-
-
-# Set lABF, beta and se to 0 for SNPs outside of cs!
-for (cs in names(lABFs_list)) {
-  lABFs_list[[cs]] <- lABFs_list[[cs]] %>%
-    dplyr::mutate(
-      lABF = ifelse(is_cs, lABF, 0),
-      bC   = ifelse(is_cs, bC, 0),
-      bC_se= ifelse(is_cs, bC_se, 0)
-    )
-}
-
                             
 # Prepare `obs_df` metadata
   obs_df <- metadata_df |> dplyr::select(-L_index) |> dplyr::rename(type=TYPE)
@@ -777,6 +765,11 @@ for (cs in names(lABFs_list)) {
       dims = c(length(credible_sets), length(all_snps)),
       dimnames = list(credible_sets, all_snps)
     )
+  }
+
+  # Filter out values for SNPs out of the credible set right before matrices creation               
+  for (cs in seq_along(lABFs_list)) {
+    lABFs_list[[cs]] <- lABFs_list[[cs]] |> dplyr::filter(is_cs)
   }
 
   lABF_matrix_sparse <- create_sparse_matrix("lABF")
