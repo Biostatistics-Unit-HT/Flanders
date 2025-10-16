@@ -732,6 +732,18 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_i
     sep = "::"
   )
 
+
+# Set lABF, beta and se to 0 for SNPs outside of cs!
+for (cs in names(lABFs_list)) {
+  lABFs_list[[cs]] <- lABFs_list[[cs]] %>%
+    dplyr::mutate(
+      lABF = ifelse(is_cs, lABF, 0),
+      bC   = ifelse(is_cs, bC, 0),
+      bC_se= ifelse(is_cs, bC_se, 0)
+    )
+}
+
+                            
 # Prepare `obs_df` metadata
   obs_df <- metadata_df |> dplyr::select(-L_index) |> dplyr::rename(type=TYPE)
   obs_df$chr <- paste0("chr", obs_df$chr)
