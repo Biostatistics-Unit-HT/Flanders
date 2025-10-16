@@ -716,7 +716,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_i
     lABFs_list <- c(lABFs_list, lABFs)
     min_res_labf_vec <- c(min_res_labf_vec, min_res_labf)
     top_pvalue_vec <- c(top_pvalue_vec, top_pvalue)
-    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF)) 
+    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF, coverage = finemap$sets$requested_coverage)) 
     comment_section <- c(comment_section, rep(finemap$comment_section, length(finemap$sets$cs_index)))
     comment_section[is.na(comment_section)] <- "NaN"
     metadata_df <- rbind(metadata_df, finemap$metadata)
