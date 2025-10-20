@@ -583,7 +583,7 @@ expand_cs <- function(fitted) {
 #' cs_idx <- which(lbf_vec > 2)
 #' find_threshold(lbf_vec, original_idx = cs_idx)
 find_threshold <- function(vector, original_idx = NULL) {
-  if (var(vector) != 0) {
+  if (var(vector) != 0 && !is.na(var(vector))) {
     thres <- optim(
       fn = function(th) thresholder(th, vector),
       p = 0,
