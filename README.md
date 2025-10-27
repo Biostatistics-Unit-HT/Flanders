@@ -24,7 +24,7 @@ nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singulari
 
 ### Example: Run Only Colocalization (with existing `.h5ad`)
 ```bash
-nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --coloc_input /path/to/finemapping_output.h5ad    --run_colocalization true    --coloc_id my_coloc_run    -w ./work    -resume
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0    -profile [docker|singularity|conda]    --coloc_h5ad_input /path/to/finemapping_output.h5ad    --run_colocalization true    --coloc_id my_coloc_run    -w ./work    -resume
 ```
 
 ### Quick run with example dataset
