@@ -84,6 +84,14 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 </br>
 </br>
 
+#### 4.1 Getting external credible sets from Open Targets
+  - It is possible to create an Anndata using credible-sets already genereted from Open Targets. To do that follow these steps
+    - Download the Open Targets [credible-set](https://platform.opentargets.org/downloads/credible_set/access) and [study](https://platform.opentargets.org/downloads/study/access).
+    - Create a conda environment with the following packages: anndata, polars, pyarrow, scipy, math, argparse
+    - Run the python script in the bin folder called parse_credible_sets_refined.py following the instructions from the arguments
+  </br>
+  </br>
+
 ### Step 2: Colocalization analysis
 
 #### Inputs
@@ -124,7 +132,6 @@ iCOLOC approach allows to:
 | `coloc/*_colocalization.table.*.tsv`            | Colocalization analysis results (all, filterd by PPH4 threshold and filtered by PPH3 threshold)                  |
 </br>
 </br>
-
 
 ## 👩‍🔬 Credits
 Developed by the Biostatistics and Genome Analysis Units at [Human Technopole](https://humantechnopole.it/en/)<br>
