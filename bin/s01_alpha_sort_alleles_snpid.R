@@ -44,7 +44,15 @@ hg19ToHg38_liftover <- function(
   setnames(dataset_ranges38_df, "end", "BP")
   dataset_ranges38_df <- dataset_ranges38_df[, .(BP, snp_original)]
   
-  dataset_lifted <- merge(dataset_munged[, !"BP"], dataset_ranges38_df, by = "snp_original", all = FALSE)
+#  dataset_lifted <- merge(dataset_munged[, !"BP"], dataset_ranges38_df, by = "snp_original", all = FALSE)
+
+# New merge which keeps original file order - CRUCIAL TO MANTAIN ALIGNMENT WITH .BED!!
+  dataset_lifted <- dataset_ranges38_df[
+    dataset_munged[, !"BP"],
+    on = "snp_original",
+    nomatch = 0
+  ]
+
   return(dataset_lifted)
 }
 
@@ -88,6 +96,7 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
   bim_to_clean <- bim
 
 }
+
 # Remove rows with duplicated SNP by CHR POS
 # This get rid of multi-allelic variants and any other odd situations
 bim_cleaned <- bim_to_clean[!(duplicated(bim_to_clean[, .(CHR, BP)]) | duplicated(bim_to_clean[, .(CHR, BP)], fromLast=T))]
