@@ -39,7 +39,7 @@ run_dentist <- function(D=dataset_aligned
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
   # Prepare subset of plink LD files    
-  exit_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  exit_status = system(paste0("plink2 --pfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
   
   # Raise an error if the external command fails
   if (exit_status != 0) {
@@ -104,7 +104,7 @@ prep_susie_ld <- function(
   }
   
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
-  exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  exit_status = system(paste0("plink2 --pfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
   
   # Check if the command failed
   if (exit_status != 0) {
@@ -583,7 +583,7 @@ expand_cs <- function(fitted) {
 #' cs_idx <- which(lbf_vec > 2)
 #' find_threshold(lbf_vec, original_idx = cs_idx)
 find_threshold <- function(vector, original_idx = NULL) {
-  if (var(vector) != 0 && !is.na(var(vector))) {
+  if (var(vector) != 0) {
     thres <- optim(
       fn = function(th) thresholder(th, vector),
       p = 0,
