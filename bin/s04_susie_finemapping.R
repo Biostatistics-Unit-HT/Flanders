@@ -22,6 +22,7 @@ option_list <- list(
   make_option("--publish_susie", default=FALSE, help=" Whether to publish the susie finemap .rds intermediate files"),
   make_option("--results_path", default=NULL, help="Path to \"/results\" folder"),
   make_option("--study_id", default=NULL, help="Id of the study"),
+  make_option("--analysis_id", default=NULL, help="Id of the whole fine-mapping analysis"),
   make_option("--batch", default=NULL, help="File with multiple loci (chr, start, end, phenotype_id)")
 );
 
@@ -31,7 +32,8 @@ opt = parse_args(opt_parser);
 ## Source function R functions
 source(paste0(opt$pipeline_path, "funs_locus_breaker_cojo_finemap_all_at_once.R"))
 
-
+# Initialize a list to store all cleaned fitted_rss objects
+all_fitted_rss_cleaned <- list()
 
 # GWAS input
 if (is.null(opt$batch)) { 
@@ -56,7 +58,8 @@ if (is.null(opt$batch)) {
     phenotype_id = opt$phenotype_id,
     study_id =  opt$study_id
     )
-  } else {
+
+} else {
 
   loci_df <- fread(opt$batch, header = TRUE)
   dataset_aligned <- fread(opt$dataset_aligned, header = TRUE)
@@ -77,33 +80,40 @@ if (is.null(opt$batch)) {
         "end" = "END"
       )
   if(loci_df[1,'TYPE'] == "gwas"){
-      dataset_aligned <- dataset_aligned %>%
+    dataset_aligned <- dataset_aligned %>%
       rename(
         "study_id" = "TRAIT"
       )
-      loci_df <- loci_df %>%
+    loci_df <- loci_df %>%
       rename(
         "study_id" = "TRAIT"
         )
-      dataset_aligned = dataset_aligned %>% mutate("phenotype_id" = "full")
-      loci_df = loci_df %>% mutate("phenotype_id" = "full")
-      #loci_df["phenotype_id"]= "full"
+    dataset_aligned = dataset_aligned %>% mutate("phenotype_id" = "full")
+    loci_df = loci_df %>% mutate("phenotype_id" = "full")
+    #loci_df["phenotype_id"]= "full"
       
-    } else{
-      loci_df <- loci_df %>%
-        rename(
-          "study_id" = "CELL",
-          "phenotype_id" = "GENE"
-        )
-      dataset_aligned <- dataset_aligned %>%
+  } else {
+    loci_df <- loci_df %>%
+      rename(
+        "study_id" = "CELL",
+        "phenotype_id" = "GENE"
+      )
+    dataset_aligned <- dataset_aligned %>%
       rename(
         "study_id" = "CELL",
         "phenotype_id" = "GENE"
       )
   }
-  #This need to change to adapt in case of quantitative or CC
-  D_var_y = 1
+  D_var_y = loci_df$PHENO_VAR
 }
+
+
+
+failed_finemap_df <- data.frame()
+L1_finemap_variance_too_large_df <- data.frame()
+L1_finemap_did_not_converge_df <- data.frame()
+L1_finemap_missing_loci_post_susie_QC_df <- data.frame()
+
 
 for (i in 1:nrow(loci_df)) {
   chr <- loci_df$chr[i]
@@ -112,7 +122,7 @@ for (i in 1:nrow(loci_df)) {
   phenotype_name <- loci_df$phenotype_id[i]
   study_name <- loci_df$study_id[i] 
   
-  locus_name <- paste0(chr, "_", start, "_", end)
+  locus_name <- paste0(chr, ":", start, ":", end)
   chr <- as.numeric(chr)
   start <- as.numeric(start)
   end <- as.numeric(end)
@@ -181,7 +191,7 @@ for (i in 1:nrow(loci_df)) {
 
   fitted_rss <- run_susie_w_retries(
     D_sub,
-    D_var_y,
+    D_var_y[i],
     susie_ld,
     L = L,
     coverage = opt$cs_thresh,
@@ -212,7 +222,7 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       if(is.null(fitted_rss_cleaned)){
         fitted_rss_cleaned <- run_susie_w_tryCatch( ### Make sure this works as intended
           D_sub,
-          D_var_y,
+          D_var_y[i],
           susie_ld,
           L = 1,
           coverage = opt$cs_thresh,
@@ -220,63 +230,17 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
           min_abs_corr = 0
         )
         fitted_rss_cleaned$comment_section <- paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L, " passed post susie QC")
+        fitted_rss_cleaned$metadata <- loci_df[i, ] |> select(study_id, phenotype_id, chr, start, end, TYPE, N)
+      } else {
+	# If at least one cs passed QC, simply add metadata
+	fitted_rss_cleaned$metadata <- loci_df[i, ] |> select(study_id, phenotype_id, chr, start, end, TYPE, N)
       }
 
     # Skip QC for loci fine-mapped with L=1
     } else if (length(fitted_rss$KL)==1){
       fitted_rss_cleaned <- fitted_rss
+      fitted_rss_cleaned$metadata <- loci_df[i, ] |> select(study_id, phenotype_id, chr, start, end, TYPE, N)
     }
-
-    # Expand credible sets
-    expanded_cs <- expand_cs(fitted_rss_cleaned)
-
-    # Extract results using expanded indices
-    finemap.res <- extract_susie_results(
-      fitted = fitted_rss_cleaned,
-      D_sub = D_sub,
-      cs_indices = expanded_cs,
-      study_id = study_name,
-      phenotype_id = phenotype_name,
-      chr = chr,
-      start = start,
-      end = end
-    )
-
-  #########################################
-  # Organise list of what needs to be saved
-  #########################################
-
-    core_file_name <- paste0(study_name, "_", phenotype_name)
-  # if(opt$phenotype_id=="full") { core_file_name <- gsub("_full", "", core_file_name)}
-
-    ## Save .rds object
-    saveRDS(finemap.res, file = paste0(core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"))
-
-    ## Save info about each cs
-    tmp <- rbindlist(lapply(finemap.res, function(x){              
-      data.frame(
-        credible_set_snps = paste0(x$finemapping_lABFs |> dplyr::filter(is_cs==TRUE) |> dplyr::pull(snp), collapse=","),
-        study_id = study_name,
-        phenotype_id = phenotype_name,
-        chr = chr,
-        start = start,
-        end = end,
-        top_pvalue = min(pchisq((x$finemapping_lABFs$bC/x$finemapping_lABFs$bC_se)**2, 1, lower.tail=FALSE), na.rm=T),
-        path_rds = ifelse(
-          opt$publish_susie,
-          paste0(opt$results_path, "/results/finemap/", core_file_name, "_locus_chr", locus_name, "_susie_finemap.rds"),
-          NA),
-        x$effect
-      ) |>
-        dplyr::rename(bC=beta, bC_se=se)
-    }))
-    tmp$credible_set_name = names(finemap.res)
-
-  # Move 'credible_set_name' as first column
-    tmp <- tmp |> dplyr:: select(credible_set_name, everything())
-
-    fwrite(tmp, paste0(core_file_name, "_locus_chr", locus_name, "_cs_info_table.tsv"), sep="\t", quote=F, col.names = F, na=NA)
-
 
     ## List of loci which were still fine-mapped but with L=1 (and why)
     if(!is.na(fitted_rss_cleaned$comment_section)){
@@ -290,21 +254,17 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       )
 
       L1_finemap_variance_too_large <- L1_finemap |> dplyr::filter(grepl("The estimated prior variance is unreasonably large", finemapped_L1_reason))
-      if(nrow(L1_finemap_variance_too_large) > 0){
-        fwrite(L1_finemap_variance_too_large, paste0(random.number, "_FINEMAPPED_L1_prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
-      }
+      L1_finemap_variance_too_large_df <- rbind(L1_finemap_variance_too_large_df, L1_finemap_variance_too_large)      
         
       L1_finemap_did_not_converge <- L1_finemap |> dplyr::filter(grepl("IBSS algorithm did not converge", finemapped_L1_reason))
-      if(nrow(L1_finemap_did_not_converge) > 0){
-        fwrite(L1_finemap_did_not_converge, paste0(random.number, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
-      }
+      L1_finemap_did_not_converge_df <- rbind(L1_finemap_did_not_converge_df, L1_finemap_did_not_converge)
 
       L1_finemap_missing_loci_post_susie_QC <- L1_finemap |> dplyr::filter(grepl(paste0("Locus re-finemapped at L=1 after none of the credible sets fine-mapped at L=", L," passed post susie QC"), finemapped_L1_reason))
-      if(nrow(L1_finemap_missing_loci_post_susie_QC) > 0){
-        fwrite(L1_finemap_missing_loci_post_susie_QC, paste0(random.number, "_FINEMAPPED_L1_recover_after_susie_QC.tsv"), sep="\t", na=NA, quote=F)
-      }
+      L1_finemap_missing_loci_post_susie_QC_df <- rbind(L1_finemap_missing_loci_post_susie_QC_df, L1_finemap_missing_loci_post_susie_QC)      
     
     }
+
+    all_fitted_rss_cleaned[[locus_name]] <- fitted_rss_cleaned ### store all in a list
 
   } else { ### if region was not fine-mapped at all!
     
@@ -315,6 +275,46 @@ if (!is.null(fitted_rss) && !is.null(fitted_rss$sets$cs)) {
       start = start,
       end = end
     )
-    fwrite(failed_finemap, paste0(random.number, "_NOT_FINEMAPPED_no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
+    failed_finemap_df <- rbind(failed_finemap_df, failed_finemap)
   }
 }
+
+
+### Save reports
+if(nrow(failed_finemap_df) > 0){
+  fwrite(failed_finemap_df, paste0(opt$batch, "_NOT_FINEMAPPED_no_credible_sets_found.tsv"), sep="\t", na=NA, quote=F)
+}
+
+if(nrow(L1_finemap_variance_too_large_df) > 0){
+  fwrite(L1_finemap_variance_too_large_df, paste0(opt$batch, "_FINEMAPPED_L1_prior_variance_too_large.tsv"), sep="\t", na=NA, quote=F)
+}
+
+if(nrow(L1_finemap_did_not_converge_df) > 0){
+  fwrite(L1_finemap_did_not_converge_df, paste0(opt$batch, "_FINEMAPPED_L1_IBSS_algorithm_did_not_converge.tsv"), sep="\t", na=NA, quote=F)
+}
+
+if(nrow(L1_finemap_missing_loci_post_susie_QC_df) > 0){
+  fwrite(L1_finemap_missing_loci_post_susie_QC_df, paste0(opt$batch, "_FINEMAPPED_L1_recover_after_susie_QC.tsv"), sep="\t", na=NA, quote=F)
+}
+
+
+# If something was fine-mmaped, extend cs, calculate conditional beta and se and save all results of fine-mapping in anndata
+if (length(all_fitted_rss_cleaned) > 0) {
+
+  # Expand credible sets
+  expanded_cs <- lapply(all_fitted_rss_cleaned, expand_cs)
+  names(expanded_cs) <- names(all_fitted_rss_cleaned)
+
+  ### From Susie object to annData
+  ad <- from_susie_to_anndata(
+    finemap_list = all_fitted_rss_cleaned,
+    cs_indices = expanded_cs,
+    analysis_id = opt$analysis_id
+  )
+
+  message("AnnData created!")
+
+  ## Save anndata
+  anndata::write_h5ad(ad, paste0("batch_", opt$batch, "_anndata.h5ad"))
+}
+

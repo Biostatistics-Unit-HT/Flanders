@@ -1,6 +1,7 @@
-process CONCAT_ANNDATA {
+process CONCAT_ANNDATA_BA {
     tag "concat_anndata"
-    label "process_medium"
+    label "process_gpu"
+//  conda '/software/cardinal_analysis/ht/conda_envs/ht_scrna_scalpha'
 
     publishDir "${params.outdir}/results/anndata/", mode: params.publish_dir_mode, pattern:"*.h5ad"
 
@@ -19,7 +20,7 @@ process CONCAT_ANNDATA {
     
     ls input_file*/*.h5ad > all_h5ad_input_list.txt
     
-    s08_concat_anndata.R \
+    s08bis_concat_anndata_bioalpha.py \
         ${args} \
         --input all_h5ad_input_list.txt \
         --output_file ${output_name}

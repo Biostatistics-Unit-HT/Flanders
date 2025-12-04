@@ -22,8 +22,8 @@ workflow RUN_COLOCALIZATION {
       }
     .set { h5ad_channel }
 
-    CONCAT_ANNDATA(h5ad_channel.multiple)
-    merged_h5ad = h5ad_channel.single.mix(CONCAT_ANNDATA.out.full_anndata)
+    CONCAT_ANNDATA(h5ad_channel.multiple, "coloc_input_anndata.h5ad")
+    merged_h5ad = h5ad_channel.single.mix(CONCAT_ANNDATA.out.anndata)
 
     if (params.coloc_guide_table) {
       // If guide table is provided read this and ignore guide table from anndata

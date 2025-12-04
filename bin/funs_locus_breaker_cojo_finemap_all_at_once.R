@@ -619,142 +619,177 @@ thresholder <- function(threshold, vector) {
 }
 
 
-
-
-#' Extract and Annotate Fine-Mapping Results from SuSiE RSS Output
+#' Transfer SuSiE RSS fine-mapping results into an AnnData object
 #'
-#' This function processes the output of a \code{susie_rss} fine-mapping run and 
-#' returns detailed annotations for each credible set (CS). For each CS, the function 
-#' extracts log approximate Bayes factors (lABFs), estimated effect sizes and standard errors,
-#' QC metrics (including a log-sum of lABFs), and study metadata. The results are named
-#' according to chromosome, study ID, phenotype ID, top SNP, and CS index.
+#' This function takes a list of fine-mapping results from susie and associated metadata,
+#' attaches conditional effect size estimates, and organizes the results into an
+#' [anndata::AnnData] object with sparse matrices for lABFs, betas, and standard
+#' errors. Metadata about credible sets and variants is stored in the `obs` and
+#' `var` slots of the output object.
 #'
-#' @param fitted A \code{susie} or \code{susie_rss} object, typically the output of 
-#'   \code{susieR::susie_rss()}.
-#' @param D_sub A data.frame containing SNP-level information, with at least the columns:
-#'   \code{SNP}, \code{BP} (base-pair position), \code{freq} (allele frequency), and \code{N} (sample size).
-#' @param cs_indices A list of credible set indices (e.g. as returned by \code{expand_cs()}), 
-#'   where each element is a named vector of SNP indices corresponding to a CS.
-#' @param study_id Character. Identifier for the study.
-#' @param phenotype_id Character. Identifier for the phenotype.
-#' @param chr Integer or character. Chromosome number or label.
-#' @param start Integer. Start position of the fine-mapped region.
-#' @param end Integer. End position of the fine-mapped region.
+#' @param finemap_list A named list of susie fine-mapping results. Each element is
+#'   expected to contain at least:
+#'   - `lbf_variable`: a matrix of log Bayes factors
+#'   - `sets`: credible set information (`cs_index`, `cs`, `purity`,
+#'     `requested_coverage`)
+#'   - `metadata`: a data frame with study, phenotype, and variant annotations
+#'   - `comment_section`: optional notes from the fine-mapping run.
+#' @param cs_indices A named list parallel to `finemap_list`, containing indices
+#'   of expanded credible set SNPs to be used instead of the original indices.
+#' @param analysis_id A label identifying te whole fine-mapping analysis
 #'
-#' @return A named list of results, one element per credible set. Each element is itself a list with:
-#' \describe{
-#'   \item{finemapping_lABFs}{Data frame of SNP-level results, including SNP ID, position, lABF, 
-#'         estimated effect size (beta), standard error (bC_se), and whether the SNP belongs to the CS.}
-#'   \item{effect}{Data frame describing the top SNP by lABF (alleles, frequency, N, beta, se).}
-#'   \item{qc_metrics}{Data frame of purity and coverage metrics for the CS, 
-#'         including \code{logsum_lABF}, the log of the summed Bayes factors across SNPs in the set.}
-#'   \item{metadata}{Data frame with study and region-level metadata.}
-#' }
+#' @details
+#' The function performs the following steps for each fine-mapping result:
+#' - Identifies and flags credible SNPs according to credible set expansion
+#' - Computes and combines metadata about credible sets
+#' - Builds sparse matrices of lABFs, betas, and SEs
+#' - Constructs an [anndata::AnnData] object with:
+#'   - `X`: sparse lABF matrix
+#'   - `layers`: beta and SE sparse matrices
+#'   - `obs`: credible set metadata
+#'   - `var`: variant metadata
 #'
-#' The names of the list elements are constructed as:
-#' \code{chr<chr>::<study_id>::<phenotype_id>::<top_snp>::<CS_label>}.
+#' @return An [anndata::AnnData] object containing fine-mapping summary
+#'   statistics and metadata, ready for downstream analysis or visualization.
 #'
+#' @importFrom dplyr mutate select filter pull
+#' @importFrom tidyr unnest_longer
+#' @importFrom Matrix sparseMatrix
+#' @importFrom anndata AnnData
 #' @examples
 #' \dontrun{
-#' fitted <- susieR::susie_rss(z, R, n = N)
-#' expanded_cs <- expand_cs(fitted)
-#' results <- extract_susie_results(
-#'   fitted = fitted,
-#'   D_sub = D_sub,
-#'   cs_indices = expanded_cs,
-#'   study_id = "StudyX",
-#'   phenotype_id = "TraitY",
-#'   chr = 1,
-#'   start = 1e6,
-#'   end = 2e6
-#' )
+#' ad <- from_susie_to_anndata(finemap_list=finemap_list, cs_indices=cs_indices, analysis_id=analysis_id)
 #' }
 #'
-#' @seealso \code{\link{expand_cs}}, \code{\link[susieR]{susie_rss}}
-#' @export
-extract_susie_results <- function(
-    fitted,
-    D_sub,
-    cs_indices,
-    study_id,
-    phenotype_id,
-    chr,
-    start,
-    end) {
-  
-  freq <- setNames(D_sub$freq, D_sub$SNP)
-  N    <- setNames(D_sub$N, D_sub$SNP)
-  coverage <- fitted$sets$requested_coverage
-  
-  results <- lapply(fitted$sets$cs_index, function(cs_index) {
-    index <- paste0("L", cs_index)
-    x <- cs_indices[[index]]  # unified set
-    
-    beta_se_list <- get_beta_se_susie(fitted, cs_index)
-    
-    lABF_df <- data.frame(
-      SNP   = colnames(fitted$lbf_variable),
-      lABF  = fitted$lbf_variable[cs_index, ],
-      bC    = beta_se_list$beta,
-      bC_se = beta_se_list$se
-    )
-    
-    susie_reformat <- D_sub |>
-      dplyr::mutate(is_cs = SNP %in% names(x)) |>
-      dplyr::inner_join(lABF_df, by = "SNP") |>
-      dplyr::select(SNP, BP, lABF, bC, bC_se, is_cs) |>
-      dplyr::rename(snp = SNP, position = BP) |>
-      dplyr::arrange(desc(lABF))
-    
-    # Top SNP
-    top <- susie_reformat[1, ]
-    snp_top <- top$snp
-    chr_pos_a1_a0 <- strsplit(snp_top, ":")[[1]]
-    
-    effect <- data.frame(
-      snp  = snp_top,
-      a1   = chr_pos_a1_a0[3],
-      a0   = chr_pos_a1_a0[4],
-      freq = freq[snp_top],
-      N    = N[snp_top],
-      beta = top$bC,
-      se   = top$bC_se
-    )
-    
-    # QC metrics with log-sum of lABF
-    qc_metrics <- fitted$sets$purity[index, ] |>
-      dplyr::mutate(
-        coverage = coverage,
-        L = length(fitted$KL),
-        logsum_lABF = coloc:::logsum(susie_reformat$lABF)
+from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_id=NULL) {
+
+  lABFs_list <- list()
+  min_res_labf_vec <- c()
+  top_pvalue_vec <- c()
+  purity_df <- data.frame()
+  comment_section <- c()
+  metadata_df <- data.frame()
+
+  for (finemap_name in names(finemap_list)) {
+    finemap <- finemap_list[[finemap_name]]
+    cs_index <- cs_indices[[finemap_name]]
+
+    # Compute lABFs and conditional beta and se
+    lABFs <- lapply(finemap$sets$cs_index, function(cs) {
+      data.frame(
+        SNP = colnames(finemap$lbf_variable),
+        lABF = finemap$lbf_variable[cs, ],
+        is_cs = FALSE,
+        bC = get_beta_se_susie(finemap, cs)$beta,
+        bC_se = get_beta_se_susie(finemap, cs)$se
       )
-    
-    metadata_df <- data.frame(
-      study_id     = study_id,
-      phenotype_id = phenotype_id,
-      chr          = chr,
-      start        = start,
-      end          = end
-    )
-    
-    list(
-      finemapping_lABFs = susie_reformat,
-      effect            = effect,
-      qc_metrics        = qc_metrics,
-      metadata          = metadata_df
-    )
-  })
-# ---- Naming each credible set ----
-  names(results) <- paste(
-    paste0("chr", chr),
-    study_id,
-    phenotype_id,
-    sapply(results, function(x) x$finemapping_lABFs$snp[1]), # top SNP
-    names(cs_indices),  # CS label (L1, L2, etc.)
+    })
+
+    # Get credible SNPs for each CS
+    credible_snps <- lapply(finemap$sets$cs_index, function(cs) {
+      index <- paste0("L", cs)
+      #susie_get_cs(finemap, coverage = finemap$sets$requested_coverage)$cs[[index]]
+      cs_index[[index]] ### take indeces of expanded cs rather than original one!
+    })
+
+    # Mark credible SNPs
+    for (i in seq_along(lABFs)) {
+      lABFs[[i]]$is_cs[credible_snps[[i]]] <- TRUE
+    }
+
+    # Add info to metadata, collapse study and pheno ID in a single TRAITID
+    finemap$metadata <- finemap$metadata |>
+      dplyr::mutate(
+        analysis_id = opt$analysis_id,
+        snp = list(sapply(lABFs, function(x) x$SNP[which.max(x$lABF)])),
+        L_index = list(names(finemap$sets$cs)),
+        trait = ifelse(unique(TYPE=="gwas"), study_id, paste0(study_id, ":", phenotype_id))
+      ) |>
+      tidyr::unnest_longer(c(snp, L_index))
+
+    min_res_labf <- sapply(lABFs, function(x) unique(min(x$lABF)))
+    top_pvalue <- sapply(lABFs, function(x) min(2 * pnorm(abs(x$bC) / x$bC_se, lower.tail = FALSE)))
+    logsum.logABF <- sapply(lABFs, function(x) coloc:::logsum(x$lABF))
+
+    # Store results
+#    names(lABFs) <- credible_set_names
+    lABFs_list <- c(lABFs_list, lABFs)
+    min_res_labf_vec <- c(min_res_labf_vec, min_res_labf)
+    top_pvalue_vec <- c(top_pvalue_vec, top_pvalue)
+    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF, coverage = finemap$sets$requested_coverage)) 
+    comment_section <- c(comment_section, rep(finemap$comment_section, length(finemap$sets$cs_index)))
+    comment_section[is.na(comment_section)] <- "NaN"
+    metadata_df <- rbind(metadata_df, finemap$metadata)
+  }
+
+#### Create names for cs ####
+  cs_names_vec <- paste(
+    paste0("chr", metadata_df$chr),
+    metadata_df$analysis_id,
+    metadata_df$trait,
+    metadata_df$snp,
+    metadata_df$L_index,
     sep = "::"
   )
-  return(results)
+                            
+# Prepare `obs_df` metadata
+  obs_df <- metadata_df |> dplyr::select(-L_index) |> dplyr::rename(type=TYPE)
+  obs_df$chr <- paste0("chr", obs_df$chr)
+  obs_df$top_pvalue <- top_pvalue_vec
+  obs_df$min_res_labf <- min_res_labf_vec
+#  obs_df$panel <- NaN
+  obs_df$cs_name <- cs_names_vec
+  names(lABFs_list) <- obs_df$cs_name ### important for extracton of beta and se
+  obs_df$a1 <- gsub(".*:(\\w+):(\\w+)$", "\\1", obs_df$snp)
+  obs_df$a0 <- gsub(".*:(\\w+):(\\w+)$", "\\2", obs_df$snp)
+  obs_df$freq <- NaN
+
+  obs_df <- obs_df |>
+    dplyr::mutate(
+      bC = map2_dbl(cs_name, snp, ~ lABFs_list[[.x]] |> filter(SNP == .y) %>% pull(bC)),
+      bC_se = map2_dbl(cs_name, snp, ~ lABFs_list[[.x]] |> filter(SNP == .y) %>% pull(bC_se))
+    )
+
+  obs_df <- cbind(obs_df, purity_df)
+  obs_df$comment_section <- comment_section
+
+  # Prepare sparse matrices
+  all_snps <- unique(unlist(lapply(lABFs_list, function(x) x$SNP)))
+  element_indices <- setNames(seq_along(all_snps), all_snps)
+
+  create_sparse_matrix <- function(value_name, credible_sets=cs_names_vec) {
+    Matrix::sparseMatrix(
+      i = unlist(lapply(seq_along(credible_sets), function(i) rep(i, length(lABFs_list[[credible_sets[i]]]$SNP)))),
+      j = unlist(lapply(credible_sets, function(cs) element_indices[lABFs_list[[cs]]$SNP])),
+      x = unlist(lapply(lABFs_list, function(x) x[[value_name]])),
+      dims = c(length(credible_sets), length(all_snps)),
+      dimnames = list(credible_sets, all_snps)
+    )
+  }
+
+  # Filter out values for SNPs out of the credible set right before matrices creation               
+  for (cs in seq_along(lABFs_list)) {
+    lABFs_list[[cs]] <- lABFs_list[[cs]] |> dplyr::filter(is_cs)
+  }
+
+  lABF_matrix_sparse <- create_sparse_matrix("lABF")
+  beta_matrix_sparse <- create_sparse_matrix("bC")
+  se_matrix_sparse <- create_sparse_matrix("bC_se")
+
+  # Create AnnData object
+  ad <- anndata::AnnData(X = lABF_matrix_sparse)
+  ad$layers[["beta"]] <- beta_matrix_sparse
+  ad$layers[["se"]] <- se_matrix_sparse
+  rownames(obs_df) <- cs_names_vec
+  ad$obs <- obs_df
+
+  var_df <- data.frame(
+    snp = all_snps,
+    chr = gsub(".*(\\d+):(\\d+):\\w+:\\w+", "\\1", all_snps),
+    pos = gsub(".*(\\d+):(\\d+):\\w+:\\w+", "\\2", all_snps)
+  )
+  rownames(var_df) <- var_df$snp
+  ad$var <- var_df
+
+  return(ad)
 }
-
-
-
