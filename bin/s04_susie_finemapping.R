@@ -72,7 +72,6 @@ if (is.null(opt$batch)) {
       "SNP"="SNPID",
       "BP" = "SNP_POS"
     )
-  dataset_aligned = dataset_aligned[, SNP := gsub("chr", "", SNP)]
   loci_df <- loci_df %>%
       rename(
         "chr" = "CHR",
