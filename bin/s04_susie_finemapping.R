@@ -72,13 +72,14 @@ if (is.null(opt$batch)) {
       "SNP"="SNPID",
       "BP" = "SNP_POS"
     )
-
+  dataset_aligned = dataset_aligned[, SNP := gsub("chr", "", SNP)]
   loci_df <- loci_df %>%
       rename(
         "chr" = "CHR",
         "start" = "START",
         "end" = "END"
       )
+	
   if(loci_df[1,'TYPE'] == "gwas"){
     dataset_aligned <- dataset_aligned %>%
       rename(
@@ -146,7 +147,7 @@ for (i in 1:nrow(loci_df)) {
       dentist.bin="DENTIST"
     )
   }
-
+  print(dataset_aligned_sub)
   # Compute LD matrix
   susie_ld <- prep_susie_ld(
   D=dataset_aligned_sub,
