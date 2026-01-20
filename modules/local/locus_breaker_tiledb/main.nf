@@ -2,8 +2,8 @@
 
 process LOCUS_BREAKER_TILEDB {
   label "process_multi"
-  conda '/ssu/gassu/conda_envs/scqtl'
-  //conda '/software/cardinal_analysis/ht/conda_envs/scqtl'
+  //conda '/ssu/gassu/conda_envs/tdbsumstat'
+  conda '/software/cardinal_analysis/ht/conda_envs/tdbsumstat'
 
   publishDir "${params.outdir}/results/gwas_and_loci_tables/", mode: params.publish_dir_mode
 
@@ -20,15 +20,15 @@ process LOCUS_BREAKER_TILEDB {
 // Define the shell script to execute
   script:
     """
-    scqtl --workers ${params.workers} \
+    tdbsumstat \
       export \
-      --table ${traits_list_table} \
+      --table-lb ${traits_list_table} \
       --uri-path ${params.tiledb_uri} \
-      --out_lb ${params.path_tiledb_lb_out} \
-      --maf ${params.tiledb_lb_maf} \
+      --out ${params.path_tiledb_lb_out} \
+      --maf-lb ${params.tiledb_lb_maf} \
       --type-sumstat ${params.tiledb_lb_typesumstat} \
-      --hole ${params.tiledb_lb_hole} \
-      --locus-max-size ${params.tiledb_large_locus_size} \
+      --hole-lb ${params.tiledb_lb_hole} \
+      --locus-max-size-lb ${params.tiledb_large_locus_size} \
       --locusbreaker \
       --batch-name ${batch_index}
     

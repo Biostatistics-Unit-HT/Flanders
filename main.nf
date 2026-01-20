@@ -44,7 +44,7 @@ workflow {
 	if (params.tiledb){
 
 		// Split input file in a set of loci to run in parallel
-		Channel.fromPath(params.tiledb_metadata_file, checkIfExists:true)
+		Channel.fromPath(params.tiledb_lb_file, checkIfExists:true)
       .splitText(by: params.tiledb_batch_size, keepHeader: true, file: true)
       .map { batch_file -> 
         def batch_index = (batch_file.name =~ /\.(\d+)\.csv$/)[0][1]
@@ -54,7 +54,7 @@ workflow {
 		// inspect values at runtime
 		LOCUS_BREAKER_TILEDB(tiledb_metadata_batches)
 		
-		bfiles = Channel.fromPath("${params.tiledb_bfile}.{pgen,pvar,psam}").collect()
+		bfiles = Channel.fromPath("${params.tiledb_pfile}.{pgen,pvar,psam}").collect()
     	
 		// Use a single meta-study map so combine(by:0) can match
 		restructured_segments = LOCUS_BREAKER_TILEDB.out.locus_breaker_tdb_segments
@@ -95,7 +95,7 @@ workflow {
         			[batch_num, meta_loci, interval_file]
     			}
 				
-	    // Build finemapping_config by mapping over the tiledb_bfile channel so
+	    // Build finemapping_config by mapping over the tiledb_pfile channel so
 	    // the bfile becomes a concrete path value inside the tuple.
 	    finemap_params = [
 	        "skip_dentist": params.skip_dentist,
