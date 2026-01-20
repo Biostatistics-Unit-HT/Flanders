@@ -583,7 +583,7 @@ expand_cs <- function(fitted) {
 #' cs_idx <- which(lbf_vec > 2)
 #' find_threshold(lbf_vec, original_idx = cs_idx)
 find_threshold <- function(vector, original_idx = NULL) {
-  if (var(vector) != 0) {
+  if ( var(vector) != 0 && !is.na(var(vector)) ) {
     thres <- optim(
       fn = function(th) thresholder(th, vector),
       p = 0,
@@ -716,7 +716,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_i
     lABFs_list <- c(lABFs_list, lABFs)
     min_res_labf_vec <- c(min_res_labf_vec, min_res_labf)
     top_pvalue_vec <- c(top_pvalue_vec, top_pvalue)
-    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF)) 
+    purity_df <- rbind(purity_df, finemap$sets$purity |> dplyr::mutate(logsum.logABF=logsum.logABF, coverage = finemap$sets$requested_coverage)) 
     comment_section <- c(comment_section, rep(finemap$comment_section, length(finemap$sets$cs_index)))
     comment_section[is.na(comment_section)] <- "NaN"
     metadata_df <- rbind(metadata_df, finemap$metadata)
@@ -731,7 +731,7 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_i
     metadata_df$L_index,
     sep = "::"
   )
-
+                            
 # Prepare `obs_df` metadata
   obs_df <- metadata_df |> dplyr::select(-L_index) |> dplyr::rename(type=TYPE)
   obs_df$chr <- paste0("chr", obs_df$chr)
@@ -765,6 +765,11 @@ from_susie_to_anndata <- function(finemap_list=NULL, cs_indices=NULL, analysis_i
       dims = c(length(credible_sets), length(all_snps)),
       dimnames = list(credible_sets, all_snps)
     )
+  }
+
+  # Filter out values for SNPs out of the credible set right before matrices creation               
+  for (cs in seq_along(lABFs_list)) {
+    lABFs_list[[cs]] <- lABFs_list[[cs]] |> dplyr::filter(is_cs)
   }
 
   lABF_matrix_sparse <- create_sparse_matrix("lABF")

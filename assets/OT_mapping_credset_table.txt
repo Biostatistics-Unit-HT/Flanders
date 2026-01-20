@@ -1,0 +1,6 @@
+project,finemapping,data,description
+GCST,SuSiE-inf,gwas,GWAS catalog data
+GTEx,SuSie-inf,eqtl,eQTLs from GTEx
+UKB_PPP_EUR,SuSiE-inf,pqtl,Data from UKB-PPP considering only Europeans
+FINNGEN_R12,SuSie,gwas,Data from Finngen consortium
+
