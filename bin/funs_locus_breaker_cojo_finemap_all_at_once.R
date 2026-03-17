@@ -39,7 +39,8 @@ run_dentist <- function(D=dataset_aligned
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
   # Prepare subset of plink LD files    
-  exit_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  plink_input <- get_plink2_input_flag(bfile)
+  exit_status = system(paste0("plink2 ", plink_input," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
   
   # Raise an error if the external command fails
   if (exit_status != 0) {
@@ -82,6 +83,16 @@ run_dentist <- function(D=dataset_aligned
 
 
 
+#### get_plink2_input_flag ####
+# Auto-detect genotype format (pgen/psam/pvar vs bed/bim/fam) and return the correct plink2 flag
+get_plink2_input_flag <- function(prefix) {
+  if (file.exists(paste0(prefix, ".pgen"))) {
+    return(paste0("--pfile ", prefix))
+  } else {
+    return(paste0("--bfile ", prefix))
+  }
+}
+
 #### prep_susie_ld ####
 # Prepare LD matrix for SUSIE
 prep_susie_ld <- function(
@@ -104,7 +115,8 @@ prep_susie_ld <- function(
   }
   
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
-  exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  plink_input <- get_plink2_input_flag(bfile)
+  exit_status = system(paste0("plink2 ", plink_input, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
   
   # Check if the command failed
   if (exit_status != 0) {

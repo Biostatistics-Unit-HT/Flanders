@@ -274,6 +274,15 @@ hg19ToHg38_liftover <- function(
 }
 
 
+### Auto-detect genotype format (pgen vs bed) for plink2 input flag
+get_plink2_input_flag <- function(prefix) {
+  if (file.exists(paste0(prefix, ".pgen"))) {
+    return(paste0("--pfile ", prefix))
+  } else {
+    return(paste0("--bfile ", prefix))
+  }
+}
+
 ### dataset.align function --------
 dataset.align <- function(dataset, bfile) {
   
@@ -306,7 +315,8 @@ dataset.align <- function(dataset, bfile) {
     message("Allele frequency not found in summary stat - Computing allele frequency from LD reference panel")
     ## Compute allele frequency from LD reference panel provided    
     random.number <- stringi::stri_rand_strings(n=1, length=20, pattern = "[A-Za-z0-9]")
-    exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-just-bim --out ", random.number))
+    plink_input <- get_plink2_input_flag(bfile)
+    exit_status = system(paste0("plink2 ", plink_input, " --freq --make-just-bim --out ", random.number))
 
     # Raise an error if the external command fails
     if (exit_status != 0) {
@@ -523,7 +533,7 @@ option_list <- list(
   make_option("--type", default=NULL, help="Type of phenotype analysed - either 'quant' or 'cc' to denote quantitative or case-control"),
   make_option("--sdY", default=NULL, help="For a quantitative trait (type==quant), the population standard deviation of the trait. For quantitative traits, it can be a single value or a file containing per-phenotype `sdY` values. If not given, it will be estimated from beta and MAF"),
   make_option("--s", default=NULL, help="For a case control study (type==cc), the proportion of samples in dataset 1 that are cases"),
-  make_option("--bfile", default=NULL, help="Path and prefix name of custom/default LD bfiles (PLINK format .bed .bim .fam) - to compute effect allele frequency if missing"),
+  make_option("--bfile", default=NULL, help="Path and prefix name of custom/default LD genotype files (PLINK bed/bim/fam or pgen/psam/pvar) - to compute effect allele frequency if missing"),
   make_option("--grch", default=NULL, help="Genome reference build of GWAS sum stats"),
   make_option("--run_liftover", default=FALSE, type="logical", help="Set true to run liftover"),
   make_option("--maf", default=1e-04, help="MAF filter", metavar="character"),

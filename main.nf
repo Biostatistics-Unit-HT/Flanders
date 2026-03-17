@@ -52,7 +52,9 @@ workflow {
 		INPUT_COLUMNS_VALIDATION.out.table_out
 			.splitCsv(header:true, sep:"\t")
 			.map{ row -> 
-				def bfile_dataset = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
+				def bfile_bed = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
+				def bfile_pgen = params.is_test_profile ? file("${projectDir}/${row.bfile}.{pgen,psam,pvar}") : file("${row.bfile}.{pgen,psam,pvar}")
+				def bfile_dataset = bfile_pgen.every { it.exists() } ? bfile_pgen : bfile_bed
 				tuple(
 					row.process_bfile,
 					row.bfile,

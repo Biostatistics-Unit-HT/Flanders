@@ -58,16 +58,33 @@ hg19ToHg38_liftover <- function(
 
 # Get arguments specified in the sbatch
 option_list <- list(
-    make_option("--bfile", default=NULL, help="Path and prefix name of custom LD bfiles (PLINK format .bed .bim .fam)"),
+    make_option("--bfile", default=NULL, help="Path and prefix name of custom LD genotype files (PLINK bed/bim/fam or pgen/psam/pvar)"),
     make_option("--run_liftover", type = "logical", default=TRUE, help="Perform liftover to GRCh38?"),
     make_option("--grch", default=NULL, help="Genome reference build of GWAS sum stats")
 );
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-## Change snpids
-bim <- fread(paste0(opt$bfile, ".bim"))
-names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
+# Detect input format
+is_pgen <- file.exists(paste0(opt$bfile, ".pgen"))
+
+## Read variant info
+if (is_pgen) {
+  # .pvar has header lines starting with ## and a #CHROM header line
+  pvar <- fread(paste0(opt$bfile, ".pvar"), skip = "#CHROM")
+  names(pvar)[1] <- "CHR"
+  bim <- data.table(
+    CHR = pvar$CHR,
+    snp_original = pvar$ID,
+    V3 = 0,
+    BP = pvar$POS,
+    V5 = pvar$REF,
+    V6 = pvar$ALT
+  )
+} else {
+  bim <- fread(paste0(opt$bfile, ".bim"))
+  names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
+}
 
 # Make a standardized snp id as CHR:BP:V5:V6 and save this as reference for downstream operations
 bim <- bim |>
@@ -79,6 +96,12 @@ fwrite(
   paste0(opt$bfile, ".standard_snpid.bim"),
   quote=F, na=NA, sep="\t", col.names = F
 )
+
+# If pgen format, also write a .pvar with updated IDs for plink2
+if (is_pgen) {
+  pvar_out <- data.table(`#CHROM` = bim$CHR, POS = bim$BP, ID = bim$snp_original, REF = bim$V5, ALT = bim$V6)
+  fwrite(pvar_out, paste0(opt$bfile, ".standard_snpid.pvar"), quote=F, na=NA, sep="\t")
+}
 
 # Remove SNPs where SNP ID is duplicated since this can mess up liftOver and other operations downstream
 if (sum(duplicated(bim$snp_original)) > 0 ) {
@@ -101,12 +124,16 @@ if(as.numeric(opt$grch)==37 && as.logical(opt$run_liftover)){
 # This get rid of multi-allelic variants and any other odd situations
 bim_cleaned <- bim_to_clean[!(duplicated(bim_to_clean[, .(CHR, BP)]) | duplicated(bim_to_clean[, .(CHR, BP)], fromLast=T))]
 
-# Save list of SNP ids to extract from .bed
+# Save list of SNP ids to extract
 extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
 fwrite(list(bim_cleaned |> dplyr::pull(snp_original) |> unique()), extract_file, col.names=F, quote=F)
 
-# Extract list of SNPs from .bim (to match it with .bed!)
-exit_status = system(paste0("plink2 --bed ", opt$bfile, ".bed --fam ", opt$bfile, ".fam --bim ", opt$bfile, ".standard_snpid.bim --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+# Extract list of SNPs and output as bed/bim/fam
+if (is_pgen) {
+  exit_status = system(paste0("plink2 --pgen ", opt$bfile, ".pgen --psam ", opt$bfile, ".psam --pvar ", opt$bfile, ".standard_snpid.pvar --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+} else {
+  exit_status = system(paste0("plink2 --bed ", opt$bfile, ".bed --fam ", opt$bfile, ".fam --bim ", opt$bfile, ".standard_snpid.bim --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+}
   
 # Raise an error if the external command fails
 if (exit_status != 0) {
