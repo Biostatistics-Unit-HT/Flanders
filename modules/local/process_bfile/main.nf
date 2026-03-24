@@ -10,7 +10,7 @@ process PROCESS_BFILE {
     path chain_file
 
     output:
-    tuple val(bfile_id), val(file_type), path("${bfile_dataset[0].baseName}.GRCh38.alpha_sorted_alleles.*"), emit: processed_dataset
+    tuple val(bfile_id), val(file_type), path("${bfile_dataset[0].baseName}.GRCh38.alpha_sorted_alleles.{bed,bim,fam,pgen,pvar,psam}"), emit: processed_dataset
     
     script:
 	"""
