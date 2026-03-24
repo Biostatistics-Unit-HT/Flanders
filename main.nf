@@ -48,33 +48,48 @@ workflow {
 		// Validate input file
 		INPUT_COLUMNS_VALIDATION(sumstats_input_file, base_dir)
 		
-		// Collect and process distinct bim datasets
+		// Collect and process distinct bfile datasets
 		INPUT_COLUMNS_VALIDATION.out.table_out
-			.splitCsv(header:true, sep:"\t")
-			.map{ row -> 
-				def bfile_bed = params.is_test_profile ? file("${projectDir}/${row.bfile}.{bed,bim,fam}") : file("${row.bfile}.{bed,bim,fam}")
-				def bfile_pgen = params.is_test_profile ? file("${projectDir}/${row.bfile}.{pgen,psam,pvar}") : file("${row.bfile}.{pgen,psam,pvar}")
-				def bfile_dataset = bfile_pgen.every { it.exists() } ? bfile_pgen : bfile_bed
-				tuple(
-					row.process_bfile,
-					row.bfile,
-					"${row.grch_bfile ? row.grch_bfile : row.grch}",
-					"${params.run_liftover ? "T" : "F"}",
-					bfile_dataset
-				)
-			}
-			.unique()
-			.branch { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset ->
-				need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T") || process_bfile_flag == null
-				processed: true 
-			}
-			.set { bfile_datasets }
+    		.splitCsv(header:true, sep:"\t")
+    		.map { row ->
+        	    def prefix = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
+        	    def plink1_files = [ file("${prefix}.bed"), file("${prefix}.bim"), file("${prefix}.fam") ]
+		    def plink2_files = [ file("${prefix}.pgen"), file("${prefix}.pvar"), file("${prefix}.psam") ]
+		    def has_plink1 = plink1_files.every { it.exists() }
+        	    def has_plink2 = plink2_files.every { it.exists() }
+
+		    if (!has_plink1 && !has_plink2) {
+		        throw new IllegalArgumentException(
+		        "Neither PLINK1 (.bed/.bim/.fam) nor PLINK2 (.pgen/.pvar/.psam) files found for prefix: ${prefix}"
+		    )
+        	}
+
+        	// Priority: PLINK2 > PLINK1
+        	def file_type = has_plink2 ? "plink2" : "plink1"
+        	def bfile_dataset = has_plink2 ? plink2_files : plink1_files
+
+        	tuple(
+	            row.process_bfile,
+	            row.bfile,
+	            "${row.grch_bfile ? row.grch_bfile : row.grch}",
+	            "${params.run_liftover ? 'T' : 'F'}",
+	            file_type,
+	            bfile_dataset
+		)
+	}
+    	.unique()
+    	.branch { process_bfile_flag, bfile_id, grch_bfile, run_liftover, file_type, bfile_dataset ->
+            need_processing: process_bfile_flag in ["T", "t", "TRUE", "true", "True"] || (grch_bfile == "37" && run_liftover == "T") || process_bfile_flag == null
+            processed: true
+    	}
+    	.set { bfile_datasets }
+
 
 		PROCESS_BFILE(bfile_datasets.need_processing, chain_file)
 
 		processed_bfile_datasets = bfile_datasets.processed
-			.map { process_bfile_flag, bfile_id, grch_bfile, run_liftover, bfile_dataset -> 
-				tuple(bfile_id, bfile_dataset)
+			.map { process_bfile_flag, bfile_id, grch_bfile, run_liftover, file_type, bfile_dataset -> 
+				tuple(bfile_id, file_type, bfile_dataset)
 			}
 			.mix(PROCESS_BFILE.out.processed_dataset)
 
@@ -96,8 +111,8 @@ workflow {
 			)
 		}
 		.combine(processed_bfile_datasets, by: 0)
-		.map { bfile_id, study_id, finemap_config, bfile_dataset ->
-			tuple(study_id, finemap_config, bfile_dataset)
+		.map { bfile_id, study_id, finemap_config, file_type, bfile_dataset ->
+			tuple(study_id, finemap_config, file_type, bfile_dataset)
 		}
 
 		// Define input channel for munging of GWAS sum stats
@@ -142,8 +157,8 @@ workflow {
 			)
 		}
 		.combine(processed_bfile_datasets, by: 0)
-		.map { bfile_id, study_id, munging_config, gwas_file, sdY_file, bfile_dataset ->
-			tuple(study_id, munging_config, gwas_file, sdY_file, bfile_dataset)
+		.map { bfile_id, study_id, munging_config, gwas_file, sdY_file, file_type, bfile_dataset ->
+			tuple(study_id, munging_config, gwas_file, sdY_file, file_type, bfile_dataset)
 		}
 
 		RUN_MUNGING(sumstas_input_ch, chain_file)
