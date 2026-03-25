@@ -83,27 +83,19 @@ run_dentist <- function(D=dataset_aligned
 
 
 
-#### get_plink2_input_flag ####
-# Auto-detect genotype format (pgen/psam/pvar vs bed/bim/fam) and return the correct plink2 flag
-get_plink2_input_flag <- function(prefix) {
-  if (file.exists(paste0(prefix, ".pgen"))) {
-    return(paste0("--pfile ", prefix))
-  } else {
-    return(paste0("--bfile ", prefix))
-  }
-}
 
 #### prep_susie_ld ####
 # Prepare LD matrix for SUSIE
 prep_susie_ld <- function(
     D=dataset_aligned,
-    locus_chr=opt$chr,
-    locus_start=opt$start,
-    locus_end=opt$end,
-    bfile=opt$bfile,
-    maf.thresh=opt$maf,
+    locus_chr=chr,
+    locus_start=start,
+    locus_end=end,
+    bfile=bfile,
+    bfile_type=bfile_type,
+    maf.thresh=maf,
     random.number="ZUlGe4EnYqGkubYrApHu",
-    skip_dentist=opt$skip_dentist
+    skip_dentist=skip_dentist
 ){
   
   if (skip_dentist == TRUE){
@@ -115,9 +107,12 @@ prep_susie_ld <- function(
   }
   
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
-  plink_input <- get_plink2_input_flag(bfile)
-  exit_status = system(paste0("plink2 ", plink_input, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
-  
+  if(bfile_type=="plink1"){
+    exit_status = system(paste0("plink2 --bfile ", bfile," --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  } else if(bfile_type=="plink2"){
+    exit_status = system(paste0("plink2 --pfile ", bfile," --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  }
+
   # Check if the command failed
   if (exit_status != 0) {
     # Check if the error is due to no variants remaining
