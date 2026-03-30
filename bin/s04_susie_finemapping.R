@@ -12,7 +12,7 @@ option_list <- list(
   make_option("--dataset_aligned", default=NULL, help="GENOME-WIDE munged and aligned dataset file"),
   make_option("--maf", default=1e-04, help="MAF filter", metavar="character"),
   make_option("--bfile", default=NULL, help="Path and prefix name of custom LD genotype files (PLINK bed/bim/fam or pgen/psam/pvar)"),
-  make_option("--bfile_type", default=NULL, help="Whether bfile is in plink2 pgen/pvar/psamj or plink1 bed/bim/fam format"),
+  make_option("--bfile_type", default=NULL, help="Whether bfile is in plink2 pgen/pvar/psam or plink1 bed/bim/fam format"),
   make_option("--skip_dentist", default=TRUE, help="Whether to skip the match of SNPs LD between GWAS sum stat and LD reference (performed by DENTIST), and consequent removal of mismatched SNPs"),
   make_option("--cs_thresh", default=0.99, help="Percentage of credible set"),
   make_option("--susie_max_iter", default=400, help="Maximum number of susie iterations"),
