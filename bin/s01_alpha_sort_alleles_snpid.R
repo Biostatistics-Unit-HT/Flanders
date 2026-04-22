@@ -59,18 +59,20 @@ hg19ToHg38_liftover <- function(
 # Get arguments specified in the sbatch
 option_list <- list(
     make_option("--bfile", default=NULL, help="Path and prefix name of custom LD genotype files (PLINK bed/bim/fam or pgen/psam/pvar)"),
-    make_option("--file-type", default = NULL, help = "Input file type: plink1 or plink2"),
+    make_option("--bfile_type", default = NULL, help = "Input file type: plink1 or plink2"),
     make_option("--run_liftover", type = "logical", default=TRUE, help="Perform liftover to GRCh38?"),
     make_option("--grch", default=NULL, help="Genome reference build of GWAS sum stats")
 );
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-# Detect input format
-is_pgen <- file.exists(paste0(opt$bfile, ".pgen"))
+bfile_type <- opt$bfile_type
 
 ## Read variant info
-if (is_pgen) {
+if(bfile_type=="plink1"){
+  bim <- fread(paste0(opt$bfile, ".bim"))
+  names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
+} else if(bfile_type=="plink2"){
   # .pvar has header lines starting with ## and a #CHROM header line
   pvar <- fread(paste0(opt$bfile, ".pvar"), skip = "#CHROM")
   names(pvar)[1] <- "CHR"
@@ -82,9 +84,6 @@ if (is_pgen) {
     V5 = pvar$REF,
     V6 = pvar$ALT
   )
-} else {
-  bim <- fread(paste0(opt$bfile, ".bim"))
-  names(bim) <- c("CHR","snp_original","V3", "BP","V5","V6")
 }
 
 # Make a standardized snp id as CHR:BP:V5:V6 and save this as reference for downstream operations
@@ -93,19 +92,18 @@ bim <- bim |>
     snp_original = paste0(CHR, ":", BP, ":", V5, ":", V6)
   )
 
-if (is_pgen) {
-    pvar_standard <- data.table(
-        `#CHROM` = bim$CHR,
-        POS = bim$BP,
-        ID = bim$snp_original,
-        REF = bim$V5,
-        ALT = bim$V6
-    )
-    fwrite(pvar_standard, paste0(opt$bfile, ".standard_snpid.pvar"), quote = FALSE, na = NA, sep = "\t")
-} else {
-    fwrite(bim, paste0(opt$bfile, ".standard_snpid.bim"), quote = FALSE, na = NA, sep = "\t", col.names = FALSE)
+if(bfile_type=="plink1"){
+  fwrite(bim, paste0(opt$bfile, ".standard_snpid.bim"), quote = FALSE, na = NA, sep = "\t", col.names = FALSE)
+} else if(bfile_type=="plink2"){
+  pvar_standard <- data.table(
+    `#CHROM` = bim$CHR,
+    POS = bim$BP,
+    ID = bim$snp_original,
+    REF = bim$V5,
+    ALT = bim$V6
+  )
+  fwrite(pvar_standard, paste0(opt$bfile, ".standard_snpid.pvar"), quote = FALSE, na = NA, sep = "\t")
 }
-
 
 
 # Remove SNPs where SNP ID is duplicated since this can mess up liftOver and other operations downstream
@@ -130,10 +128,10 @@ extract_file <- paste0(opt$bfile, "_snps_to_extract.txt")
 fwrite(list(bim_cleaned |> dplyr::pull(snp_original) |> unique()), extract_file, col.names=F, quote=F)
 
 # Extract list of SNPs and output as bed/bim/fam or pgen/pvar/psam
-if (is_pgen) {
-  exit_status = system(paste0("plink2 --pgen ", opt$bfile, ".pgen --psam ", opt$bfile, ".psam --pvar ", opt$bfile, ".standard_snpid.pvar --extract ", extract_file, " --make-pgen --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
-} else {
+if(bfile_type=="plink1"){
   exit_status = system(paste0("plink2 --bed ", opt$bfile, ".bed --fam ", opt$bfile, ".fam --bim ", opt$bfile, ".standard_snpid.bim --extract ", extract_file, " --make-bed --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
+} else if(bfile_type=="plink2"){
+  exit_status = system(paste0("plink2 --pgen ", opt$bfile, ".pgen --psam ", opt$bfile, ".psam --pvar ", opt$bfile, ".standard_snpid.pvar --extract ", extract_file, " --make-pgen --out ", opt$bfile, ".GRCh38.alpha_sorted_alleles"))
 }
   
 # Raise an error if the external command fails
@@ -152,22 +150,21 @@ bim_alpha_sorted <- bim_cleaned |>
   dplyr::select(CHR, snp_original, V3, BP, V5, V6)
 
 # Save
-if (is_pgen) {
-    pvar_alpha_sorted <- data.table(
-      `#CHROM` = bim_alpha_sorted$CHR,
-      POS = bim_alpha_sorted$BP,
-      ID = bim_alpha_sorted$snp_original,
-      REF = bim_alpha_sorted$V5,
-      ALT = bim_alpha_sorted$V6
-    )
-
-    fwrite(
-      pvar_alpha_sorted,
-      paste0(opt$bfile, ".GRCh38.alpha_sorted_alleles.pvar"),
-      quote = FALSE, na = NA, sep = "\t")
-} else {
+if(bfile_type=="plink1"){
   fwrite(
     bim_alpha_sorted,
     paste0(opt$bfile, ".GRCh38.alpha_sorted_alleles.bim"),
     quote=F, na=NA, sep="\t", col.names = F)
+} else if(bfile_type=="plink2"){
+  pvar_alpha_sorted <- data.table(
+    `#CHROM` = bim_alpha_sorted$CHR,
+    POS = bim_alpha_sorted$BP,
+    ID = bim_alpha_sorted$snp_original,
+    REF = bim_alpha_sorted$V5,
+    ALT = bim_alpha_sorted$V6
+  )
+  fwrite(
+    pvar_alpha_sorted,
+    paste0(opt$bfile, ".GRCh38.alpha_sorted_alleles.pvar"),
+    quote = FALSE, na = NA, sep = "\t")
 }
