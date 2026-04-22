@@ -16,7 +16,7 @@ process PROCESS_BFILE {
 	"""
     s01_alpha_sort_alleles_snpid.R \
         --bfile ${bfile_dataset[0].baseName} \
-	--file-type ${file_type} \
+		--bfile_type ${file_type} \
         --grch ${genome_build} \
         --run_liftover ${run_liftover}
 	"""
