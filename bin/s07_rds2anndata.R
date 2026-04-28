@@ -36,353 +36,282 @@ opt_parser <- OptionParser(usage = "Usage: %prog -i <input> -o <output_file>",
 opt <- parse_args(opt_parser)
 
 
-#' Convert finemap files to AnnData
+#' Convert finemapping RDS files into a single AnnData object
 #'
-#' This function reads finemap `.rds` files, filters rows where `is_cs` is `TRUE`,
-#' and creates a sparse matrix of lABF values for SNPs across credible sets.
-#' The function then converts the sparse matrix to an AnnData object and
-#' includes metadata about the start and end positions of each credible set.
+#' This function efficiently reads a collection of finemapping `.rds` files and
+#' converts them into a single \code{AnnData} object. Each `.rds` file is expected
+#' to contain a list of finemapping results (typically 1–10 per file), where each
+#' element represents a credible set with associated metadata.
 #'
-#' @param finemap_files A character vector of file paths to the finemap `.rds` files.
-#' @param study_id A character vector specifying the study_id for each of the finemap_files
-#' @param snp_panel A character vector specifying the list of SNPs for anndata$X vars. For example,
-#' snp_panel can have length of 9M SNPs and resulted AnnData will have X with n(vars) = 9M
-#' @param phenotype_id A character vector specifying the phenotype_id for each of the finemap_files
-#' @param panel A character string specifying the SNP genotyping/imputation panel
+#' For each credible set, the function:
+#' \itemize{
+#'   \item Extracts SNP-level statistics from \code{finemapping_lABFs}
+#'   \item Filters SNPs belonging to the credible set (\code{is_cs == TRUE})
+#'   \item Builds sparse matrices for \code{lABF} (stored in \code{X}),
+#'         \code{beta}, and \code{se} (stored as layers)
+#'   \item Collects credible-set-level metadata into \code{obs}, including:
+#'     \itemize{
+#'       \item Genomic coordinates and study/phenotype identifiers
+#'       \item Minimum p-value within the credible set
+#'       \item Minimum lABF across all SNPs
+#'       \item Optional effect-level fields (e.g. \code{snp, a1, a0, freq, N, beta, se})
+#'       \item Optional QC metrics (e.g. \code{coverage, L, logsum_lABF})
+#'     }
+#'   \item Collects SNP-level metadata into \code{var} (SNP, chromosome, position)
+#' }
 #'
+#' The function is optimized for large datasets by:
+#' \itemize{
+#'   \item Reading files sequentially (avoiding full preloading into memory)
+#'   \item Using sparse matrix triplet construction (\code{i, j, x})
+#'   \item Leveraging \code{data.table} for fast data manipulation
+#' }
 #'
-#' @return The AnnData object containing the sparse matrix of lABF values and metadata.
-#' @export
-#' @import data.table
-#' @import dplyr
-#' @import anndata
+#' @param finemap_files Character vector of paths to `.rds` finemapping files.
+#'   Each file should contain a list of objects with components:
+#'   \code{finemapping_lABFs}, \code{metadata}, and optionally \code{effect}
+#'   and \code{qc_metrics}.
+#' @param panel Character string specifying the SNP genotyping/imputation panel
+#'   (stored in \code{ad$obs$panel}). Default is \code{"HRC"}.
+#'
+#' @return An \code{AnnData} object with:
+#' \itemize{
+#'   \item \code{X}: sparse matrix of lABF values (credible sets × SNPs)
+#'   \item \code{layers[["beta"]]}: sparse matrix of effect sizes
+#'   \item \code{layers[["se"]]}: sparse matrix of standard errors
+#'   \item \code{obs}: data.frame of credible-set-level metadata
+#'   \item \code{var}: data.frame of SNP-level metadata
+#' }
+#'
+#' @details
+#' Each element inside each `.rds` file is treated as an independent credible set.
+#' Row names of \code{obs} correspond to credible set names extracted from the
+#' list names of the `.rds` object. Column names of \code{X} correspond to the
+#' union of all SNPs observed across all files.
+#'
+#' Missing or malformed files are skipped and reported.
 #'
 #' @examples
 #' \dontrun{
-#' # Load necessary libraries
-#' library(anndata)
-#' library(data.table)
-#' library(dplyr)
-#' library(Matrix)
+#' files <- readLines("input_files.txt")
+#' ad <- finemap2anndata_fast(files, panel = "HRC")
+#' anndata::write_h5ad(ad, "output.h5ad")
+#' }
 #'
-
-finemap2anndata <- function(
+#' @import data.table
+#' @import Matrix
+#' @import anndata
+#' @export
+#'
+finemap2anndata_fast <- function(
     finemap_files,
-    preloaded_list = FALSE,
-    study_id = NULL,
-    phenotype_id = NULL,
-    chr_start_end_positions = NULL,
-    snp_panel = NULL,
-    panel = NULL
-){
+    panel = "HRC"
+) {
   
-  # Initialize a list to store the filtered data
-  filtered_data_list <- list()
+  # Set up lists used to collect AnnData obs/var metadata and sparse matrix triplets  
+  obs_list <- list()
+  var_list <- list()
   
-  # Loop through each file and filter data
-  print("Reading finemap files...")
+  i_list <- list()
+  snp_list <- list()
+  labf_list <- list()
+  beta_list <- list()
+  se_list <- list()
   
-  min_res_labf <- c()
+  # Track credible set names and files that failed to load  
+  cs_names <- character()
+  failed_files <- character()
   
-  # Initialize counters and lists
-  failed_files <- c()  # to store failed files
-  success_count <- 0      # to count successful reads
-  failed_count <- 0       # to count failed reads
+  row_id <- 0L
   
-  # all_snps <- c() # to collect all SNPs, tested in finemapping
+  message("Reading RDS files...")
   
-  # List of data.tables with snp, chr and pos columns
-  snp_chr_pos <- list()
-  
-  #setkey(snp_chr_pos,snp)
-  
-  effect_df <- data.frame()
-  qc_metrics_df <- data.frame()
-  
-  if(!preloaded_list)
-    names(finemap_files) <- finemap_files
-
-  # If there are duplicated names in finemap_files, append suffix "L{index}" to each duplicate
-  if(any(duplicated(names(finemap_files)))) {
-    dup_names <- names(finemap_files)[duplicated(names(finemap_files)) | duplicated(names(finemap_files), fromLast = TRUE)]
-    for(name in unique(dup_names)) {
-      idx <- which(names(finemap_files) == name)
-      names(finemap_files)[idx] <- paste0(name, "::L", seq_along(idx))
-    }
-  }
-  
-  for (finemap_file in names(finemap_files)) {
+  # Loop over RDS files one at a time to avoid loading all files into memory (rather than kloading in them all at once)
+  for (file_idx in seq_along(finemap_files)) {
+    f <- finemap_files[file_idx]
     
-    # Try to read the .rds file and catch any errors or warnings
-    result <- tryCatch({
-      if(preloaded_list){
-        finemap <- finemap_files[[finemap_file]]
-      } else{
-        finemap <- readRDS(finemap_file)
+    # Read one RDS file. If reading fails, record the file and continue
+    rds_obj <- tryCatch(
+      readRDS(f),
+      error = function(e) {
+        failed_files <<- c(failed_files, basename(f))
+        NULL
       }
-      
-      # "finemapping_lABFs" "effect"            "qc_metrics"
-      
-      if(class(finemap) == "list"){
-        if(!is.null(finemap$effect)){
-          effect_df <- bind_rows(effect_df, finemap$effect)
-        } else{
-          effect_df <- rbind(effect_df, rep(NA,7))
-        }
-        if(!is.null(finemap$qc_metrics)){
-          qc_metrics_df <- bind_rows(qc_metrics_df, finemap$qc_metrics)
-        }else {
-          qc_metrics_df <- rbind(qc_metrics_df, rep(NA,3))
-        }
-        finemap <- finemap$finemapping_lABFs
-      }
-      finemap <- data.table(finemap)
-#      if("pC" %in% colnames(finemap) & !("p" %in% colnames(finemap)))
-#        finemap <- finemap %>% rename(p=pC)
-      
-#      if("bC" %in% colnames(finemap) & !("b" %in% colnames(finemap)))
-#        finemap <- finemap %>% rename(b=bC)
-      
-      success_count <- success_count + 1
-      
-      # If successful, continue with the rest of the operations
-      min_res_labf <- c(min_res_labf, min(finemap$lABF))
-      
-      new_rows <- data.table(
-        snp = finemap$snp,
-        chr = chr_start_end_positions$chr[which(names(finemap_files)==finemap_file)],
-        pos = finemap$pos
-      )
-      
-      snp_chr_pos[[length(snp_chr_pos) + 1]] <- new_rows
-      
-      # Append new rows
-      #snp_chr_pos <- rbindlist(list(snp_chr_pos, new_rows), use.names = TRUE)
-      
-      #snp_chr_pos <- bind_rows(
-      #  snp_chr_pos,
-      #  data.table(
-      #    snp = finemap$snp,
-      #    chr = get_chr_start_end(finemap_file)[1],
-      #    pos = finemap$pos
-      #  )
-      #)
-      
-      #snp_chr_pos <- snp_chr_pos %>% filter(!duplicated(snp))
-      
-      # Filter rows where is_cs is TRUE
-      filtered_finemap <- finemap[is_cs == TRUE]
-      
-      # Append the filtered data to the list
-      filtered_data_list[[basename(finemap_file)]] <- filtered_finemap
-      
-      NULL  # return NULL on success so tryCatch does not return a value
-    }, error = function(e) {
-      # On error, append the file name to the failed files list
-      print(e)
-      failed_files <<- c(failed_files,basename(finemap_file))
-      failed_count <<- failed_count + 1
-      #message(paste("Error in reading file:", basename(finemap_file), "- Skipping"))
-      NULL  # return NULL on error
-    })
-    n = length(names(finemap_files) == finemap_file)
-    if(n %% 100 == 0){
-      cat("\rFinished", n, "of", length(finemap_files))
-    }
-  }
-  
-  snp_chr_pos <- rbindlist(snp_chr_pos, use.names = TRUE)
-  
-  snp_chr_pos <- snp_chr_pos %>% filter(!duplicated(snp))
-  
-  print(paste0("We have ",nrow(snp_chr_pos)," SNPs in ", length(filtered_data_list), " credible sets."))
-  
-  if(preloaded_list)
-    finemap_files = names(finemap_files)
-  
-  if(!is.null(failed_files)){
-    study_id <- study_id[-sapply(failed_files,function(x) grep(x,finemap_files))]
-    phenotype_id <- phenotype_id[-sapply(failed_files,function(x) grep(x,finemap_files))]
-  }
-  
-  # Output how many files were successfully read and how many failed
-  cat("\nNumber of successfully read files:", success_count, "\n")
-  cat("Number of failed files:", failed_count, "\n")
-  if (!is.null(failed_files)) {
-    cat("Failed files:", paste(unlist(failed_files), collapse = ", "), "\n")
-  } else {
-    cat("Failed files: None\n")
-  }
-  
-  # Collect all unique SNPs
-  all_snps <- snp_chr_pos$snp
-  
-  element_indices <- stats::setNames(seq_along(all_snps), all_snps)
-  
-  # Collect all credible set names
-  credible_sets <- names(filtered_data_list)
-  
-  # Create a sparse matrix to store lABF values
-  lABF_matrix_sparse <- Matrix::Matrix(
-    0,
-    nrow = length(credible_sets),
-    ncol = length(all_snps),
-    sparse = TRUE,
-    dimnames = list(credible_sets, all_snps)
-  )
-  
-  # Create a sparse matrix to store betas
-  beta_matrix_sparse <- Matrix::Matrix(
-    0,
-    nrow = length(credible_sets),
-    ncol = length(all_snps),
-    sparse = TRUE,
-    dimnames = list(credible_sets, all_snps)
-  )
-  
-  # Create a sparse matrix to store se
-  se_matrix_sparse <- Matrix::Matrix(
-    0,
-    nrow = length(credible_sets),
-    ncol = length(all_snps),
-    sparse = TRUE,
-    dimnames = list(credible_sets, all_snps)
-  )
-  
-  print("Populating sparse matrix...")
-  
-  top_pvalue <- c()
-  
-  # Fill the sparse matrix with lABF values
-  for (credible_set in credible_sets) {
-    credible_data <- filtered_data_list[[credible_set]]
-    row_index <- match(credible_set, credible_sets)
-    col_indices <- element_indices[credible_data$snp]
-    
-    lABF_values <- credible_data$lABF
-    beta_values <- credible_data$bC ####
-    se_values <- credible_data$bC_se ####
-    p_values <- pchisq((credible_data$bC/credible_data$bC_se)**2,1,lower.tail=FALSE)
-    
-    # if(all(c("bC","pC") %in% colnames(credible_data))) ####
-    #   se_values <- abs(
-    #     1/(
-    #       sqrt(
-    #         qchisq(credible_data$pC,df=1,lower.tail=FALSE) ####
-    #       ) / credible_data$bC ####
-    #     )
-    #   )
-    
-    lABF_matrix_sparse[row_index, col_indices] <- lABF_values
-    beta_matrix_sparse[row_index, col_indices] <- beta_values
-    se_matrix_sparse[row_index, col_indices] <- se_values
-    
-    top_pvalue <- c(top_pvalue, min(p_values))
-    n = which(credible_sets == credible_set)
-    if(n %% 10 == 0){
-      cat("\rFinished", n, "of", length(credible_sets))
-    }
-  }
-  
-  # This needs to be refactored as now we store chr pos in the ad$var. And it
-  # should be properly filled for this "null" snp_panel_matrix_sparse which is
-  # appended to the lABF_matrix_sparse
-  if(!is.null(snp_panel)){
-    
-    snp_panel_matrix_sparse <- Matrix::Matrix(
-      0,
-      nrow = length(credible_sets),
-      ncol = length(snp_panel[!snp_panel %in% all_snps]),
-      sparse = TRUE,
-      dimnames = list(credible_sets, snp_panel[!snp_panel %in% all_snps])
     )
     
-    lABF_matrix_sparse <- cbind(lABF_matrix_sparse, snp_panel_matrix_sparse)
-    beta_matrix_sparse <- cbind(beta_matrix_sparse, snp_panel_matrix_sparse)
-    se_matrix_sparse <- cbind(se_matrix_sparse, snp_panel_matrix_sparse)
+    if (is.null(rds_obj)) next
     
+    # Each inner object inside each RDS file becomes one row in AnnData  
+    for (inner_idx in seq_along(rds_obj)) {
+      obj <- rds_obj[[inner_idx]]
+      
+      # Convert finemapping results and metadata to data.table for fast filtering
+      fm <- data.table::as.data.table(obj$finemapping_lABFs)
+      meta <- data.table::as.data.table(obj$metadata)
+
+      row_id <- row_id + 1L
+      
+      # Extract credible-set name from rds object name
+      cs_name <- names(rds_obj)[inner_idx]
+      cs_names[row_id] <- cs_name
+      
+      # Keep only SNPs belonging to the credible set
+      fm_cs <- fm[is_cs == TRUE]
+      
+      # Store sparse matrix triplets
+      # i = AnnData row index, SNP names are converted to column indices later
+      i_list[[row_id]] <- rep.int(row_id, nrow(fm_cs))
+      snp_list[[row_id]] <- fm_cs$snp
+      labf_list[[row_id]] <- fm_cs$lABF
+      beta_list[[row_id]] <- fm_cs$bC
+      se_list[[row_id]] <- fm_cs$bC_se
+      
+      # Compute the smallest conditional p-value among credible-set SNPs
+      p_values <- stats::pchisq(
+        (fm_cs$bC / fm_cs$bC_se)^2,
+        df = 1,
+        lower.tail = FALSE
+      )
+      top_pvalue <- min(p_values, na.rm = TRUE)
+      
+      # Extract per-credible-set effect metadata
+      effect_obs <- if (!is.null(obj$effect)) {
+        data.table::as.data.table(obj$effect)
+      } else {
+        data.table::data.table()
+      }
+      
+      # Extract per-credible-set QC metrics
+      qc_obs <- if (!is.null(obj$qc_metrics)) {
+        data.table::as.data.table(obj$qc_metrics)
+      } else {
+        data.table::data.table()
+      }
+      
+      # Build obs row: credible-set-level metadata
+      obs_list[[row_id]] <- data.table::data.table(
+        chr = paste0("chr", meta$chr[1]),
+        start = as.numeric(meta$start[1]),
+        end = as.numeric(meta$end[1]),
+        study_id = meta$study_id[1],
+        phenotype_id = meta$phenotype_id[1],
+        top_pvalue = top_pvalue,
+        min_res_labf = min(fm$lABF, na.rm = TRUE),
+        panel = panel,
+        cs_name = cs_name
+      )[
+        ,
+        cbind(.SD, effect_obs, qc_obs)
+      ]
+      
+      # Build var metadata: SNP-level information
+      var_list[[row_id]] <- fm[, .(
+        snp,
+        chr = paste0("chr", meta$chr[1]),
+        position
+      )]
+    }
+    
+    # Progress message every 100 files
+    if (file_idx %% 100 == 0) {
+      message("Finished ", file_idx, " of ", length(finemap_files), " files")
+    }
   }
   
-  print("Creating AnnData object...")
+  message("Combining metadata...")
   
-  # Convert the sparse matrix to an AnnData object
-  # TODO - AnnData shoould be created in the end using single call of anndata
-  # function - so X, obs, var and layer goes together
+  # Combine collected obs and var metadata
+  obs_dt <- data.table::rbindlist(obs_list, fill = TRUE)
+  var_dt <- unique(
+    data.table::rbindlist(var_list, fill = TRUE),
+    by = "snp"
+  )
   
-  ad <- anndata::AnnData(X = lABF_matrix_sparse)
+  # Create SNP-to-column-index mapping for sparse matrix construction
+  all_snps <- var_dt$snp
+  snp_index <- stats::setNames(seq_along(all_snps), all_snps)
   
-  ad$layers[["beta"]] <- beta_matrix_sparse
-  ad$layers[["se"]] <- se_matrix_sparse
+  # Flatten triplet lists into vectors
+  i_vec <- unlist(i_list, use.names = FALSE)
+  snp_vec <- unlist(snp_list, use.names = FALSE)
+  j_vec <- unname(snp_index[snp_vec])
   
-  print("Creating obs meta data...")
+  labf_vec <- unlist(labf_list, use.names = FALSE)
+  beta_vec <- unlist(beta_list, use.names = FALSE)
+  se_vec <- unlist(se_list, use.names = FALSE)
   
-  # # Collect chromosome, start, and end positions for each credible set
-  # chr_start_end_positions <- t(sapply(credible_sets, get_chr_start_end))
-  # colnames(chr_start_end_positions) <- c("chr", "start", "end")
+  message("Building sparse matrices...")
   
-  # Fill the ad$obs matrix which describes the credible sets
-  obs_df <- as.data.frame(chr_start_end_positions, stringsAsFactors = FALSE)
-  obs_df$study_id <- study_id
-  obs_df$phenotype_id <- phenotype_id
-  obs_df$start <- as.numeric(obs_df$start)
-  obs_df$end <- as.numeric(obs_df$end)
-  obs_df$top_pvalue <- top_pvalue
-  obs_df$min_res_labf <- min_res_labf
-  obs_df$panel <- panel
-  obs_df$cs_name <- credible_sets
-  if(nrow(effect_df) > 0 & nrow(qc_metrics_df) > 0){
-    obs_df <- bind_cols(obs_df,effect_df,qc_metrics_df)
-  }else{
-    obs_df <- obs_df
-  }
-  rownames(obs_df) <- credible_sets # THIS IS VERY IMPORTANT TODO
+  # Matrix dimensions: rows = credible sets, columns = unique SNPs
+  dims <- c(length(cs_names), length(all_snps))
+  dimnames <- list(cs_names, all_snps)
   
-  # Assign the data frame to ad$obs
-  ad$obs <- obs_df
+  # Main AnnData matrix: lABF values
+  X <- Matrix::sparseMatrix(
+    i = i_vec,
+    j = j_vec,
+    x = labf_vec,
+    dims = dims,
+    dimnames = dimnames
+  )
   
-  print("Creating var meta data...")
+  # AnnData beta layer
+  beta <- Matrix::sparseMatrix(
+    i = i_vec,
+    j = j_vec,
+    x = beta_vec,
+    dims = dims,
+    dimnames = dimnames
+  )
   
-  # Fill the ad$var matrix which describes the SNPs
-  var_df <- snp_chr_pos %>% as.data.frame(, stringsAsFactors = FALSE)
-  rownames(var_df) <- snp_chr_pos$snp # THIS IS VERY IMPORTANT TODO
+  # AnnData se layer
+  se <- Matrix::sparseMatrix(
+    i = i_vec,
+    j = j_vec,
+    x = se_vec,
+    dims = dims,
+    dimnames = dimnames
+  )
   
-  # Assign the data frame to ad$var
-  ad$var <- var_df
+  obs_df <- as.data.frame(obs_dt)
+  rownames(obs_df) <- cs_names
   
-  #print("Writing AnnData to a disk...")
+  var_df <- as.data.frame(var_dt)
+  rownames(var_df) <- var_df$snp
   
-  # Save the AnnData object to .h5ad file
-  #ad$write_h5ad(output_file)
+  message("Creating AnnData...")
   
-  print("Done...")
+  # Create AnnData with X, obs and var
+  ad <- anndata::AnnData(
+    X = X,
+    obs = obs_df,
+    var = var_df
+  )
   
-  return(ad)
+  # Add additional sparse matrices as AnnData layers
+  ad$layers[["beta"]] <- beta
+  ad$layers[["se"]] <- se
+  
+  message("Done.")
+  message("Credible sets: ", length(cs_names))
+  message("SNPs: ", length(all_snps))
+  message("Failed files: ", length(failed_files))
+  
+  ad
 }
 
-# Read list of finemap files
-input_files <- readLines(opt$input) ### to implement later - files stored in a text file rather than as Rscript arguments
-#input_files <- strsplit(opt$input, ",")[[1]]
-finemap_files <- unlist(lapply(input_files, readRDS), recursive = FALSE)
 
-# Collect study_id and phenotype_id for each credible set
-study_phenotype_ids <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(study_id, phenotype_id)
 
-# Collect chr, start and end for each credible set
-chr_start_ends <- rbindlist(lapply(finemap_files, function(x) x$metadata)) %>% dplyr::select(chr,start,end)
+# Read list of finemapped files
+input_files <- readLines(opt$input)
 
-chr_start_ends$chr <- paste0("chr", chr_start_ends$chr) # add "chr" prefix to chromosome names
-
-# SNP panel
-snp_panel <- unique(unlist(lapply(finemap_files, function(x) x$finemapping_lABFs$snp)))
-
-ad <- finemap2anndata(
-  finemap_files = finemap_files,
-  preloaded_list = TRUE,
-  study_id = study_phenotype_ids$study_id,
-  phenotype_id = study_phenotype_ids$phenotype_id,
-  chr_start_end_positions = chr_start_ends,
-  snp_panel = snp_panel,
+# Collect all info into an AnnData
+#start <- Sys.time()
+ad <- finemap2anndata_fast(
+  finemap_files = input_files,
   panel = "HRC"
 )
+#end <- Sys.time()
 
+# Save anndata
 anndata::write_h5ad(ad, filename = opt$output_file)
