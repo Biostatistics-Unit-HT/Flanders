@@ -49,10 +49,25 @@ def main():
         if not os.path.exists(gwas_path):
             print(f"The input GWAS {gwas_path} file was not found.", file=sys.stderr)
             return sys.exit(1)
-        # Check that the bfiles exist
-        if not all([os.path.exists(bfile_path + ".bim"), os.path.exists(bfile_path + ".bed"), os.path.exists(bfile_path + ".fam")]):
-            print(f"One of the bfiles {bfile_path} was not found.", file=sys.stderr)
+
+        # Check that bfiloes (either PLINK1 or PLINK2 format) exist
+        plink1_files = [bfile_path + ext for ext in [".bed", ".bim", ".fam"]]
+        plink2_files = [bfile_path + ext for ext in [".pgen", ".pvar", ".psam"]]
+
+        has_plink1 = all(os.path.exists(f) for f in plink1_files)
+        has_plink2 = all(os.path.exists(f) for f in plink2_files)
+
+        if has_plink2:
+            detected_bfile_type = "plink2"
+        elif has_plink1:
+            detected_bfile_type = "plink1"
+        else:
+            print(
+                f"Neither PLINK1 (.bed/.bim/.fam) nor PLINK2 (.pgen/.pvar/.psam) files were found for prefix {bfile_path}.",
+                file=sys.stderr
+            )
             return sys.exit(1)
+        print(f"Detected {detected_bfile_type} dataset for prefix {bfile_path}.")
 
         # Check that freq_lab and n_lab are not both missing
         if pd.isna(record['freq_lab']) and pd.isna(record['n_lab']):
