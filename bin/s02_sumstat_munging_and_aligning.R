@@ -187,7 +187,7 @@ dataset.munge_hor=function(sumstats.file
     colname_for_type <- "sdY"
     # If multiple values (one per key if the GWAS is mol_QTL) are provided in a file
     if (is.character(sdY) && file.exists(sdY)) {
-      sdY_list <- read_delim(sdY, data.table = F)
+      sdY_list <- read_delim(sdY)
       sdY_list <- as.data.table(sdY_list)
       
       if(all(c("sdY", "phenotype_id") %in% names(sdY_list))){
