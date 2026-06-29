@@ -14,9 +14,9 @@ def fill_path(gwas_path, base_dir):
 
 def read_gwas_file(gwas_path):
     if gwas_path.endswith('.gz'):
-        return pd.read_csv(gwas_path, compression='gzip', sep='\t', nrows=1)
+        return pd.read_csv(gwas_path, compression='gzip', engine='python', sep = None, nrows=1)
     else:
-        return pd.read_csv(gwas_path, sep='\t', nrows=1)
+        return pd.read_csv(gwas_path, engine='python', sep = None, nrows=1)
 
 def main():
     parser = argparse.ArgumentParser(description="Parsing columns for validation.")
