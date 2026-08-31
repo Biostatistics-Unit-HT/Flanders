@@ -33,6 +33,50 @@ nextflow run Biostatistics-Unit-HT/Flanders -r 1.0 -profile test,singularity -w 
 ```
 </br>
 
+## Convert Open Targets credible sets to AnnData
+
+`bin/parse_credible_sets_refined.py` converts Open Targets Genetics **study** and **credible set** parquet files into a Flanders-compatible AnnData (`.h5ad`). The resulting object can be passed to the pipeline as `--coloc_h5ad_input` to run colocalization without repeating fine-mapping.
+
+Not every Open Targets project has every combination of study type and fine-mapping method (for example, `FINNGEN_R12` currently provides GWAS with SuSiE only).
+
+### Inputs
+
+| Argument | Description |
+|----------|-------------|
+| `--study` | Open Targets study parquet file |
+| `--credset` | Open Targets credible-set parquet file |
+| `--ref_panel` | CSV used to impute SNPs missing from the credible set. Required columns: `chr`, `pos`, `a0`, `a1` (`a0`/`a1` in any order) |
+| `--project` | Open Targets project ID to keep (e.g. `FINNGEN_R12`, `GTEx`, `GCST`) |
+| `--type_sumstat` | Study type: `gwas` (default), `eqtl`, or `pqtl` |
+| `--type_finemap` | Fine-mapping method: `SuSie` (default) or `SuSiE-inf` |
+| `--out` | Output prefix (the script writes `{out}.h5ad`) |
+
+### Example
+
+```bash
+python bin/parse_credible_sets_refined.py \
+    --project FINNGEN_R12 \
+    --type_sumstat gwas \
+    --type_finemap SuSie \
+    --study /path/to/study.parquet \
+    --credset /path/to/credible_set.parquet \
+    --ref_panel /path/to/ref_panel.csv \
+    --out /path/to/ot_credsets
+```
+
+Then run colocalization on the converted AnnData:
+
+```bash
+nextflow run Biostatistics-Unit-HT/Flanders -r 1.0 \
+    -profile [docker|singularity|conda] \
+    --coloc_h5ad_input /path/to/ot_credsets.h5ad \
+    --run_colocalization true \
+    --coloc_id my_coloc_run \
+    -w ./work \
+    -resume
+```
+</br>
+
 ## 🧠 Pipeline overview
 Flanders separates the fine-mapping and colocalization process into two distinct steps:
 </br>
