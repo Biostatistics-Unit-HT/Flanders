@@ -49,7 +49,7 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 
 #### Steps
 
-1. **Munging of GWAS summary statistics**
+#### 1. Munging of GWAS summary statistics
   - Format harmonization and imputation of missing information (e.g. missing allele frequency calculated from the LD reference panel)
   - Optional liftover to GRCh38
   - Optional restriction of analysis to enlisted chromosomes
@@ -60,7 +60,7 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 </br>
 
 #### 2. Identification of significantly associated genomic regions
-  - Identifies genomic regions containing significant associated SNPs by employing `Locusbreaker`, an in-house developed algorithm which defines each association peak based on the   distance between the end of a peak and the start of the next one.
+Identifies genomic regions containing significant associated SNPs by employing `Locusbreaker`, an in-house developed algorithm which defines each association peak based on the   distance between the end of a peak and the start of the next one.
 
 <details>
   
@@ -73,22 +73,34 @@ Flanders separates the fine-mapping and colocalization process into two distinct
 
 
 #### 3. Fine-Mapping with SuSiE-RSS
-  - For each genomic region, finemapping is performed using [SuSiE-RSS](https://stephenslab.github.io/susieR/reference/susie_rss.html) and LD calculated from input PLINK files
+For each genomic region, finemapping is performed using [SuSiE-RSS](https://stephenslab.github.io/susieR/reference/susie_rss.html) and LD calculated from input PLINK files
+</br>
 </br>⚠️ Whenever possible, in sample LD is strongly recommended (especially for molecular omic phenotypes where the explained variance can be very large).
 </br>⚠️ Be aware that only SNPs in common between the GWAS summary statistics and the LD reference panel are taken into account for fine-mapping, while all other SNPs are discarded (loci for which no SNP overlap is found between the GWAS summary statistics and the LD reference panel are reported in [NOT_FINEMAPPED_no_variants_from_locus_in_LD_ref.tsv](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine%E2%80%90mapping-exceptions#not_finemapped_no_variants_from_locus_in_ld_reftsv)).
 </br>⚠️ Be aware that **loci fully or partially overlapping the HLA region (GRCh38: chr6:28,510,120-33,480,577) are excluded from fine-mapping**. The HLA region is characterized by extremely high variant density, long-range linkage disequilibrium and complex haplotype patterns, which can bias statistical fine-mapping methods and reduce confidence in inferred causal variants.
 </br>
 
+
 #### 4. Saving fine-mapping results to AnnData object
-  - Log approximate Bayes factors (lABFs) and metadata for the 99% credible sets are stored in an [AnnData object](https://anndata.dynverse.org/index.html) (.h5ad).
+Log approximate Bayes factors (lABFs) and metadata for the 99% credible sets are stored in an [AnnData object](https://anndata.dynverse.org/index.html) (.h5ad).
 </br>
 </br>
 
 #### 4.1 Getting external credible sets from Open Targets
-  - It is possible to create an Anndata using credible-sets already genereted from Open Targets. To do that follow these steps
-    - Download the Open Targets [credible-set](https://platform.opentargets.org/downloads/credible_set/access) and [study](https://platform.opentargets.org/downloads/study/access).
-    - Create a conda environment with the following packages: anndata, polars, pyarrow, scipy, math, argparse
-    - Run the python script in the bin folder called parse_credible_sets_refined.py following the instructions from the arguments
+In addition to fine-map GWAS summary statistics, it is possible to create a cs-Anndata storing credible-sets already generated from [Open Targets](https://platform.opentargets.org/). To do that follow these steps:
+1) Download the Open Targets [credible-set](https://platform.opentargets.org/downloads/credible_set/access) and [study](https://platform.opentargets.org/downloads/study/access).
+2) Create a conda environment with the following packages: anndata, polars, pyarrow, scipy, math, argparse
+```bash
+conda create -n my_env -c conda-forge \
+  python=3.12 \
+  anndata \
+  polars \
+  pyarrow \
+  scipy \
+  math \
+  argparse
+```
+3) Run the [bin/parse_credible_sets_refined.py](https://github.com/Biostatistics-Unit-HT/Flanders/blob/add_OT_script/bin/parse_credible_sets_refined.py) script following the instructions from the arguments
   </br>
   </br>
 
