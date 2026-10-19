@@ -43,7 +43,7 @@ Flanders separates the fine-mapping and colocalization process into two distinct
  Input | Description |
 |-------|-------------|
 | [GWAS summary statistics](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#gwas-summary-statistics) | `.tsv`/`.csv` (optionally gzipped) |
-| LD reference panel | PLINK-format reference panel (`.bed/.bim/.fam`) — preferably from the same sample population used in the GWAS |
+| LD reference panel | PLINK 1 (`.bed/.bim/.fam`) or PLINK 2 (`.pgen/.pvar/.psam`) files — preferably from the same individuals used in the GWAS |
 | [Metadata and GWAS-specific parameters table](https://github.com/Biostatistics-Unit-HT/Flanders/wiki/Fine‐mapping-inputs#metadata-and-gwas-specific-parameters-table) | `.tsv` file listing GWAS summary statistics paths and trait-specific parameters |
 </br>
 
