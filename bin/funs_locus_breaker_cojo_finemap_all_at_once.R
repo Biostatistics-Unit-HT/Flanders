@@ -26,6 +26,7 @@ run_dentist <- function(D=dataset_aligned
                         , locus_start=opt$start
                         , locus_end=opt$end
                         , bfile="ld_panel"
+                        , bfile_type
                         , maf.thresh=1e-4
                         , random.number="ZUlGe4EnYqGkubYrApHu"
                         , dentist.bin="DENTIST"
@@ -38,9 +39,12 @@ run_dentist <- function(D=dataset_aligned
     dplyr::pull(SNP)
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
-  # Prepare subset of plink LD files    
-  plink_input <- get_plink2_input_flag(bfile)
-  exit_status = system(paste0("plink2 ", plink_input," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  # Prepare subset of plink LD files and convert to PLINK1 format
+  if(bfile_type=="plink1"){
+    exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  } else if(bfile_type=="plink2"){
+    exit_status = system(paste0("plink2 --pfile ", bfile, " --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  }
   
   # Raise an error if the external command fails
   if (exit_status != 0) {
