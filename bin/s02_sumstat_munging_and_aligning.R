@@ -310,7 +310,7 @@ dataset.align <- function(dataset, bfile, bfile_type) {
     if(bfile_type=="plink1"){
       exit_status = system(paste0("plink2 --bfile ", bfile, " --freq --make-just-bim --out ", random.number))
     } else if(bfile_type=="plink2"){
-      exit_status = system(paste0("plink2 --bfile ", pfile, " --freq --make-just-pvar --out ", random.number))
+      exit_status = system(paste0("plink2 --pfile ", bfile, " --freq --make-just-pvar --out ", random.number))
     }
 
     # Raise an error if the external command fails
@@ -330,7 +330,7 @@ dataset.align <- function(dataset, bfile, bfile_type) {
       bim <- read_delim(paste0(random.number, ".bim"), col_names = FALSE)
       bim <- bim[, c(1, 4)]
     } else if(bfile_type=="plink2"){
-      bim <- read_delim(paste0(random.number, ".bim"), col_names = TRUE)
+      bim <- read_delim(paste0(random.number, ".pvar"), comment = "##", col_names = TRUE) ### "comment = "##" ignore metadata
       bim <- bim[, c(1, 2)]
     }
     names(bim) <- c("CHR", "BP")
