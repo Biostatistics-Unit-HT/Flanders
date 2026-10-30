@@ -183,30 +183,109 @@ dataset.munge_hor=function(sumstats.file
     stop("Please provide s, the proportion of samples who are cases")
   }
   
+
+  # sdY
   if (type == "quant") {
     colname_for_type <- "sdY"
-    # If multiple values (one per key if the GWAS is mol_QTL) are provided in a file
-    if (is.character(sdY) && file.exists(sdY)) {
-      sdY_list <- read_delim(sdY)
-      sdY_list <- as.data.table(sdY_list)
+    
+    # Use a separate name to avoid data.table confusing the input
+    # with an existing sdY column.
+    sdY_input <- sdY
+    
+    if (isTRUE(opt$is_molQTL)) {
       
-      if(all(c("sdY", "phenotype_id") %in% names(sdY_list))){
-        if(is.numeric(sdY_list$sdY) & all(dataset$phenotype_id %in% sdY_list$phenotype_id)){
-          dataset <- merge(dataset, sdY_list, by = "phenotype_id", all.x=T)
-        }
-      } else {
-        stop("If you're providing sdY through a file check 1) that the file exists, 2) that it has a \"sdY\" and \"phenotype_id\" column and 3) that a sdY is provided for ALL traits in the GWAS sum stat")
+      # Molecular traits: require an existing file
+      if (!is.character(sdY_input) ||
+          length(sdY_input) != 1L ||
+          is.na(sdY_input) ||
+          !file.exists(sdY_input) ||
+          dir.exists(sdY_input)) {
+        stop(
+          "For quantitative molecular traits (is_molQTL = TRUE), ",
+          "sdY must be the path to an existing file."
+        )
       }
       
-      # If a single value is provided
-    } else if (!is.null(sdY) && !is.na(sdY) && sdY != "NA") {
-      dataset[ , sdY := sdY]
-    } else if ("MAF" %in% names(dataset)) {
-      # If sdY is not provided, calculate it
-      dataset[, sdY := coloc:::sdY.est(varbeta, MAF, N), by = phenotype_id]
+      sdY_table <- as.data.table(read_delim(sdY_input))
+      
+      # Check required columns
+      if (!all(c("sdY", "phenotype_id") %in% names(sdY_table))) {
+        stop('The sdY file must contain "sdY" and "phenotype_id" columns.')
+      }
+      
+      # Each phenotype must have exactly one valid sdY
+      if (anyNA(sdY_table$phenotype_id) ||
+          anyDuplicated(sdY_table$phenotype_id) > 0L) {
+        stop("The sdY file must contain unique, non-missing phenotype_id values.")
+      }
+      
+      if (!is.numeric(sdY_table$sdY) ||
+          any(!is.finite(sdY_table$sdY) | sdY_table$sdY <= 0)) {
+        stop("All sdY values in the file must be numeric, finite and greater than zero.")
+      }
+      
+      missing_ids <- setdiff(
+        dataset$phenotype_id,
+        sdY_table$phenotype_id
+      )
+      
+      if (length(missing_ids) > 0L) {
+        stop(
+          "The sdY file is missing these phenotype_id values: ",
+          paste(missing_ids, collapse = ", ")
+        )
+      }
+      
+      # Assign by matching IDs, preserving dataset row order
+      dataset[, sdY := sdY_table$sdY[
+        match(phenotype_id, sdY_table$phenotype_id)
+      ]]
+      
+    } else {
+      
+      # Non-molecular traits: accept one numeric value or NA
+      if (is.null(sdY_input) || length(sdY_input) != 1L) {
+        stop("For quantitative non-molecular traits, sdY must be one number or NA.")
+      }
+      
+      sdY_missing <- is.na(sdY_input) ||
+        (is.character(sdY_input) && trimws(sdY_input) == "NA")
+      
+      if (sdY_missing) {
+        
+        required_columns <- c("varbeta", "MAF", "N", "phenotype_id")
+        missing_columns <- setdiff(required_columns, names(dataset))
+        
+        if (length(missing_columns) > 0L) {
+          stop(
+            "Cannot estimate sdY. Missing columns: ",
+            paste(missing_columns, collapse = ", ")
+          )
+        }
+        
+        dataset[
+          , sdY := coloc:::sdY.est(varbeta, MAF, N),
+          by = phenotype_id
+        ]
+        
+      } else {
+        
+        # Also accept numeric strings from command-line arguments
+        sdY_value <- suppressWarnings(as.numeric(sdY_input))
+        
+        if (!is.finite(sdY_value) || sdY_value <= 0) {
+          stop(
+            "For quantitative non-molecular traits, sdY must be ",
+            "one positive, finite number or NA; files are not allowed."
+          )
+        }
+        
+        dataset[, sdY := sdY_value]
+      }
     }
   }
   
+
   # Make a temporary SNPID column as CHR:BP as remove duplicated SNPs
   n_vars_before <- nrow(dataset)
   dataset <- dataset[, .SD[!(duplicated(.SD[, .(CHR, BP)]) | duplicated(.SD[, .(CHR, BP)], fromLast = TRUE))], by = phenotype_id]
