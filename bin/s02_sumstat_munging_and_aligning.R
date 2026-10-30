@@ -246,7 +246,7 @@ dataset.munge_hor=function(sumstats.file
           stop("The sdY file must exist and must not be a directory.")
         }
         
-        sdY_table <- as.data.table(read_tsv(sdY_input))
+        sdY_table <- as.data.table(read_delim(sdY_input))
         
         # Check required columns.
         if (!all(c("sdY", "phenotype_id") %in% names(sdY_table))) {
