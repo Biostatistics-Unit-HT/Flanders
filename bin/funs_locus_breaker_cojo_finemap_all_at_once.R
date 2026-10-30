@@ -26,6 +26,7 @@ run_dentist <- function(D=dataset_aligned
                         , locus_start=opt$start
                         , locus_end=opt$end
                         , bfile="ld_panel"
+                        , bfile_type
                         , maf.thresh=1e-4
                         , random.number="ZUlGe4EnYqGkubYrApHu"
                         , dentist.bin="DENTIST"
@@ -38,8 +39,12 @@ run_dentist <- function(D=dataset_aligned
     dplyr::pull(SNP)
   write(locus_only.snp, ncol=1,file=paste0(random.number,"_locus_only.snp.list"))
   
-  # Prepare subset of plink LD files    
-  exit_status = system(paste0("plink2 --bfile ", bfile," --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  # Prepare subset of plink LD files and convert to PLINK1 format
+  if(bfile_type=="plink1"){
+    exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  } else if(bfile_type=="plink2"){
+    exit_status = system(paste0("plink2 --pfile ", bfile, " --extract ",random.number,"_locus_only.snp.list --maf ", maf.thresh, " --make-bed --out ", random.number))
+  }
   
   # Raise an error if the external command fails
   if (exit_status != 0) {
@@ -82,17 +87,19 @@ run_dentist <- function(D=dataset_aligned
 
 
 
+
 #### prep_susie_ld ####
 # Prepare LD matrix for SUSIE
 prep_susie_ld <- function(
     D=dataset_aligned,
-    locus_chr=opt$chr,
-    locus_start=opt$start,
-    locus_end=opt$end,
-    bfile=opt$bfile,
-    maf.thresh=opt$maf,
+    locus_chr=chr,
+    locus_start=start,
+    locus_end=end,
+    bfile=bfile,
+    bfile_type=bfile_type,
+    maf.thresh=maf,
     random.number="ZUlGe4EnYqGkubYrApHu",
-    skip_dentist=opt$skip_dentist
+    skip_dentist=skip_dentist
 ){
   
   if (skip_dentist == TRUE){
@@ -104,8 +111,12 @@ prep_susie_ld <- function(
   }
   
   ### --export A include-alt --> creates a new fileset, after sample/variant filters have been applied - A: sample-major additive (0/1/2) coding, suitable for loading from R 
-  exit_status = system(paste0("plink2 --bfile ", bfile, " --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
-  
+  if(bfile_type=="plink1"){
+    exit_status = system(paste0("plink2 --bfile ", bfile," --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  } else if(bfile_type=="plink2"){
+    exit_status = system(paste0("plink2 --pfile ", bfile," --extract ", random.number, "_locus_only.snp.list --maf ", maf.thresh, " --export A include-alt --out ", random.number))
+  }
+
   # Check if the command failed
   if (exit_status != 0) {
     # Check if the error is due to no variants remaining

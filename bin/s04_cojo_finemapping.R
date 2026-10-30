@@ -12,7 +12,7 @@ option_list <- list(
   make_option("--dataset_aligned", default=NULL, help="GENOME-WIDE munged and aligned dataset file"),
   make_option("--p_thresh3", default=1e-04, help="Noise p-values threshold for COJO"),
   make_option("--maf", default=1e-04, help="MAF filter", metavar="character"),
-  make_option("--bfile", default=NULL, help="Path and prefix name of custom LD bfiles (PLINK format .bed .bim .fam)"),
+  make_option("--bfile", default=NULL, help="Path and prefix name of custom LD genotype files (PLINK bed/bim/fam or pgen/psam/pvar)"),
   make_option("--skip_dentist", default=TRUE, help="Whether to skip the match of SNPs LD between GWAS sum stat and LD reference (performed by DENTIST), and consequent removal of mismatched SNPs"),
   make_option("--p_thresh4", default=1e-06, help="P-value significant threshold for redefining loci boundaries post-COJO"),  
   make_option("--hole", default=250000, help="Minimum pair-base distance between SNPs in different loci"),
