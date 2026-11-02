@@ -191,11 +191,13 @@ dataset.munge_hor=function(sumstats.file
     # Avoid confusion between the input argument and the dataset column.
     sdY_input <- sdY
     
-    if (is.null(sdY_input) || length(sdY_input) != 1L) {
+    # NULL should be allowed; otherwise, require exactly one value (e.g. one numeric value, one file, NA).
+    if (!is.null(sdY_input) && length(sdY_input) != 1L) {
       stop("sdY must be one number, NA, or a TSV file path for molecular traits.")
     }
     
-    sdY_missing <- is.na(sdY_input) ||
+    sdY_missing <- is.null(sdY_input) ||
+      is.na(sdY_input) ||
       (is.character(sdY_input) && trimws(sdY_input) == "NA")
     
     if (sdY_missing) {
