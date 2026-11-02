@@ -1,0 +1,25 @@
+process FINAL_RESULTS {
+  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.8'
+  label "process_low"
+
+  publishDir "${params.outdir}/results/master_table", mode: "copy", pattern:"${params.coloc_id}_mndules_JF.h5ad"
+  publishDir "${params.outdir}/results/master_table", mode: "copy", pattern:"${params.coloc_id}_master_table.mt_all.tsv"
+
+  input:
+    tuple path(annData), path(all_joint_finemapping_obj)
+
+  output:
+    path "${params.coloc_id}_mndules_JF.h5ad", emit:anndata
+
+  script:
+  def args = task.ext.args ?: ''
+    """
+    export RETICULATE_PYTHON=\$(which python)
+    export CONDA_SOLVER=libmamba
+    s14_output_final_results.R \
+        ${args} \
+        --all_joint_finemapping_obj ${all_joint_finemapping_obj} \
+        --annData ${annData} \
+        --coloc_id ${params.coloc_id}
+    """
+}
