@@ -280,6 +280,14 @@ dataset.munge_hor=function(sumstats.file
     )
 
     if (is.data.table(sdY_resolved)) {
+      message("Using sdY values from file for ", nrow(sdY_resolved), " phenotypes.")
+    } else if (is.na(sdY_resolved)) {
+      message("sdY not supplied; estimating per phenotype.")
+    } else {
+      message("Using a sdY value: ", sdY_resolved)
+    }
+
+    if (is.data.table(sdY_resolved)) {
 
       # File input: match phenotype-specific values, preserving row order
       dataset[, sdY := sdY_resolved$sdY[match(phenotype_id, sdY_resolved$phenotype_id)]]
