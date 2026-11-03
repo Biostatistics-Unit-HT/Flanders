@@ -74,18 +74,47 @@ def main():
             print(f"Error: freq_lab and n_lab are both missing/NA in the input table for {gwas_path}. At least one is needed", file=sys.stderr)
             return sys.exit(1)
 
-        # When sdY is a file, read the header and check we have phenotype_id and sdY columns
+        # When sdY is a file
         sdY_file = fill_path(str(record["sdY"]), args.launchdir)
-        if os.path.exists(sdY_file):
-            sdY_df = pd.read_csv(sdY_file, sep="\t", nrows=1)
+        
+        if os.path.isfile(sdY_file):
+            
+            # sdY via file accepted only for is_molqtl == "TRUE"
+            is_molqtl = str(record["is_molQTL"]).strip().upper() == "TRUE"
+                
+            if not is_molqtl:
+                print(f"Error: sdY file {sdY_file} can only be provided when is_molQTL is TRUE.", file=sys.stderr)
+                return sys.exit(1)
+                
+            # Read the full sdY table: check for 1) correct columns and 2) missing values
+            sdY_df = pd.read_csv(sdY_file, sep=None, engine="python")
+
             if not all(col in sdY_df.columns for col in ["sdY", "phenotype_id"]):
                 print(f"Error: sdY file {sdY_file} must contain 'sdY' and 'phenotype_id' columns.", file=sys.stderr)
                 return sys.exit(1)
+
+            sdY_values = sdY_df["sdY"].replace(r"^\s*$", pd.NA, regex=True) # Treat whitespace-only fields as missing too
+
+            if sdY_values.isna().any():
+                print(f"Error: sdY file {sdY_file} contains missing sdY values.", file=sys.stderr)
+                return sys.exit(1)
+
         else:
-            # If sdY is not a file check that it is either NA, "NA" or can be casted to a number
-            if not pd.isna(record["sdY"]) and str(record["sdY"]) not in ["NA", "na"] and pd.isna(pd.to_numeric(record["sdY"], errors='coerce')):
+            
+            # If sdY is not a file check that it is either NA, "NA" or can be casted to a number            
+            if (
+                not pd.isna(record["sdY"])
+                and str(record["sdY"]).strip().upper() != "NA"
+                and pd.isna(pd.to_numeric(record["sdY"], errors='coerce'))
+            ):
                 print(f"Error: sdY value {record['sdY']} is not valid. It must be either NA, an existing file path or a number", file=sys.stderr)
                 return sys.exit(1)
+
+        print(
+            f"sdY validation passed for {gwas_path}: "
+            f"sdY={record['sdY']}, is_molQTL={record['is_molQTL']}",
+            flush=True,
+        )
 
         # Check that the desired columns are found in sumstats file
         gwas_sub = read_gwas_file(gwas_path)
