@@ -88,9 +88,6 @@ mt <- standardise_coefficients(rbindlist(lapply(objs, `[[`, "master_table_chunk"
 require_columns(mt, c("module", "cs_name", "chr", "start", "end", "phenotype_id", "study_id"), "Master table")
 mt[, module := module_id(module)]
 
-
-# A CS may occur in different modules (e.g. hypercoloc); only repeated membership
-# within the same module is rejected. Here n_cs counts distinct CS memberships.
 sizes <- mt[, .(n_cs = .N), by = module]
 single_ids <- sizes[n_cs == 1L, module]
 multi_ids <- sizes[n_cs > 1L, module]
@@ -206,7 +203,37 @@ if (length(multi_ids)) {
 # Keep singleton-only annotations, filling absent multi-module fields with NA.
 module_cd <- rbindlist(list(single_cd, multi_cd), use.names = TRUE, fill = TRUE)
 module_cd <- module_cd[match(final_ids, module)]
-if ("comment_section" %in% names(module_cd)) { module_cd[, comment_section := NULL] } ### remove comment section
+module_cd[, list_of_phenotype_id := as.character(phenotype_id)] # phenotype_id already contains the combined IDs for multi-CS modules
+
+# SNP IDs follow chr:pos:effect_allele:other_allele. For multi-CS modules, use the representative most_likely_snp.
+multi_rows <- which(module_cd$cs_n %in% multi_ids)
+
+if (length(multi_rows)) {
+  alleles <- tstrsplit(
+    as.character(module_cd$most_likely_snp[multi_rows]),
+    ":",
+    fixed = TRUE,
+    keep = c(3L, 4L)
+  )
+  
+  module_cd[multi_rows, `:=`(
+    a1 = alleles[[1L]],
+    a0 = alleles[[2L]]
+  )]
+}
+
+
+# Remove redundant fields from the final module metadata
+remove_fields <- intersect(
+  c("comment_section", "beta", "se", "study_id", "phenotype_id", "module"),
+  names(module_cd)
+)
+
+if (length(remove_fields)) {
+  module_cd[, (remove_fields) := NULL]
+}
+
+
 module_cd <- as.data.frame(module_cd)
 rownames(module_cd) <- final_ids
 final_x <- cbind(single_x, multi_x)
