@@ -1,273 +1,231 @@
 #!/usr/bin/env -S Rscript --vanilla
 
-suppressMessages(library(optparse))
-suppressMessages(library(anndata))
-suppressMessages(library(SingleCellExperiment))
-suppressMessages(library(zellkonverter))
-suppressMessages(library(data.table))
-suppressMessages(library(Matrix))
-suppressMessages(library(dplyr))
+# Build one module-level AnnData from a pre-joint AnnData and joint-fit chunks.
+# Rows remain SNPs; columns become modules. Single-CS modules keep their original
+# X values. Multi-CS modules use the joint log-ABFs. Only X is exported: the
+# original per-CS beta/se assays do not describe a joint module-level estimate.
+
+suppressPackageStartupMessages({
+  library(optparse)
+  library(SingleCellExperiment)
+  library(data.table)
+  library(Matrix)
+})
+readH5AD <- zellkonverter::readH5AD
+writeH5AD <- zellkonverter::writeH5AD
+
+# ---- Small helpers: identifiers, validation and metadata summaries ---------
+
+module_id <- function(x) paste0("M_", sub("^M_", "", as.character(x)))
+
+require_columns <- function(x, required, label) {
+  missing <- setdiff(required, names(x))
+  if (length(missing)) {
+    stop(label, " is missing: ", paste(missing, collapse = ", "), call. = FALSE)
+  }
+}
+
+# Accept either historical coefficient naming convention, but reject ambiguity.
+standardise_coefficients <- function(x) {
+  for (old in c("bC", "bC_se")) {
+    new <- c(bC = "beta", bC_se = "se")[[old]]
+    if (old %in% names(x)) {
+      if (new %in% names(x)) stop("Both ", old, " and ", new, " are present.")
+      setnames(x, old, new)
+    }
+  }
+  x
+}
+
+collapse_values <- function(x) {
+  if (!length(x) || all(is.na(x))) return(NA_character_)
+  paste(as.character(x), collapse = ", ")
+}
+
+one_value <- function(x) {
+  values <- unique(as.character(x[!is.na(x)]))
+  if (length(values) == 1L) values else NA_character_
+}
+
+safe_min <- function(x) if (all(is.na(x))) NA_real_ else min(x, na.rm = TRUE)
+safe_max <- function(x) if (all(is.na(x))) NA_real_ else max(x, na.rm = TRUE)
+
+# Stable log(sum(exp(x))) without relying on coloc:::logsum.
+log_sum_exp <- function(x) {
+  if (anyNA(x)) stop("Missing values in a joint log-ABF row.")
+  if (!length(x)) return(-Inf)
+  largest <- max(x)
+  if (is.infinite(largest)) return(largest)
+  largest + log(sum(exp(x - largest)))
+}
+
 
 # Get arguments specified in the sbatch
 option_list <- list(
-  make_option("--all_joint_finemapping_obj", default=NULL, help="List of paths and filenames of all .rds joint fine-mapping chunk results"),
+  make_option("--all_joint_finemapping_obj", default=NULL, help="Text file containing paths and filenames of all .rds joint fine-mapping chunk results"),
   make_option("--annData", default=NULL, help="AnnData cointaing fine-mapping results used for running colocalisation analysis"),
-  make_option("--coloc_id", default=NULL, help="Id code to univocally identify the colocalisation analysis")
+  make_option("--coloc_id", default=NULL, help="Id code to univocally identify the colocalisation analysis"),
+  make_option("--output", default=NULL, help="Output H5AD filename; default: <coloc_id>_modules_JF.h5ad")
 );
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+if (is.null(opt$output)) opt$output <- paste0(opt$coloc_id, "_modules_JF.h5ad")
 
 
-# -------------------------
-# Load inputs
-# -------------------------
 # Read in joint fine-mapping chunk results
 all_joint_finemapping_obj_list <- readLines(opt$all_joint_finemapping_obj)
 objs <- lapply(all_joint_finemapping_obj_list, readRDS) # Load all objects
 message("All .rds objects loaded into R")
 invisible(gc())
 
-for (i in seq_along(objs)) {
-  mat <- objs[[i]]$joint.lABF.matrix
-  logsums <- vapply(seq_len(nrow(mat)),
-                    \(j) coloc:::logsum(mat[j,]),
-                    numeric(1))
-  objs[[i]]$cs_metadata$logsum.logABF <- logsums
-  if (i %% 10 == 0) message("Processed chunk ", i, "/", length(objs))
+ad <- readH5AD(opt$annData, reader = "R", verbose = TRUE)
+snps <- as.character(rowData(ad)$snp)
+
+
+# ---- Define module membership once ---------------------------------------
+
+mt <- standardise_coefficients(rbindlist(lapply(objs, `[[`, "master_table_chunk"), fill = TRUE))
+require_columns(mt, c("module", "cs_name", "chr", "start", "end", "phenotype_id", "study_id"), "Master table")
+mt[, module := module_id(module)]
+
+
+# A CS may occur in different modules (e.g. hypercoloc); only repeated membership
+# within the same module is rejected. Here n_cs counts distinct CS memberships.
+sizes <- mt[, .(n_cs = .N), by = module]
+single_ids <- sizes[n_cs == 1L, module]
+multi_ids <- sizes[n_cs > 1L, module]
+final_ids <- c(single_ids, multi_ids)
+
+# Optional metadata have explicit missing values instead of get0()/scope lookup.
+for (field in c("most_likely_snp", "most_likely_beta", "most_likely_se")) {
+  if (!field %in% names(mt)) mt[, (field) := NA]
 }
 
-# Pre-joint SCE (columns are CS)
-ad <- zellkonverter::readH5AD(file = opt$annData, verbose = TRUE, reader = "R")
-ad_vars <- SingleCellExperiment::rowData(ad)  # SNP metadata for rows of the module-level SCE
+multi_cd <- mt[module %in% multi_ids, .(
+  cs_name = module[1L],
+  list_of_cs = collapse_values(cs_name),
+  chr = one_value(chr),
+  start = safe_min(start),
+  end = safe_max(end),
+  phenotype_id = collapse_values(unique(phenotype_id)),
+  most_likely_snp = one_value(most_likely_snp),
+  list_of_most_likely_beta = collapse_values(most_likely_beta),
+  list_of_most_likely_se = collapse_values(most_likely_se),
+  study_id = one_value(study_id),
+  list_of_study_id = collapse_values(unique(study_id)),
+  n_cs = .N
+), by = module]
+multi_cd <- multi_cd[match(multi_ids, module)]
 
 
-# -------------------------
-# Build full master table; identify single vs multi modules
-# -------------------------
-mt_all <- data.table::rbindlist(lapply(objs, `[[`, "master_table_chunk"), fill = TRUE)
-mt_all[, module := as.character(module)]
+# ---- Single modules: copy original CS columns and retain their metadata ----
 
-fwrite(mt_all, file = paste0(opt$coloc_id, "_master_table.mt_all.tsv"), quote=F, na=NA, sep="\t")
-
-module_sizes <- mt_all[, .N, by = module]
-single_mods  <- module_sizes[N == 1L, module]
-multi_mods   <- module_sizes[N  > 1L, module]
-
-# CS lists for those module sets
-cs_single <- mt_all[module %in% single_mods, unique(cs_name)]
-cs_multi  <- mt_all[module %in% multi_mods,  unique(cs_name)]
-
-# -------------------------
-# Create pre-joint SCE with ONLY single-module CS
-# -------------------------
-stopifnot(length(cs_single) > 0)
-missing_single <- setdiff(cs_single, colnames(ad))
-if (length(missing_single)) {
-  stop(sprintf("These single-CS are not in colnames(ad_cs): %s",
-               paste(missing_single, collapse = ", ")))
-}
-sce_single <- ad[, cs_single, drop = FALSE]
-
-# -------------------------
-# Build joint matrix ONLY for multi-CS modules
-# -------------------------
-# Module names for joint matrix are ONLY multi_mods (order fixed by unique())
-module_names <- unique(mt_all[module %in% multi_mods, module])
-module_lookup <- setNames(seq_along(module_names), module_names)
-
-# SNP universe/order comes from the pre-joint AnnData (keeps consistency)
-snp_universe <- as.character(ad_vars$snp)
-snp_lookup   <- setNames(seq_along(snp_universe), snp_universe)
-
-# Two-pass style: pre-size to total nnz; we will trim after filtering
-nnz_per_obj <- vapply(objs, function(o) {
-  M <- o$joint.lABF.matrix
-  if (!inherits(M, "dgCMatrix")) M <- as(M, "dgCMatrix")
-  M@p[length(M@p)]
-}, integer(1))
-nnz_total <- sum(nnz_per_obj)
-
-I <- integer(nnz_total)
-J <- integer(nnz_total)
-V <- numeric(nnz_total)
-ptr <- 1L
-
-for (k in seq_along(objs)) {
-  print(k)
-  M <- objs[[k]]$joint.lABF.matrix
-  if (!inherits(M, "dgCMatrix")) M <- as(M, "dgCMatrix")
-  
-  # local module rows and which of them are multi-mods
-  rnames <- rownames(M)
-  # map only rows that belong to multi_mods; others become NA and will be dropped
-  local2global <- unname(as.integer(module_lookup[rnames]))
-  
-  # sparse slots
-  p  <- M@p
-  ii <- M@i
-  xx <- M@x
-  
-  # repeat column indices by nnz in each column
-  col_rep <- rep.int(seq_len(ncol(M)), diff(p))
-  
-  # map SNP columns to global indices (NA if SNP not in universe)
-  snp_idx_by_col <- unname(snp_lookup[colnames(M)])
-  Jk <- snp_idx_by_col[col_rep]
-  
-  # map nonzero row indices (0-based) to global module indices
-  Ik <- local2global[ii + 1L]
-  
-  keep <- !is.na(Ik) & !is.na(Jk)
-  nk <- sum(keep)
-  if (nk > 0L) {
-    rng <- ptr:(ptr + nk - 1L)
-    I[rng] <- Ik[keep]
-    J[rng] <- Jk[keep]
-    V[rng] <- xx[keep]
-    ptr <- ptr + nk
+# Subset by the membership table, rather than unique(cs_name).
+single_map <- mt[match(single_ids, module), .(module, cs_name)]
+single_idx <- match(single_map$cs_name, colnames(ad))
+if (anyNA(single_idx)) stop("Some singleton CS identifiers are absent from AnnData.")
+single_x <- assay(ad, "X")[, single_idx, drop = FALSE]
+colnames(single_x) <- single_ids
+single_cd <- standardise_coefficients(as.data.table(
+  as.data.frame(colData(ad)[single_idx, , drop = FALSE])
+))
+single_fields <- c("study_id", "snp", "beta", "se")
+if (length(single_ids)) {
+  require_columns(single_cd, single_fields, "Single-CS metadata")
+} else {
+  # No singleton data are needed, but retain an empty table with valid fields.
+  for (field in setdiff(single_fields, names(single_cd))) {
+    single_cd[, (field) := character()]
   }
 }
+single_cd[, `:=`(
+  module = single_ids,
+  cs_name = single_ids,
+  list_of_cs = single_map$cs_name,
+  list_of_study_id = as.character(study_id),
+  n_cs = 1L,
+  most_likely_snp = as.character(snp),
+  list_of_most_likely_beta = as.character(beta),
+  list_of_most_likely_se = as.character(se)
+)]
+# Preserve the original deliberate removal of CS-specific L/type annotations.
+remove_fields <- intersect(c("L", "type"), names(single_cd))
+if (length(remove_fields)) single_cd[, (remove_fields) := NULL]
 
-# Trim to the nnz actually kept (multi modules + in-universe SNPs)
-if (ptr <= nnz_total) {
-  I <- I[seq_len(ptr - 1L)]
-  J <- J[seq_len(ptr - 1L)]
-  V <- V[seq_len(ptr - 1L)]
+# ---- Multi modules: map sparse chunk entries onto the shared SNP axis ------
+
+triplets <- vector("list", length(objs))
+joint_meta <- vector("list", length(objs))
+seen_modules <- character()
+
+for (k in if (length(multi_ids)) seq_along(objs) else integer()) {
+  m <- objs[[k]]$joint.lABF.matrix
+  if (!is(m, "dgCMatrix")) m <- as(m, "dgCMatrix")
+  rownames(m) <- module_id(rownames(m))
+  selected <- which(rownames(m) %in% multi_ids)
+  if (!length(selected)) next
+  m <- m[selected, , drop = FALSE]
+  
+  seen_modules <- c(seen_modules, rownames(m))
+  snp_idx <- match(colnames(m), snps)
+  entries <- summary(m)
+  triplets[[k]] <- data.table(
+    i = snp_idx[entries$j],
+    j = match(rownames(m), multi_ids)[entries$i], x = entries$x
+  )
+  
+  meta <- as.data.table(copy(objs[[k]]$cs_metadata))
+  meta[, module := module_id(module)]
+  idx <- match(rownames(m), meta$module)
+
+  joint_meta[[k]] <- data.table(
+    module = rownames(m), min_res_labf = meta$min.labf[idx],
+    logsum.logABF = vapply(seq_len(nrow(m)), function(j) {
+      log_sum_exp(as.numeric(m[j, , drop = FALSE]))
+    }, numeric(1))
+  )
+  message("Processed chunk ", k, "/", length(objs))
 }
 
-# Construct sparse matrix (modules x SNPs), ONLY multi-CS modules
-lABF_matrix_sparse <- sparseMatrix(
-  i = I, j = J, x = V,
-  dims = c(length(module_names), length(snp_universe)),
-  dimnames = list(module_names, snp_universe)
+if (length(multi_ids)) {
+  entries <- rbindlist(triplets)
+  multi_x <- sparseMatrix(i = entries$i, j = entries$j, x = entries$x,
+                          dims = c(length(snps), length(multi_ids)),
+                          dimnames = list(rownames(ad), multi_ids))
+  meta <- rbindlist(joint_meta)
+  idx <- match(multi_ids, meta$module)
+  multi_cd[, `:=`(min_res_labf = meta$min_res_labf[idx],
+                  logsum.logABF = meta$logsum.logABF[idx], snp = most_likely_snp)]
+} else {
+  multi_x <- sparseMatrix(i = integer(), j = integer(), x = numeric(),
+                          dims = c(length(snps), 0L))
+}
+
+# ---- Assemble one SCE with one consistent module-metadata table ------------
+
+# Keep singleton-only annotations, filling absent multi-module fields with NA.
+module_cd <- rbindlist(list(single_cd, multi_cd), use.names = TRUE, fill = TRUE)
+module_cd <- module_cd[match(final_ids, module)]
+if ("comment_section" %in% names(module_cd)) { module_cd[, comment_section := NULL] } ### remove comment section
+module_cd <- as.data.frame(module_cd)
+rownames(module_cd) <- final_ids
+final_x <- cbind(single_x, multi_x)
+colnames(final_x) <- final_ids
+rownames(final_x) <- rownames(ad)
+sce_final <- SingleCellExperiment(
+  assays = list(X = final_x), rowData = rowData(ad),
+  colData = S4Vectors::DataFrame(module_cd)
 )
 
-lABF_matrix_sparse <- t(lABF_matrix_sparse)
+stopifnot(identical(colnames(sce_final), rownames(colData(sce_final))),
+          identical(rownames(sce_final), rownames(ad)),
+          ncol(sce_final) == nrow(sizes))
+validObject(sce_final)
 
-colnames(lABF_matrix_sparse) <- paste0("M_",colnames(lABF_matrix_sparse))
 
-gc()
+# ---- Outputs  ----------------------------------
 
-# -------------------------
-# Build module-level SCE (rows = SNPs, cols = modules) for MULTI modules
-# -------------------------
-# Summarize one colData row per module, restricting to multi_mods
-summ_coldata <- mt_all[module %in% multi_mods,
-                       {
-                         list_of_cs               <- paste(cs_name, collapse = ", ")
-                         chr_val                  <- { u <- unique(as.character(chr)); if (length(u) == 1L) u else NA_character_ }
-                         start_val                <- suppressWarnings(min(start, na.rm = TRUE))
-                         end_val                  <- suppressWarnings(max(end,   na.rm = TRUE))
-                         phenotype_id_val         <- paste(unique(as.character(phenotype_id)), collapse = ", ")
-                         mls_u                    <- unique(as.character(get0("most_likely_snp", ifnotfound = NA)))
-                         most_likely_snp_val      <- if (length(mls_u) == 1L) mls_u else NA_character_
-                         list_of_most_likely_beta <- if ("most_likely_beta" %in% names(.SD)) paste(most_likely_beta, collapse = ", ") else NA_character_
-                         list_of_most_likely_se   <- if ("most_likely_se"   %in% names(.SD)) paste(most_likely_se,   collapse = ", ") else NA_character_
-                         study_ids                <- unique(as.character(study_id))
-                         study_id_val             <- if (length(study_ids) == 1L) study_ids else NA_character_
-                         list_of_study_id         <- paste(study_ids, collapse = ", ")
-                         
-                         data.table(
-                           # DO NOT add `module = ...` here; it’s already provided by `by = module`
-                           list_of_cs               = list_of_cs,
-                           chr                      = chr_val,
-                           start                    = start_val,
-                           end                      = end_val,
-                           phenotype_id             = phenotype_id_val,
-                           most_likely_snp          = most_likely_snp_val,
-                           list_of_most_likely_beta = list_of_most_likely_beta,
-                           list_of_most_likely_se   = list_of_most_likely_se,
-                           study_id                 = study_id_val,
-                           list_of_study_id         = list_of_study_id,
-                           n_cs                     = .N
-                         )
-                       },
-                       by = module
-]
+fwrite(mt, paste0(opt$coloc_id, "_master_table.mt_all.tsv"), sep = "\t", quote = FALSE, na = "NA")
+writeH5AD(sce_final, file = opt$output, X_name = "X")
 
-col_df <- as.data.frame(summ_coldata)
-col_df$module <- paste0("M_",col_df$module)
-rownames(col_df) <- col_df$module
-# align to module_names order used in lABF_matrix_sparse
-col_df <- col_df[paste0("M_",module_names), , drop = FALSE]
-
-sce_multi_modules <- SingleCellExperiment(
-  assays  = list(X = lABF_matrix_sparse),  # rows = SNPs, cols = MULTI modules
-  rowData = as.data.frame(ad_vars),
-  colData = col_df
-)
-
-assays(sce_multi_modules)[["beta"]] <- Matrix(
-  0, nrow = nrow(sce_multi_modules), ncol = ncol(sce_multi_modules),
-  dimnames = dimnames(assay(sce_multi_modules, "X")),
-  sparse = TRUE
-)
-
-assays(sce_multi_modules)[["se"]] <- Matrix(
-  0, nrow = nrow(sce_multi_modules), ncol = ncol(sce_multi_modules),
-  dimnames = dimnames(assay(sce_multi_modules, "X")),
-  sparse = TRUE
-)
-
-# -------------------------
-# Combine two sce
-# -------------------------
-
-## --- Fix sce_single ---
-cds <- as.data.frame(colData(sce_single), stringsAsFactors = FALSE)
-cds$list_of_cs               <- cds$cs_name
-cds$list_of_study_id         <- cds$study_id
-cds$n_cs                     <- 1L
-cds$most_likely_snp          <- cds$snp
-cds$list_of_most_likely_beta <- cds$bC
-cds$list_of_most_likely_se   <- cds$bC_se
-cds <- cds %>% rename("beta"="bC","se"="bC_se")
-cds$type <- NULL
-cds$panel <- NA
-cds$category <- NA
-colData(sce_single) <- DataFrame(cds)
-
-## --- Fix sce_multi_modules ---
-cdm <- as.data.frame(colData(sce_multi_modules), stringsAsFactors = FALSE)
-cdm$category        <- NA
-cdm$top_pvalue      <- NA
-cdm$panel           <- NA
-cdm$cs_name         <- cdm$module
-meta_all <- data.table::rbindlist(lapply(objs, `[[`, "cs_metadata"))
-meta_all[, module := as.character(module)]
-meta_all$module <- paste0("M_", meta_all$module)
-cdm$min_res_labf <- meta_all$min.labf[match(as.character(cdm$module), meta_all$module)]
-cdm$logsum.logABF <- meta_all$logsum.logABF[match(as.character(cdm$module), meta_all$module)]
-cdm$snp <- cdm$most_likely_snp
-parts <- tstrsplit(cdm$most_likely_snp, ":", fixed=TRUE)
-cdm$a1 <- parts[[3]]; cdm$a0 <- parts[[4]]
-cdm$freq <- cdm$N <- cdm$beta <- cdm$se <- cdm$min.abs.corr <- cdm$mean.abs.corr <- cdm$median.abs.corr <- NA
-cdm$comment_section <- NA
-cdm$module <- NULL
-colData(sce_multi_modules) <- DataFrame(cdm)
-
-## --- modify sce_multi_modules ---
-# add constant coverage = 0.99
-colData(sce_multi_modules)$coverage <- 0.99
-
-## --- modify sce_single ---
-# remove L
-colData(sce_single)$L <- NULL
-
-# add empty comment_section
-colData(sce_single)$comment_section <- NA
-
-# remove category
-colData(sce_single)$category <- NA
-
-sce_final <- cbind(sce_single,sce_multi_modules)
-
-# -------------------------
-# Save outputs
-# -------------------------
-zellkonverter::writeH5AD(
-  sce_final,
-  file = paste0(opt$coloc_id, "_mndules_JF.h5ad")
-  )
-
-message("Done")
+message("Saved ", opt$output, "\n", nrow(sce_final), " SNPs; ", length(single_ids), " single-CS and ", length(multi_ids), " multi-CS modules")
