@@ -119,10 +119,11 @@ workflow {
 		sumstas_input_ch = INPUT_COLUMNS_VALIDATION.out.table_out
 		.splitCsv(header:true, sep:"\t")
 		.map { row -> 
-			def bfile_string = params.is_test_profile ? "${projectDir}/${row.bfile}" : "${row.bfile}"
 			def gwas_file = params.is_test_profile ? file("${projectDir}/${row.input}", checkIfExists:true) : file("${row.input}", checkIfExists:true)
-			def sdY_string = file(row.sdY).exists() ? file(row.sdY).name : row.sdY
-			def sdY_file = file(row.sdY).exists() ? file(row.sdY) : file('NO_SDY_FILE')
+			def sdY_path = params.is_test_profile ? file("${projectDir}/${row.sdY}") : file("${row.sdY}")
+			def sdY_string = sdY_path.exists() ? sdY_path.name : row.sdY
+			def sdY_file = sdY_path.exists() ? sdY_path : []
+
 			tuple(
 				row.bfile,
 				[
