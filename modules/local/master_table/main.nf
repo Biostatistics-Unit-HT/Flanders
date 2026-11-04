@@ -1,8 +1,6 @@
 process MASTER_TABLE {
-  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.8'
+  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.11_patched'
   label "process_medium"
-
-  publishDir "${params.outdir}/results/master_table", mode: "copy", pattern:"${params.coloc_id}_master_table.tsv"
 
   input:
     path(annData)
@@ -11,7 +9,6 @@ process MASTER_TABLE {
 
   output:
     path "${params.coloc_id}_master_table_chunk_*.tsv", emit: master_table_chunk
-    path "${params.coloc_id}_master_table.tsv", emit: master_table
 
   script:
   def args = task.ext.args ?: ''

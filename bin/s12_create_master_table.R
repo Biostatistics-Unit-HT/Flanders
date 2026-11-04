@@ -51,8 +51,6 @@ if(opt$post_cp_list == "empty_post_cp_module_rds.txt"){
 
 message("Master table created")
 
-fwrite(master_table, file = paste0(opt$coloc_id, "_master_table.tsv"), quote=F, na=NA, sep="\t")
-
 # Split master table into n modules
 module_groups <- unique(master_table$module)
 n_per_file <- as.integer(opt$chunk_size)
@@ -69,3 +67,4 @@ for (i in seq_along(module_chunks)) {
   # Save
   fwrite(master_table_subset, file = paste0(opt$coloc_id, "_master_table_chunk_", i, ".tsv"), quote=F, na=NA, sep="\t")
 }
+

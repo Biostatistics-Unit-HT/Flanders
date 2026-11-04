@@ -120,12 +120,4 @@ workflow RUN_COLOCALIZATION {
     // Collate all .rds together
     FINAL_RESULTS(merged_h5ad.combine(all_joint_finemapping_obj))
 
-    // Collate all .tsv together
-    JOINT_FINEMAP_BY_CHUNK.out.joint_finemapping_tsv_chunk
-        .collectFile(
-            name: "${params.coloc_id}_master_table.tsv",
-            keepHeader: true,
-            storeDir: "${params.outdir}/results/master_table"
-        )
-
 }

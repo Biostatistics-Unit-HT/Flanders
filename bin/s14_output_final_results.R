@@ -252,7 +252,7 @@ validObject(sce_final)
 
 # ---- Outputs  ----------------------------------
 
-fwrite(mt, paste0(opt$coloc_id, "_master_table.mt_all.tsv"), sep = "\t", quote = FALSE, na = "NA")
+fwrite(mt, paste0(opt$coloc_id, "_master_table.tsv"), sep = "\t", quote = FALSE, na = "NA")
 writeH5AD(sce_final, file = opt$output, X_name = "X")
 
 message("Saved ", opt$output, "\n", nrow(sce_final), " SNPs; ", length(single_ids), " single-CS and ", length(multi_ids), " multi-CS modules")

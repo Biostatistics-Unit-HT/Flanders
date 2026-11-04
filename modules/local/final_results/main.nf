@@ -1,16 +1,16 @@
 process FINAL_RESULTS {
-  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.8'
+  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.11_patched'
   label "process_low"
 
   publishDir "${params.outdir}/results/master_table", mode: "copy", pattern:"${params.coloc_id}_modules_JF.h5ad"
-  publishDir "${params.outdir}/results/master_table", mode: "copy", pattern:"${params.coloc_id}_master_table.mt_all.tsv"
+  publishDir "${params.outdir}/results/master_table", mode: "copy", pattern:"${params.coloc_id}_master_table.tsv"
 
   input:
     tuple path(annData), path(all_joint_finemapping_obj)
 
   output:
     path "${params.coloc_id}_modules_JF.h5ad"
-    path "${params.coloc_id}_master_table.mt_all.tsv"
+    path "${params.coloc_id}_master_table.tsv"
 
   script:
   def args = task.ext.args ?: ''
