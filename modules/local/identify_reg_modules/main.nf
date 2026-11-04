@@ -1,8 +1,9 @@
 process IDENTFY_REG_MODULES {
   tag "${params.coloc_id}_identify_reg_modules"
   label "process_low"
-  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.8'
-
+  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.11_patched'
+  cache 'deep'
+  
   input:
     path(coloc_results_all)
 
@@ -13,8 +14,6 @@ process IDENTFY_REG_MODULES {
   script:
   def args = task.ext.args ?: ''
     """
-#    cp ${coloc_results_all} ${params.coloc_id}_colocalization.table.all.tsv
-
     s10_identify_reg_modules.R \
         ${args} \
         --coloc_results ${coloc_results_all} \
