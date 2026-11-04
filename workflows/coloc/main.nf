@@ -1,5 +1,4 @@
 include { CONCAT_ANNDATA          } from "../../modules/local/concat_anndata"
-include { FIND_CS_OVERLAP_BY_CHR  } from "../../modules/local/find_cs_overlap_by_chr"
 include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_table"
 include { COLOC                   } from "../../modules/local/coloc"
 include { IDENTFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
