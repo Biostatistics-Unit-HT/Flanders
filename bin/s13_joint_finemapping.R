@@ -21,7 +21,6 @@ ad <- zellkonverter::readH5AD(file = opt$annData, verbose = TRUE, reader = "R")
 
 # Read in master table chunk
 master_table_chunk <- fread(opt$master_table_chunk)
-#master_table_chunk$module <- paste0("M_", master_table_chunk$module) ### module name as "M_" + number
 
 # Perform joint fine-mapping
 joint_finemapping_obj <- flanders::run_joint_finemapping(ad, master_table_chunk)
