@@ -125,7 +125,7 @@ workflow RUN_COLOCALIZATION {
         .collectFile(
             name: "${params.coloc_id}_master_table.tsv",
             keepHeader: true,
-            storeDir: "$launchDir/results/master_table"
+            storeDir: "${params.outdir}/results/master_table"
         )
 
 }
