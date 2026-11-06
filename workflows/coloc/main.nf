@@ -1,11 +1,6 @@
 include { CONCAT_ANNDATA          } from "../../modules/local/concat_anndata"
 include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_table"
 include { COLOC                   } from "../../modules/local/coloc"
-include { IDENTFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
-include { COLOC_PERCOLATION       } from "../../modules/local/coloc_percolation"
-include { MASTER_TABLE            } from "../../modules/local/master_table"
-include { JOINT_FINEMAP_BY_CHUNK  } from "../../modules/local/joint_finemap_by_chunk"
-include { FINAL_RESULTS           } from "../../modules/local/final_results"
 
 workflow RUN_COLOCALIZATION {
   take:
