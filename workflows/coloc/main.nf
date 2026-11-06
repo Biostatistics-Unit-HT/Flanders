@@ -1,9 +1,6 @@
-include { FIND_CS_OVERLAP_BY_CHR  } from "../../modules/local/find_cs_overlap_by_chr"
-include { COLOC                   } from "../../modules/local/coloc"
 include { CONCAT_ANNDATA          } from "../../modules/local/concat_anndata"
 include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_table"
-
-// include { IDENTIFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
+include { COLOC                   } from "../../modules/local/coloc"
 
 workflow RUN_COLOCALIZATION {
   take:
@@ -74,5 +71,9 @@ workflow RUN_COLOCALIZATION {
         newLine: true,
         seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\tt2_study_id\tt2\thit1\thit2"
         ) { it.values().toList().join('\t') }
+
+  emit:
+    coloc_results_all = coloc_results_all
+    merged_h5ad = merged_h5ad
 
 }
