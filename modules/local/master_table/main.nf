@@ -1,5 +1,4 @@
 process MASTER_TABLE {
-  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.11_patched'
   label "process_medium"
 
   input:
