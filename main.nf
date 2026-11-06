@@ -2,6 +2,7 @@ include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validat
 include { RUN_MUNGING } from "./workflows/munging"
 include { RUN_FINEMAPPING } from "./workflows/finemap"
 include { RUN_COLOCALIZATION } from "./workflows/coloc"
+include { RUN_JOINT_FINEMAPPING } from "./workflows/joint_finemapping"
 include { PROCESS_BFILE } from "./modules/local/process_bfile"
 include { GET_STUDY_FROM_ANNDATA } from "./modules/local/get_study_from_anndata"
 include { completionSummary } from "./modules/local/pipeline_utils"
@@ -9,6 +10,12 @@ include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin
 include { parseIntervals } from './lib/utils'
 
 workflow {
+
+	// Joint finemapping requires performing colocalization.
+    if (params.run_joint_finemapping && !params.run_colocalization) {
+        error "Joint finemapping requires colocalization. Set --run_colocalization true or --run_joint_finemapping false."
+    }
+
 	// validate and log pipeline parameters
 	validateParameters()
 	log.info paramsSummaryLog(workflow)
@@ -38,7 +45,7 @@ workflow {
 		"""
 	} 
 
-	// --- COLOCALIZATION ---
+	// --- INPUT VALIDATION, MUNGING and FINEMAPPING ---
 	if (params.summarystats_input) {
 		sumstats_input_file = file(params.summarystats_input, checkIfExists:true)
 
@@ -193,6 +200,12 @@ workflow {
 	if (params.run_colocalization || params.coloc_h5ad_input) {		
 		RUN_COLOCALIZATION( full_credible_sets, previous_h5ad_studies, exclude_studies_file )
 	}
+
+
+	// --- MODULES and JOINT FINEMAPPING ---
+	if (params.run_joint_finemapping) {		
+		RUN_JOINT_FINEMAPPING( RUN_COLOCALIZATION.out.coloc_results_all, RUN_COLOCALIZATION.out.merged_h5ad)
+	}	
 
 	// At the end store params in yml and input files
 	file("${params.outdir}/pipeline_inputs").mkdirs()
