@@ -173,6 +173,11 @@
       "title": "Modules and joint finemapping settings",
       "type": "object",
       "properties": {
+        "run_joint_finemapping": {
+          "type": "boolean",
+          "default": true,
+          "description": "Set to true to run joint finemapping after colocalization."
+        },
         "chunk_size": {
           "type": "integer",
           "minimum": 1,
@@ -292,6 +297,24 @@
     },
     {
       "$ref": "#/$defs/modules_joint_finemapping"
+    },
+    {
+      "if": {
+        "properties": {
+          "run_joint_finemapping": {
+            "const": true
+          }
+        },
+        "required": ["run_joint_finemapping"]
+      },
+      "then": {
+        "properties": {
+          "run_colocalization": {
+            "const": true
+          }
+        },
+        "required": ["run_colocalization"]
+      }
     },
     {
       "$ref": "#/$defs/advanced_parameters"
