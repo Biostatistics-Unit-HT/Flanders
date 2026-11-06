@@ -1,7 +1,6 @@
 process IDENTFY_REG_MODULES {
   tag "${params.coloc_id}_identify_reg_modules"
   label "process_low"
-  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.11_patched'
   cache 'deep'
   
   input:

@@ -1,5 +1,4 @@
 process COLOC_PERCOLATION {
-  conda '/ssu/bsssu/conda_envs_bsssu/flanders_r_2.3.8'
   label "process_medium"
 
   input:
