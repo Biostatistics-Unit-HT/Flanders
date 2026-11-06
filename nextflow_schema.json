@@ -169,6 +169,21 @@
       ],
       "fa_icon": "fas fa-map-marker-alt"
     },
+    "modules_joint_finemapping": {
+      "title": "Modules and joint finemapping settings",
+      "type": "object",
+      "properties": {
+        "chunk_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Chunk size used for module processing."
+        },
+        "module_refining_method": {
+          "type": "string",
+          "description": "Method used to refine modules."
+        }
+      }
+    },
     "advanced_parameters": {
       "title": "Advanced parameters",
       "type": "object",
@@ -274,6 +289,9 @@
     },
     {
       "$ref": "#/$defs/colocalization"
+    },
+    {
+      "$ref": "#/$defs/modules_joint_finemapping"
     },
     {
       "$ref": "#/$defs/advanced_parameters"
