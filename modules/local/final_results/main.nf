@@ -14,8 +14,6 @@ process FINAL_RESULTS {
   script:
   def args = task.ext.args ?: ''
     """
-    export RETICULATE_PYTHON=\$(which python)
-    export CONDA_SOLVER=libmamba
     s14_output_final_results.R \
         ${args} \
         --all_joint_finemapping_obj ${all_joint_finemapping_obj} \
