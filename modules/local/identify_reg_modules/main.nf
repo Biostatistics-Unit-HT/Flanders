@@ -1,4 +1,4 @@
-process IDENTFY_REG_MODULES {
+process IDENTIFY_REG_MODULES {
   tag "${params.coloc_id}_identify_reg_modules"
   label "process_low"
   cache 'deep'

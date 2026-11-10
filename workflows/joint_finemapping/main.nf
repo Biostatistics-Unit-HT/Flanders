@@ -1,4 +1,4 @@
-include { IDENTFY_REG_MODULES     } from "../../modules/local/identify_reg_modules"
+include { IDENTIFY_REG_MODULES    } from "../../modules/local/identify_reg_modules"
 include { COLOC_PERCOLATION       } from "../../modules/local/coloc_percolation"
 include { MASTER_TABLE            } from "../../modules/local/master_table"
 include { JOINT_FINEMAP_BY_CHUNK  } from "../../modules/local/joint_finemap_by_chunk"
@@ -11,10 +11,10 @@ workflow RUN_JOINT_FINEMAPPING {
 
   main:
     // Identify co-regulated modules
-    IDENTFY_REG_MODULES(coloc_results_all)
+    IDENTIFY_REG_MODULES(coloc_results_all)
 
    // Handle COLOC_PERCOLATION conditionally
-    modules_partly_connected = IDENTFY_REG_MODULES.out.modules_partly_connected
+    modules_partly_connected = IDENTIFY_REG_MODULES.out.modules_partly_connected
     
     // Create a default empty file that will be used if no COLOC_PERCOLATION runs
     empty_post_cp_file = Channel.value("# No post-coloc percolation modules")
@@ -35,7 +35,7 @@ workflow RUN_JOINT_FINEMAPPING {
         .first()
 
     // Create the master table and perform joint fine-mapping
-    MASTER_TABLE(merged_h5ad, IDENTFY_REG_MODULES.out.modules_fully_connected, all_post_cp_module_rds)
+    MASTER_TABLE(merged_h5ad, IDENTIFY_REG_MODULES.out.modules_fully_connected, all_post_cp_module_rds)
 
     // Split chuncked master table into individual emissions and combine with annData
     annData_and_master_table_by_chunk = merged_h5ad.combine(MASTER_TABLE.out.master_table_chunk.flatten())
