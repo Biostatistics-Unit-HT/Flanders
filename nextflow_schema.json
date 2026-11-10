@@ -187,7 +187,9 @@
         },
         "module_refining_method": {
           "type": "string",
-          "description": "Method used to refine modules."
+          "enum": ["hyprcoloc_susie", "coloc_percolation"],
+          "default": "hyprcoloc_susie",
+          "description": "Method used to refine partly connected modules."
         }
       }
     },
