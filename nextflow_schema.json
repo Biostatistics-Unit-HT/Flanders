@@ -183,6 +183,7 @@
         "chunk_size": {
           "type": "integer",
           "minimum": 1,
+          "default": 500,
           "description": "Chunk size used for module processing."
         },
         "module_refining_method": {
