@@ -70,10 +70,12 @@
           "description": "Set to true to liftover coordinates to GRCh38"
         },
         "skip_dentist": {
+          "$comment": "Retained for compatibility, DENTIST execution is currently unsupported. validateParameters() should reject --skip_dentist false",
           "type": "boolean",
+          "const": true,
           "default": true,
           "hidden": true,
-          "description": "Perform DENTIST cleanup before finemapping. Usually not needed"
+          "description": "Whether to skip the DENTIST cleanup before finemapping. Deprecated"
         },
         "large_locus_size": {
           "type": "integer",

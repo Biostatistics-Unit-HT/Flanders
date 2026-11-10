@@ -9,6 +9,9 @@ include { completionSummary } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
 include { parseIntervals } from './lib/utils'
 
+// Internal default: DENTIST execution is currently unsupported.
+params.skip_dentist = true
+
 workflow {
 
 	// Joint finemapping requires performing colocalization.
