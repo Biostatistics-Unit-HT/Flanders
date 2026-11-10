@@ -44,7 +44,7 @@ if (opt$method == "coloc_percolation"){
  # Set up traits info as requested by hyercoloc function
   community <- list(
     nodes = traits$cs_name,
-    chr = unique(sub(".*::(chr(?:\\d+|X|Y|M)):.+$", "\\1", traits$cs_name))
+    chr = unique(sub(".*::(chr(?:\\d+|X|Y|M|MT)):.+$", "\\1", traits$cs_name))
   )
 
   # Extract only needed chromosome from ad
@@ -55,17 +55,6 @@ if (opt$method == "coloc_percolation"){
   
 # Run susie hypercoloc
   groups <- community2hypercoloc(sce_per_chr, community)
-
-# Fix output!!!
-
-### List of one element: groups$results
-#### Data frame of following columns:
-#[1] "iteration"                  "traits"                    
-#[3] "posterior_prob"             "regional_prob"             
-#[5] "candidate_snp"              "posterior_explained_by_snp"
-#[7] "dropped_trait"
-
-
 }
 
 # Save coloc percolation output
