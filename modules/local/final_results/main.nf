@@ -14,6 +14,9 @@ process FINAL_RESULTS {
   script:
   def args = task.ext.args ?: ''
     """
+    # Select Python from the task's container or Conda environment.
+    export RETICULATE_PYTHON=\$(which python)
+
     s14_output_final_results.R \
         ${args} \
         --all_joint_finemapping_obj ${all_joint_finemapping_obj} \

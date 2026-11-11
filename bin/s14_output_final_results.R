@@ -4,7 +4,6 @@
 # Rows remain SNPs; columns become modules. Single-CS modules keep their original
 # X values. Multi-CS modules use the joint log-ABFs. Only X is exported: the
 # original per-CS beta/se assays do not describe a joint module-level estimate.
-
 suppressPackageStartupMessages({
   library(optparse)
   library(SingleCellExperiment)
@@ -253,6 +252,9 @@ validObject(sce_final)
 # ---- Outputs  ----------------------------------
 
 fwrite(mt, paste0(opt$coloc_id, "_master_table.tsv"), sep = "\t", quote = FALSE, na = "NA")
-writeH5AD(sce_final, file = opt$output, X_name = "X")
+# writeH5AD(sce_final, file = opt$output, X_name = "X")
+
+adata_final <- zellkonverter::SCE2AnnData(sce_final) # Convert the SCE to anndata format
+anndata::write_h5ad(adata_final, filename = paste0(opt$coloc_id, "_modules_JF.h5ad"))
 
 message("Saved ", opt$output, "\n", nrow(sce_final), " SNPs; ", length(single_ids), " single-CS and ", length(multi_ids), " multi-CS modules")
