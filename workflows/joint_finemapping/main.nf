@@ -6,49 +6,61 @@ include { FINAL_RESULTS           } from "../../modules/local/final_results"
 
 workflow RUN_JOINT_FINEMAPPING {
   take:
-    coloc_results_all // pairwise tests coloc table results (no PP.H3/4 filtering)
-    merged_h5ad       // anndata of all credible sets submitted to colocalization
+    coloc_results_all // complete pair-wise colocalization results
+    merged_h5ad       // fine-mapping AnnData used for colocalization
 
   main:
-    // Identify co-regulated modules
     IDENTIFY_REG_MODULES(coloc_results_all)
 
-   // Handle COLOC_PERCOLATION conditionally
-    modules_partly_connected = IDENTIFY_REG_MODULES.out.modules_partly_connected
-    
-    // Create a default empty file that will be used if no COLOC_PERCOLATION runs
-    empty_post_cp_file = Channel.value("# No post-coloc percolation modules")
-        .collectFile(name: 'empty_post_cp_module_rds.txt', newLine: true)
-
-    // Run COLOC_PERCOLATION only if modules exist
-    annData_and_modules_for_cp = merged_h5ad.combine(modules_partly_connected.flatten())
+    // An absent optional output produces no tasks: refinement is skipped automatically when there are no partly connected modules.
+    annData_and_modules_for_cp = merged_h5ad.combine(
+      IDENTIFY_REG_MODULES.out.modules_partly_connected.flatten()
+    )
     COLOC_PERCOLATION(annData_and_modules_for_cp)
 
-    // Collect COLOC_PERCOLATION outputs if they exist
-    post_cp_from_process = COLOC_PERCOLATION.out.post_cp_module_rds
-        .map { file -> file.toString() }
-        .collectFile(name: 'all_post_cp_module_rds.txt', newLine: true)
+    // toList waits for ALL refinement tasks and emits [] if none ran.
+    // Preserve actual RDS paths as process inputs, rather than hiding them in a text file containing absolute paths to other work directories.
+    refinement_inputs = COLOC_PERCOLATION.out.post_cp_module_rds
+      .map { result_rds, run_id_file ->
+        tuple(result_rds, run_id_file.text.trim())
+      }
+      .toList()
+      .map { records ->
+        def ordered = records.sort { a, b ->
+          a[0].name <=> b[0].name
+        }
+        def result_files = ordered.collect { it[0] }
+        // Cached refinement tasks retain their IDs. A task that really re-executes writes a fresh ID, invalidating all descendants.
+        def refinement_run_id = ordered
+          ? ordered.collect { it[1] }.join(',')
+          : 'no-refinement'
+        tuple(result_files, refinement_run_id)
+      }
 
-    // Use the process output if available, otherwise use the empty file
-    all_post_cp_module_rds = post_cp_from_process
-        .mix(empty_post_cp_file)
-        .first()
+    MASTER_TABLE(
+      merged_h5ad,
+      IDENTIFY_REG_MODULES.out.modules_fully_connected,
+      refinement_inputs
+    )
 
-    // Create the master table and perform joint fine-mapping
-    MASTER_TABLE(merged_h5ad, IDENTIFY_REG_MODULES.out.modules_fully_connected, all_post_cp_module_rds)
+    // Carry the refinement ID through every chunk, so a fresh refinement execution invalidates joint fine-mapping even if the TSV is unchanged.
+    master_table_chunks = MASTER_TABLE.out.master_table_chunk
+      .flatMap { refinement_run_id, chunks ->
+        def chunk_files = chunks instanceof List ? chunks : [chunks]
+        chunk_files.collect { tuple(it, refinement_run_id) }
+      }
+    JOINT_FINEMAP_BY_CHUNK(merged_h5ad.combine(master_table_chunks))
 
-    // Split chuncked master table into individual emissions and combine with annData
-    annData_and_master_table_by_chunk = merged_h5ad.combine(MASTER_TABLE.out.master_table_chunk.flatten())
-
-    // Perform joint fine-mapping by chunk
-    JOINT_FINEMAP_BY_CHUNK(annData_and_master_table_by_chunk)
-
-    // Collect ALL .rds outputs from JOINT_FINEMAP_BY_CHUNK and write to a text file
-    all_joint_finemapping_obj = JOINT_FINEMAP_BY_CHUNK.out.joint_finemapping_rds_chunk
-        .map { file -> file.toString() }  // Convert path to string
-        .collectFile(name: 'all_joint_finemapping_rds.txt', newLine: true)
-
-    // Collate all .rds together
-    FINAL_RESULTS(merged_h5ad.combine(all_joint_finemapping_obj))
-
+    // Collect actual chunk RDS files, and preserve the shared refinement ID.
+    joint_results = JOINT_FINEMAP_BY_CHUNK.out.joint_finemapping_rds_chunk
+      .collect(flat: false)
+      .map { records ->
+        def ordered = records.sort { a, b -> a[1].name <=> b[1].name }
+        def run_ids = ordered.collect { it[0] }.unique()
+        if (run_ids.size() != 1) {
+          throw new IllegalStateException('Joint fine-mapping chunks have inconsistent refinement IDs')
+        }
+        tuple(ordered.collect { it[1] }, run_ids[0])
+      }
+    FINAL_RESULTS(merged_h5ad.combine(joint_results))
 }

@@ -24,10 +24,12 @@ ad <- zellkonverter::readH5AD(file = opt$annData, verbose = TRUE, reader = "R")
 # Read in fully connected modules
 fully_connected_modules_df <- fread(opt$fully_connected_modules)
 
-# Read in all run_coloc_percolation() output objects
-if(opt$post_cp_list == "empty_post_cp_module_rds.txt"){
-  groups <- NULL
-  message("Only fully connected modules found - coloc percolation / hyprcoloc_susie not performed")
+# Read paths to staged refinement results. An empty/blank/comment-only manifest means there were no partly connected modules to refine.
+groups_list <- trimws(readLines(opt$post_cp_list, warn = FALSE))
+groups_list <- groups_list[nzchar(groups_list) & !startsWith(groups_list, "#")]
+
+if (length(groups_list) == 0L) {
+  message("No refinement results - creating the master table without refined modules")
   
   # Create master table
   master_table <- flanders::create_master_table(
@@ -36,7 +38,6 @@ if(opt$post_cp_list == "empty_post_cp_module_rds.txt"){
   )
   
 } else {
-  groups_list <- as.vector((read.table(opt$post_cp_list))[,1])
   groups <- lapply(groups_list, readRDS)
   groups <- unlist(groups, recursive = FALSE)
   message("All coloc percolation / hyprcoloc_susie .rds loaded")
@@ -67,4 +68,3 @@ for (i in seq_along(module_chunks)) {
   # Save
   fwrite(master_table_subset, file = paste0(opt$coloc_id, "_master_table_chunk_", i, ".tsv"), quote=F, na=NA, sep="\t")
 }
-
