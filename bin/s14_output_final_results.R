@@ -61,7 +61,7 @@ log_sum_exp <- function(x) {
 
 # Get arguments specified in the sbatch
 option_list <- list(
-  make_option("--all_joint_finemapping_obj", default=NULL, help="Text file containing paths and filenames of all .rds joint fine-mapping chunk results"),
+  make_option("--joint_finemapping_dir", default=NULL, help="Directory containing joint fine-mapping RDS results"),
   make_option("--annData", default=NULL, help="AnnData cointaing fine-mapping results used for running colocalisation analysis"),
   make_option("--coloc_id", default=NULL, help="Id code to univocally identify the colocalisation analysis"),
   make_option("--output", default=NULL, help="Output H5AD filename; default: <coloc_id>_modules_JF.h5ad")
@@ -71,8 +71,12 @@ opt = parse_args(opt_parser);
 if (is.null(opt$output)) opt$output <- paste0(opt$coloc_id, "_modules_JF.h5ad")
 
 
-# Read in joint fine-mapping chunk results
-all_joint_finemapping_obj_list <- readLines(opt$all_joint_finemapping_obj)
+# Read all RDS files from the dedicated input directory.
+all_joint_finemapping_obj_list <- list.files(
+  path = opt$joint_finemapping_dir,
+  pattern = "\\.rds$",
+  full.names = TRUE
+)
 objs <- lapply(all_joint_finemapping_obj_list, readRDS) # Load all objects
 message("All .rds objects loaded into R")
 invisible(gc())

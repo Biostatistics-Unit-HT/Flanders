@@ -10,8 +10,8 @@ suppressMessages(library(dplyr))
 # Get arguments specified in the sbatch
 option_list <- list(
   make_option("--annData", default=NULL, help="AnnData cointaing fine-mapping results used for running colocalisation analysis"),
-  make_option("--post_cp_list", default=NULL, help="Path and filenames of R object outputs of run_coloc_percolation()"),
   make_option("--fully_connected_modules", default=NULL, help="Dataframe listing credible sets with fully connected modules and their module label"),
+  make_option("--post_cp_dir", default=NULL, help="Directory containing module-refinement RDS results"),
   make_option("--chunk_size", default=NULL, help="Number of modules to analyse together in a chunk"),
   make_option("--coloc_id", default=NULL, help="Id code to univocally identify the colocalisation analysis")
 );
@@ -24,9 +24,12 @@ ad <- zellkonverter::readH5AD(file = opt$annData, verbose = TRUE, reader = "R")
 # Read in fully connected modules
 fully_connected_modules_df <- fread(opt$fully_connected_modules)
 
-# Read paths to staged refinement results. An empty/blank/comment-only manifest means there were no partly connected modules to refine.
-groups_list <- trimws(readLines(opt$post_cp_list, warn = FALSE))
-groups_list <- groups_list[nzchar(groups_list) & !startsWith(groups_list, "#")]
+# Load-in module-refinement .rds at the following directory
+groups_list <- list.files(
+  path = opt$post_cp_dir,
+  pattern = "\\.rds$",
+  full.names = TRUE
+)
 
 if (length(groups_list) == 0L) {
   message("No refinement results - creating the master table without refined modules")
