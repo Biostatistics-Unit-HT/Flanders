@@ -70,10 +70,12 @@
           "description": "Set to true to liftover coordinates to GRCh38"
         },
         "skip_dentist": {
+          "$comment": "Retained for compatibility, DENTIST execution is currently unsupported. validateParameters() should reject --skip_dentist false",
           "type": "boolean",
+          "const": true,
           "default": true,
           "hidden": true,
-          "description": "Perform DENTIST cleanup before finemapping. Usually not needed"
+          "description": "Whether to skip the DENTIST cleanup before finemapping. Deprecated"
         },
         "large_locus_size": {
           "type": "integer",
@@ -168,6 +170,29 @@
         "pph4_threshold"
       ],
       "fa_icon": "fas fa-map-marker-alt"
+    },
+    "modules_joint_finemapping": {
+      "title": "Modules and joint finemapping settings",
+      "type": "object",
+      "properties": {
+        "run_joint_finemapping": {
+          "type": "boolean",
+          "default": true,
+          "description": "Set to true to run joint finemapping after colocalization."
+        },
+        "chunk_size": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 500,
+          "description": "Chunk size used for module processing."
+        },
+        "module_refining_method": {
+          "type": "string",
+          "enum": ["hyprcoloc_susie", "coloc_percolation"],
+          "default": "hyprcoloc_susie",
+          "description": "Method used to refine partly connected modules."
+        }
+      }
     },
     "advanced_parameters": {
       "title": "Advanced parameters",
@@ -274,6 +299,27 @@
     },
     {
       "$ref": "#/$defs/colocalization"
+    },
+    {
+      "$ref": "#/$defs/modules_joint_finemapping"
+    },
+    {
+      "if": {
+        "properties": {
+          "run_joint_finemapping": {
+            "const": true
+          }
+        },
+        "required": ["run_joint_finemapping"]
+      },
+      "then": {
+        "properties": {
+          "run_colocalization": {
+            "const": true
+          }
+        },
+        "required": ["run_colocalization"]
+      }
     },
     {
       "$ref": "#/$defs/advanced_parameters"
