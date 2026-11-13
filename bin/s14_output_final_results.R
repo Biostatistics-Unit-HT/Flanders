@@ -84,11 +84,13 @@ invisible(gc())
 ad <- readH5AD(opt$annData, reader = "R", verbose = TRUE)
 snps <- as.character(rowData(ad)$snp)
 
+# minimum_needed_columns <- c("cs_name", "chr", "start", "end", "study_id", "phenotype_id", "min_res_labf", "coverage", "logsum.logABF")
+minimum_needed_columns <- c("cs_name", "chr", "start", "end", "study_id", "phenotype_id") # MORE RELAXED
 
 # ---- Define module membership once ---------------------------------------
 
 mt <- standardise_coefficients(rbindlist(lapply(objs, `[[`, "master_table_chunk"), fill = TRUE))
-require_columns(mt, c("module", "cs_name", "chr", "start", "end", "phenotype_id", "study_id"), "Master table")
+require_columns(mt, c("module", minimum_needed_columns), "Master table")
 mt[, module := module_id(module)]
 
 sizes <- mt[, .(n_cs = .N), by = module]
@@ -107,13 +109,15 @@ multi_cd <- mt[module %in% multi_ids, .(
   chr = one_value(chr),
   start = safe_min(start),
   end = safe_max(end),
-  phenotype_id = collapse_values(unique(phenotype_id)),
+  phenotype_id = module,
+  list_of_phenotype_id = collapse_values(unique(phenotype_id)),
   most_likely_snp = one_value(most_likely_snp),
   list_of_most_likely_beta = collapse_values(most_likely_beta),
   list_of_most_likely_se = collapse_values(most_likely_se),
-  study_id = one_value(study_id),
+  study_id = opt$coloc_id,
   list_of_study_id = collapse_values(unique(study_id)),
-  n_cs = .N
+  n_cs = .N,
+  coverage = 0.99
 ), by = module]
 multi_cd <- multi_cd[match(multi_ids, module)]
 
@@ -142,6 +146,7 @@ single_cd[, `:=`(
   module = single_ids,
   cs_name = single_ids,
   list_of_cs = single_map$cs_name,
+  list_of_phenotype_id = as.character(phenotype_id),
   list_of_study_id = as.character(study_id),
   n_cs = 1L,
   most_likely_snp = as.character(snp),
@@ -206,7 +211,6 @@ if (length(multi_ids)) {
 # Keep singleton-only annotations, filling absent multi-module fields with NA.
 module_cd <- rbindlist(list(single_cd, multi_cd), use.names = TRUE, fill = TRUE)
 module_cd <- module_cd[match(final_ids, module)]
-module_cd[, list_of_phenotype_id := as.character(phenotype_id)] # phenotype_id already contains the combined IDs for multi-CS modules
 
 # SNP IDs follow chr:pos:effect_allele:other_allele. For multi-CS modules, use the representative most_likely_snp.
 multi_rows <- which(module_cd$cs_n %in% multi_ids)
@@ -228,7 +232,7 @@ if (length(multi_rows)) {
 
 # Remove redundant fields from the final module metadata
 remove_fields <- intersect(
-  c("comment_section", "beta", "se", "study_id", "phenotype_id", "module"),
+  c("module", "comment_section", "N", "snp", "top_pvalue", "freq", "a1", "a0", "freq min.abs.corr", "min.abs.corr", "mean.abs.corr", "median.abs.corr", "beta", "se"),
   names(module_cd)
 )
 
