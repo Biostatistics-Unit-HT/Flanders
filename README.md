@@ -8,7 +8,7 @@ The stages can be run together, or existing fine-mapping results can be reused f
 
 ## Requirements
 
-- [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) v24.04+.
+- [Nextflow](https://www.nextflow.io/docs/latest/getstarted.html) >= v25.0, < v26.0
 - One execution environment: [Docker](https://www.docker.com/), [Singularity](https://docs.sylabs.io/), or [Conda](https://docs.conda.io/en/latest/).
 
 
