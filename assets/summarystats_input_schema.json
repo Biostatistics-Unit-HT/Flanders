@@ -6,8 +6,7 @@
     "properties": {
       "input": {
         "type": "string",
-        "format": "file-path",
-        "exists": true
+        "minLength": 1
       },
       "study_id": { "type": "string" },
       "chr_lab": { "type": "string" },
