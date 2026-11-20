@@ -1,6 +1,6 @@
 process PROCESS_BFILE {
     tag "${bfile_dataset[0].baseName}"
-    label "process_single"
+    label "process_high"
 
     publishDir "${params.outdir}/processed_bfiles", mode: params.publish_dir_mode,  pattern: "${bfile_dataset[0].baseName}.GRCh38.alpha_sorted_alleles.{bed,bim,fam}"
     publishDir "${params.outdir}/processed_bfiles", mode: params.publish_dir_mode,  pattern: "${bfile_dataset[0].baseName}.GRCh38.alpha_sorted_alleles.{pgen,pvar,psam}"
