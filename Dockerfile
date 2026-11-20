@@ -1,6 +1,6 @@
 FROM cgr.dev/chainguard/wolfi-base:latest
 
-LABEL version="3.1"
+LABEL version="3.2"
 LABEL description="Dockerfile for pipeline environment using Miniconda on Wolfi base image for Flanders"
 LABEL maintainer="arianna.landini@fht.org; edoardo.giacopuzzi@fht.org"
 
