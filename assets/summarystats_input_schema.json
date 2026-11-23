@@ -4,7 +4,10 @@
   "items": {
     "type": "object",
     "properties": {
-      "input": { "type": "string" },
+      "input": {
+        "type": "string",
+        "minLength": 1
+      },
       "study_id": { "type": "string" },
       "chr_lab": { "type": "string" },
       "pos_lab": { "type": "string" },
@@ -42,6 +45,7 @@
       }
     },
     "required": [
+      "input",
       "study_id",
       "key",
       "is_molQTL",

@@ -10,13 +10,13 @@ workflow RUN_JOINT_FINEMAPPING {
     merged_h5ad       // fine-mapping AnnData used for colocalization
 
   main:
-    IDENTIFY_REG_MODULES(coloc_results_all)
+    IDENTIFY_REG_MODULES(coloc_results_all, params.pph4_threshold, params.coloc_id)
 
     // Emit one input pair per partly connected module. If the optional output is absent, this channel is empty and refinement is skipped.
     annData_and_modules_for_cp = merged_h5ad.combine(
       IDENTIFY_REG_MODULES.out.modules_partly_connected.flatten()
     )
-    COLOC_PERCOLATION(annData_and_modules_for_cp)
+    COLOC_PERCOLATION(annData_and_modules_for_cp, params.pph4_threshold, params.module_refining_method)
 
     // Wait for ALL refinement tasks. toList also emits [] when none ran, allowing MASTER_TABLE to proceed without refinement results.
     // Keep actual RDS paths so Nextflow can stage and track the files.
@@ -28,14 +28,16 @@ workflow RUN_JOINT_FINEMAPPING {
     MASTER_TABLE(
       merged_h5ad,
       IDENTIFY_REG_MODULES.out.modules_fully_connected,
-      refinement_results
+      refinement_results,
+      params.chunk_size,
+      params.coloc_id
     )
 
     // Emit one task per master-table chunk.
     annData_and_master_table_by_chunk = merged_h5ad.combine(
       MASTER_TABLE.out.master_table_chunk.flatten()
     )
-    JOINT_FINEMAP_BY_CHUNK(annData_and_master_table_by_chunk)
+    JOINT_FINEMAP_BY_CHUNK(annData_and_master_table_by_chunk, params.coloc_id)
 
     // Wait for all joint fine-mapping results and pass the actual RDS files.
     joint_results = JOINT_FINEMAP_BY_CHUNK.out.joint_finemapping_rds_chunk
@@ -43,5 +45,5 @@ workflow RUN_JOINT_FINEMAPPING {
       .collect()
 //      .map { files -> files.sort { a, b -> a.name <=> b.name } }
 
-    FINAL_RESULTS(merged_h5ad.combine(joint_results))
+    FINAL_RESULTS(merged_h5ad.combine(joint_results), params.coloc_id)
 }

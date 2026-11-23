@@ -1,136 +1,127 @@
 #!/usr/bin/env python
 
-import pandas as pd
 import argparse
-import os
+import glob
+import json
 import sys
 
-def fill_path(gwas_path, base_dir):
-    if os.path.isabs(gwas_path):
-        gwas_path
-    else:
-        gwas_path = base_dir + "/" + gwas_path
-    return gwas_path
+import pandas as pd
 
-def read_gwas_file(gwas_path):
-    if gwas_path.endswith('.gz'):
-        return pd.read_csv(gwas_path, compression='gzip', engine='python', sep = None, nrows=1)
-    else:
-        return pd.read_csv(gwas_path, engine='python', sep = None, nrows=1)
 
-def main():
-    parser = argparse.ArgumentParser(description="Parsing columns for validation.")
-    parser.add_argument("--launchdir", type=str, required=True, help="Launchdir for path")
-    parser.add_argument("--liftover", action='store_true', help="Option for liftover")
-    parser.add_argument("--table", type=str , required=True, help="Path of the list of inputs")
-    args = parser.parse_args()
+def is_missing(value):
+    return pd.isna(value) or str(value).strip().lower() in {"", "na", "nan", "none"}
 
-    table_files = pd.read_csv(args.table, sep = "\t")
 
-    # Check that the builds are consistent
-    if "grch_bfile" in table_files.columns:
-        if args.liftover == False:
-            if len(set(table_files[["grch_bfile"]]))>1:
-                print("Error: multiple GRCh build detected in grch_bfile column but run_liftover is false.", file=sys.stderr)
-                return sys.exit(1)
-            if not (table_files['grch_bfile'] == table_files['grch']).all():
-                print("Error: grch_bfile and grch columns do not match.", file=sys.stderr)
-                return sys.exit(1)
-    
-    if args.liftover == False:
-            if len(set(table_files[["grch"]]))>1:
-                print("Error: multiple GRCh build detected in grch column but run_liftover is false.", file=sys.stderr)
-                return sys.exit(1)
-    
-    for index, record in table_files.iterrows():
-        gwas_path = fill_path(record["input"], args.launchdir)
-        bfile_path = fill_path(record["bfile"], args.launchdir)
-        # Check that the GWAS exist
-        if not os.path.exists(gwas_path):
-            print(f"The input GWAS {gwas_path} file was not found.", file=sys.stderr)
-            return sys.exit(1)
+def fail(message):
+    print(message, file=sys.stderr)
+    return 1
 
-        # Check that bfiloes (either PLINK1 or PLINK2 format) exist
-        plink1_files = [bfile_path + ext for ext in [".bed", ".bim", ".fam"]]
-        plink2_files = [bfile_path + ext for ext in [".pgen", ".pvar", ".psam"]]
 
-        has_plink1 = all(os.path.exists(f) for f in plink1_files)
-        has_plink2 = all(os.path.exists(f) for f in plink2_files)
+def validate_one_row(gwas_path, sdY_file, sdY_is_file, record):
+    """Validate one row against its staged GWAS and optional sdY file."""
+    errors = []
 
-        if has_plink2:
-            detected_bfile_type = "plink2"
-        elif has_plink1:
-            detected_bfile_type = "plink1"
-        else:
-            print(
-                f"Neither PLINK1 (.bed/.bim/.fam) nor PLINK2 (.pgen/.pvar/.psam) files were found for prefix {bfile_path}.",
-                file=sys.stderr
-            )
-            return sys.exit(1)
-        print(f"Detected {detected_bfile_type} dataset for prefix {bfile_path}.")
-
-        # Check that freq_lab and n_lab are not both missing
-        if pd.isna(record['freq_lab']) and pd.isna(record['n_lab']):
-            print(f"Error: freq_lab and n_lab are both missing/NA in the input table for {gwas_path}. At least one is needed", file=sys.stderr)
-            return sys.exit(1)
-
-        # When sdY is a file
-        sdY_file = fill_path(str(record["sdY"]), args.launchdir)
-        
-        if os.path.isfile(sdY_file):
-            
-            # sdY via file accepted only for is_molqtl == "TRUE"
-            is_molqtl = str(record["is_molQTL"]).strip().upper() == "TRUE"
-                
-            if not is_molqtl:
-                print(f"Error: sdY file {sdY_file} can only be provided when is_molQTL is TRUE.", file=sys.stderr)
-                return sys.exit(1)
-                
-            # Read the full sdY table: check for 1) correct columns and 2) missing values
-            sdY_df = pd.read_csv(sdY_file, sep=None, engine="python")
-
-            if not all(col in sdY_df.columns for col in ["sdY", "phenotype_id"]):
-                print(f"Error: sdY file {sdY_file} must contain 'sdY' and 'phenotype_id' columns.", file=sys.stderr)
-                return sys.exit(1)
-
-            sdY_values = sdY_df["sdY"].replace(r"^\s*$", pd.NA, regex=True) # Treat whitespace-only fields as missing too
-
-            if sdY_values.isna().any():
-                print(f"Error: sdY file {sdY_file} contains missing sdY values.", file=sys.stderr)
-                return sys.exit(1)
-
-        else:
-            
-            # If sdY is not a file check that it is either NA, "NA" or can be casted to a number            
-            if (
-                not pd.isna(record["sdY"])
-                and str(record["sdY"]).strip().upper() != "NA"
-                and pd.isna(pd.to_numeric(record["sdY"], errors='coerce'))
-            ):
-                print(f"Error: sdY value {record['sdY']} is not valid. It must be either NA, an existing file path or a number", file=sys.stderr)
-                return sys.exit(1)
-
-        print(
-            f"sdY validation passed for {gwas_path}: "
-            f"sdY={record['sdY']}, is_molQTL={record['is_molQTL']}",
-            flush=True,
+    if is_missing(record.get("freq_lab")) and is_missing(record.get("n_lab")):
+        errors.append(
+            f"freq_lab and n_lab are both missing/NA for {gwas_path}; at least one is required."
         )
 
-        # Check that the desired columns are found in sumstats file
-        gwas_sub = read_gwas_file(gwas_path)
-        
-        gwas_col = list(gwas_sub.columns)
-        all_labels = ["pos_lab", "rsid_lab", "chr_lab", "a0_lab", "a1_lab", "effect_lab", "se_lab", "freq_lab", "n_lab"]
-        if record['is_molQTL'] == "TRUE": all_labels.append('key')
-        label_cols_in_df = [col for col in all_labels if col in table_files.columns]
-        col_names_to_scan = [record[col] for col in label_cols_in_df if pd.notna(record[col])]
+    if sdY_is_file:
+        try:
+            sdY_columns = pd.read_csv(sdY_file, sep="\t", nrows=1).columns
+            required_sdY_columns = {"sdY", "phenotype_id"}
+            if not required_sdY_columns.issubset(sdY_columns):
+                errors.append(
+                    f"sdY file {sdY_file} must contain 'sdY' and 'phenotype_id' columns."
+                )
+        except Exception as error:
+            errors.append(f"Could not read sdY file {sdY_file}: {error}")
+    else:
+        sdY_value = record.get("sdY")
+        if not is_missing(sdY_value) and pd.isna(
+            pd.to_numeric(sdY_value, errors="coerce")
+        ):
+            errors.append(
+                f"sdY value {sdY_value} is invalid; provide NA, a number, or an existing file path."
+            )
 
-        print (f"Checking columns {col_names_to_scan} in file {gwas_path}.")
-        if all(col in gwas_col for col in col_names_to_scan):
-            continue
-        else:
-            print(f"Error: One of the columns defined in the input table are not present in file {gwas_path}.", file=sys.stderr)
-            return sys.exit(1)
+    try:
+        gwas_columns = pd.read_csv(
+            gwas_path,
+            compression="infer",
+            engine="python",
+            sep=None,
+            nrows=1,
+        ).columns
+    except Exception as error:
+        errors.append(f"Could not read GWAS file {gwas_path}: {error}")
+        return errors
+
+    labels = [
+        "pos_lab",
+        "rsid_lab",
+        "chr_lab",
+        "a0_lab",
+        "a1_lab",
+        "effect_lab",
+        "se_lab",
+        "freq_lab",
+        "n_lab",
+    ]
+    if str(record.get("is_molQTL", "")).upper() == "TRUE":
+        labels.append("key")
+
+    columns_to_check = [
+        record[label]
+        for label in labels
+        if label in record and not is_missing(record[label])
+    ]
+    missing_columns = sorted(set(columns_to_check) - set(gwas_columns))
+
+    print(f"Checking columns {columns_to_check} in file {gwas_path}.")
+    if missing_columns:
+        errors.append(
+            f"Columns {missing_columns} from the input table are not present in {gwas_path}."
+        )
+
+    return errors
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Validate all summary-statistics input rows.")
+    parser.add_argument("--manifest", required=True, help="JSON-lines manifest for all input rows")
+    args = parser.parse_args()
+
+    try:
+        with open(args.manifest, encoding="utf-8") as manifest_file:
+            records = [json.loads(line) for line in manifest_file if line.strip()]
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        return fail(f"Could not read validation manifest {args.manifest}: {error}")
+
+    # Each input file is staged into an indexed directory to avoid basename collisions.
+    gwas_files = sorted(glob.glob("gwas*/*"))
+    sdY_files = sorted(glob.glob("sdy*/*"))
+    if len(records) != len(gwas_files) or len(records) != len(sdY_files):
+        return fail(
+            "The number of manifest rows, staged GWAS files, and staged sdY files must match "
+            f"(rows={len(records)}, GWAS={len(gwas_files)}, sdY={len(sdY_files)})."
+        )
+
+    errors = []
+    for index, (entry, gwas_path, sdY_file) in enumerate(
+        zip(records, gwas_files, sdY_files), start=1
+    ):
+        record = entry["metadata"]
+        sdY_is_file = entry["sdY_is_file"]
+        print(f"Validating samplesheet row {index}.")
+        errors.extend(validate_one_row(gwas_path, sdY_file, sdY_is_file, record))
+
+    if errors:
+        for error in errors:
+            print(f"Error: {error}", file=sys.stderr)
+        return 1
+    return 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

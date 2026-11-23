@@ -6,6 +6,7 @@ process RDS_TO_ANNDATA {
 
   input:
     path(all_rds)
+    val(finemap_id)
   
   output:
     path "*.h5ad", emit: finemap_anndata
@@ -20,12 +21,12 @@ process RDS_TO_ANNDATA {
     s07_rds2anndata.R \
         ${args} \
         --input all_rds_input_list.txt \
-        --output_file ${params.finemap_id}_finemap_results.h5ad
+        --output_file ${finemap_id}_finemap_results.h5ad
     """
 
   stub:
     """
-    touch ${params.finemap_id}_finemap_results.h5ad
+    touch ${finemap_id}_finemap_results.h5ad
 
     """
 }

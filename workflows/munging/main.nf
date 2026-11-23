@@ -1,4 +1,5 @@
-include { MUNG_AND_LOCUS_BREAKER  }  from "../../modules/local/mung_and_locus_breaker"
+include { MUNG_AND_LOCUS_BREAKER             }  from "../../modules/local/mung_and_locus_breaker"
+include { PUBLISH_FILE as PUBLISH_LARGE_LOCI } from "../../modules/local/publish_file"
 
 workflow RUN_MUNGING {
 	take:
@@ -32,14 +33,16 @@ workflow RUN_MUNGING {
     .set { loci_for_finemapping }
 
 	// Large loci are collected in a file and published
-	loci_for_finemapping.large
+	large_loci_report = loci_for_finemapping.large
     .map{ study, locus ->
       [study.study_id, locus.chr, locus.start, locus.end, locus.locus_size, locus.phenotype_id].join('\t')
     }
     .collectFile(
       newLine: true, 
-      name: "NOT_FINEMAPPED_locus_too_large.tsv", storeDir: "${params.outdir}/results/finemapping_exceptions",
+      name: "NOT_FINEMAPPED_locus_too_large.tsv",
       seed: "study_id\tchr\tstart\tend\tlocus_size\tphenotype_id")
+
+  PUBLISH_LARGE_LOCI(large_loci_report, "${params.outdir}/results/finemapping_exceptions")
 
   emit:
     finemapped_loci = loci_for_finemapping.small

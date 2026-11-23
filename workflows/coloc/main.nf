@@ -1,6 +1,9 @@
-include { CONCAT_ANNDATA          } from "../../modules/local/concat_anndata"
-include { MAKE_COLOC_GUIDE_TABLE  } from "../../modules/local/make_coloc_guide_table"
-include { COLOC                   } from "../../modules/local/coloc"
+include { CONCAT_ANNDATA                    } from "../../modules/local/concat_anndata"
+include { MAKE_COLOC_GUIDE_TABLE            } from "../../modules/local/make_coloc_guide_table"
+include { COLOC                             } from "../../modules/local/coloc"
+include { PUBLISH_FILE as PUBLISH_COLOC_ALL } from "../../modules/local/publish_file"
+include { PUBLISH_FILE as PUBLISH_COLOC_H3  } from "../../modules/local/publish_file"
+include { PUBLISH_FILE as PUBLISH_COLOC_H4  } from "../../modules/local/publish_file"
 
 workflow RUN_COLOCALIZATION {
   take:
@@ -37,14 +40,15 @@ workflow RUN_COLOCALIZATION {
     coloc_input_ch = merged_h5ad.combine(coloc_pairs_by_batches)
 
     // Run COLOC process on coloc_pairs_by_batches channel
-    COLOC(coloc_input_ch)
+    COLOC(coloc_input_ch, params.coloc_id)
 
     // Collect all tables (coloc performed in batches of n pairwise tests)
     coloc_results_all = COLOC.out.colocalization_chunk
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.all.tsv",
-        storeDir: "${params.outdir}/results/coloc",
-        keepHeader: true, skip: 1)
+        keepHeader: true,skip: 1)
+
+    PUBLISH_COLOC_ALL(coloc_results_all, "${params.outdir}/results/coloc")
 
     // Split the coloc_results_all channel into two branches based on the pph4 and pph3 thresholds
     // The resulting subsets are also saved to tables
@@ -56,21 +60,22 @@ workflow RUN_COLOCALIZATION {
       }
       .set { coloc_results_subset }
 
-    coloc_results_subset.pph3
+    coloc_results_h3 = coloc_results_subset.pph3
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.H3.tsv",
-        storeDir: "${params.outdir}/results/coloc",
         newLine: true,
         seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\tt2_study_id\tt2\thit1\thit2"
         ) { it.values().toList().join('\t') }
     
-    coloc_results_subset.pph4
+    coloc_results_h4 = coloc_results_subset.pph4
       .collectFile(
         name: "${params.coloc_id}_colocalization.table.H4.tsv",
-        storeDir: "${params.outdir}/results/coloc",
         newLine: true,
         seed: "nsnps\tPP.H0.abf\tPP.H1.abf\tPP.H2.abf\tPP.H3.abf\tPP.H4.abf\tt1_study_id\tt1\tt2_study_id\tt2\thit1\thit2"
         ) { it.values().toList().join('\t') }
+
+    PUBLISH_COLOC_H3(coloc_results_h3, "${params.outdir}/results/coloc")
+    PUBLISH_COLOC_H4(coloc_results_h4, "${params.outdir}/results/coloc")
 
   emit:
     coloc_results_all = coloc_results_all
