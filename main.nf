@@ -1,13 +1,15 @@
-include { INPUT_COLUMNS_VALIDATION } from "./modules/local/input_columns_validation"
-include { RUN_MUNGING } from "./workflows/munging"
-include { RUN_FINEMAPPING } from "./workflows/finemap"
-include { RUN_COLOCALIZATION } from "./workflows/coloc"
-include { RUN_JOINT_FINEMAPPING } from "./workflows/joint_finemapping"
-include { PROCESS_BFILE } from "./modules/local/process_bfile"
-include { GET_STUDY_FROM_ANNDATA } from "./modules/local/get_study_from_anndata"
-include { completionSummary } from "./modules/local/pipeline_utils"
+include { INPUT_COLUMNS_VALIDATION                                } from "./modules/local/input_columns_validation"
+include { RUN_MUNGING                                             } from "./workflows/munging"
+include { RUN_FINEMAPPING                                         } from "./workflows/finemap"
+include { RUN_COLOCALIZATION                                      } from "./workflows/coloc"
+include { RUN_JOINT_FINEMAPPING                                   } from "./workflows/joint_finemapping"
+include { PROCESS_BFILE                                           } from "./modules/local/process_bfile"
+include { GET_STUDY_FROM_ANNDATA                                  } from "./modules/local/get_study_from_anndata"
+include { completionSummary                                       } from "./modules/local/pipeline_utils"
 include { validateParameters; paramsSummaryLog; samplesheetToList } from 'plugin/nf-schema'
-include { parseIntervals } from './lib/utils'
+include { parseIntervals                                          } from './lib/utils'
+include { PUBLISH_FILE as PUBLISH_PIPELINE_PARAMS                 } from "./modules/local/publish_file"
+include { PUBLISH_FILE as PUBLISH_H5AD_INPUTS                     } from "./modules/local/publish_file"
 
 // Internal default: DENTIST execution is currently unsupported.
 params.skip_dentist = true
@@ -325,22 +327,23 @@ workflow {
 
 	// At the end store params in yml and input files
 	file("${params.outdir}/pipeline_inputs").mkdirs()
-	Channel
+	pipeline_params_file = Channel
 		.fromList(params.entrySet())
 		.map { entry -> "${entry.key}: ${entry.value}" }
-		.collectFile(name: 'params.yml', storeDir: "${params.outdir}/pipeline_inputs", newLine: true)
-		
+		.collectFile(name: 'params.yml', newLine: true)
+
+	PUBLISH_PIPELINE_PARAMS(pipeline_params_file, "${params.outdir}/pipeline_inputs")
+
 		if (params.summarystats_input) {
 			file(params.summarystats_input).copyTo("${params.outdir}/pipeline_inputs/summarystats_input.tsv")
 		}
 		if (params.coloc_h5ad_input) {
-			Channel.fromPath(params.coloc_h5ad_input)
+			input_h5ad_paths_file = Channel.fromPath(params.coloc_h5ad_input)
 			.map { "$it" }
-			.collectFile(
-				newLine: true,
-				name: "input_h5ad_inputs.txt",
-				storeDir: "${params.outdir}/pipeline_inputs"
-			)
+			.collectFile(name: "input_h5ad_inputs.txt", newLine: true)
+		
+		PUBLISH_H5AD_INPUTS(input_h5ad_paths_file, "${params.outdir}/pipeline_inputs")
+
 		}
 
 	workflow.onComplete {
