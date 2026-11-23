@@ -63,6 +63,4 @@ workflow RUN_FINEMAPPING {
 
   emit:
     finemap_anndata = RDS_TO_ANNDATA.out.finemap_anndata
-    susie_results_rds = SUSIE_FINEMAPPING.out.susie_results_rds
-    coloc_master = APPEND_TO_MASTER_COLOC.out.coloc_master
 }
