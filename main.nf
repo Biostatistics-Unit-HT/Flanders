@@ -14,6 +14,9 @@ include { PUBLISH_FILE as PUBLISH_H5AD_INPUTS                     } from "./modu
 // Internal default: DENTIST execution is currently unsupported.
 params.skip_dentist = true
 
+// Internal default: DENTIST execution is currently unsupported.
+params.skip_dentist = true
+
 workflow {
 
 	// Joint finemapping requires performing colocalization.

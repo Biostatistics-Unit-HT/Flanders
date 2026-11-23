@@ -20,9 +20,6 @@ option_list <- list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-# setwd("/group/pirastu/prj_014_huvec_coloc/hcoloc/modules_nf/work/ce/5559aa4615b38a72d806cd64396eff")
-# opt <- list(annData="DIS_47_no_MDD_beta_fixed_2025_06_09.h5ad", pph4=0.75, partly_connected_module="partly_connected_modules_1819.tsv", method="hyprcoloc_susie")
-
 # Read in fine-mapping anndata
 ad <- zellkonverter::readH5AD(file = opt$annData, verbose = TRUE, reader = "R")
 

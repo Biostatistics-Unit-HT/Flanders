@@ -1,7 +1,6 @@
 process IDENTIFY_REG_MODULES {
   tag "${coloc_id}_identify_reg_modules"
   label "process_low"
-//  cache 'deep'
   
   input:
     path(coloc_results_all)
