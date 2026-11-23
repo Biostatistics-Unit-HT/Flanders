@@ -3,6 +3,8 @@ process COLOC_PERCOLATION {
 
   input:
     tuple path(annData), path(module_for_cp)
+    val(pph4_threshold)
+    val(module_refining_method)
   
   output:
     path "post_coloc_percolation_ex_*_modules.rds", emit: post_cp_module_rds
@@ -13,8 +15,8 @@ process COLOC_PERCOLATION {
     s11_coloc_percolation.R \
         ${args} \
         --annData ${annData} \
-        --pph4 ${params.pph4_threshold} \
+        --pph4 ${pph4_threshold} \
         --partly_connected_module ${module_for_cp} \
-        --method ${params.module_refining_method}
+        --method ${module_refining_method}
     """
 }

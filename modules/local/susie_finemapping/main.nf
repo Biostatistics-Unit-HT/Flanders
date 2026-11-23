@@ -2,12 +2,18 @@ process SUSIE_FINEMAPPING {
   tag "${meta_study_id.study_id}"
   label "process_high"
   
-  publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds", enabled: params.publish_susie
+  publishDir "${params.outdir}/results/finemap/", mode: params.publish_dir_mode, pattern:"*_susie_finemap.rds", enabled: { publish_susie }
 
   input:
     tuple val(meta_study_id), val(meta_finemapping), val(file_type), path(bfile_dataset), val(meta_loci), path(gwas_final), path(gwas_final_index)
-    val outdir
-  
+    val(outdir)
+    val(susie_max_iter)
+    val(susie_qc_cs_bf_thr)
+    val(susie_qc_pval_thr)
+    val(susie_qc_mean_r2_thr)
+    val(susie_qc_min_r2_thr)
+    val(publish_susie)
+
   output:
     path "*_susie_finemap.rds", optional:true, emit: susie_results_rds
     tuple val(meta_study_id), path ("*_cs_info_table.tsv"), optional:true, emit:susie_info_coloc_table
@@ -33,12 +39,12 @@ process SUSIE_FINEMAPPING {
         --bfile_type ${file_type} \
         --skip_dentist ${meta_finemapping.skip_dentist} \
         --cs_thresh ${meta_finemapping.cs_thresh} \
-        --susie_max_iter ${params.susie_max_iter}\
-        --susie_qc_cs_bf_thr ${params.susie_qc_cs_bf_thr}\
-        --susie_qc_pval_thr ${params.susie_qc_pval_thr}\
-        --susie_qc_mean_r2_thr ${params.susie_qc_mean_r2_thr}\
-        --susie_qc_min_r2_thr ${params.susie_qc_min_r2_thr}\
-        --publish_susie ${params.publish_susie}\
+        --susie_max_iter ${susie_max_iter}\
+        --susie_qc_cs_bf_thr ${susie_qc_cs_bf_thr}\
+        --susie_qc_pval_thr ${susie_qc_pval_thr}\
+        --susie_qc_mean_r2_thr ${susie_qc_mean_r2_thr}\
+        --susie_qc_min_r2_thr ${susie_qc_min_r2_thr}\
+        --publish_susie ${publish_susie}\
         --results_path ${outdir} \
         --study_id ${meta_study_id.study_id}
     """

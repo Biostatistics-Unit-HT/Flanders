@@ -15,7 +15,16 @@ workflow RUN_FINEMAPPING {
     .combine(munged_stats, by:0)
 
     // Run SUSIE_FINEMAPPING process on finemapping_input channel
-    SUSIE_FINEMAPPING(finemapping_input, outdir_abspath)
+    SUSIE_FINEMAPPING(
+      finemapping_input,
+      outdir_abspath,
+      params.susie_max_iter,
+      params.susie_qc_cs_bf_thr,
+      params.susie_qc_pval_thr,
+      params.susie_qc_mean_r2_thr,
+      params.susie_qc_min_r2_thr,
+      params.publish_susie
+    )
 
     // Concatenate all susie switched to L=1 and no credible sets found fine-mapping loci and publish it
     SUSIE_FINEMAPPING.out.finemapped_L1_prior_variance_too_large
@@ -59,7 +68,7 @@ workflow RUN_FINEMAPPING {
     all_rds = SUSIE_FINEMAPPING.out.susie_results_rds
       .collect()
       
-    RDS_TO_ANNDATA(all_rds)
+    RDS_TO_ANNDATA(all_rds, params.finemap_id)
 
   emit:
     finemap_anndata = RDS_TO_ANNDATA.out.finemap_anndata

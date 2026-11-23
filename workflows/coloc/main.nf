@@ -37,7 +37,7 @@ workflow RUN_COLOCALIZATION {
     coloc_input_ch = merged_h5ad.combine(coloc_pairs_by_batches)
 
     // Run COLOC process on coloc_pairs_by_batches channel
-    COLOC(coloc_input_ch)
+    COLOC(coloc_input_ch, params.coloc_id)
 
     // Collect all tables (coloc performed in batches of n pairwise tests)
     coloc_results_all = COLOC.out.colocalization_chunk

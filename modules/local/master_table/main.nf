@@ -6,9 +6,11 @@ process MASTER_TABLE {
     path(modules_fully_connected)
     // An empty list is valid when refinement produced no results.
     path(refinement_rds, stageAs: 'refinement/*')
+    val(chunk_size)
+    val(coloc_id)
 
   output:
-    path "${params.coloc_id}_master_table_chunk_*.tsv", emit: master_table_chunk
+    path "${coloc_id}_master_table_chunk_*.tsv", emit: master_table_chunk
 
   script:
   def args = task.ext.args ?: ''
@@ -21,7 +23,7 @@ process MASTER_TABLE {
         --annData ${annData} \
         --fully_connected_modules ${modules_fully_connected} \
         --post_cp_dir refinement \
-        --chunk_size ${params.chunk_size} \
-        --coloc_id ${params.coloc_id}
+        --chunk_size ${chunk_size} \
+        --coloc_id ${coloc_id}
     """
 }
