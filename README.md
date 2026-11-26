@@ -214,7 +214,11 @@ Module outputs require joint fine-mapping to be enabled.
 
 ## Convert Open Targets credible sets to AnnData
 
-Flanders’ modular design allows precomputed fine-mapping results to be used directly for colocalization and joint fine-mapping. Use `bin/parse_credible_sets_refined.py` to convert Open Targets study and credible-set parquet files in the AnnData format required by the pipeline.
+Flanders’ modular design allows precomputed fine-mapping results to be used directly for colocalization and joint fine-mapping.
+
+We provide ready-to-use AnnDatas for fine-mapped credible sets from the GWAS Catalog, UKB-PPP, FinnGen and GTEx dataset available on the Open Targets Platform, shared on Zenodo at the following link: [FLANDERS-ready AnnData files for Open Targets fine-mapped credible sets](https://zenodo.org/records/24537264).
+
+Use instead `bin/parse_credible_sets_refined.py` to convert Open Targets study and credible-set parquet files in the AnnData format required by the pipeline.
 
 | Argument | Value |
 |----------|-------|
